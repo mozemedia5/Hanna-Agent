@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentPlan, runAgentCore } from "./agentCore";
+import { buildAgentPlan, createDefaultToolRegistry, runAgentCore, runAgentLoop } from "./agentCore";
 
 describe("Hanna Agent Core", () => {
   it("plans document analysis and question generation without fabricating tool output", () => {
@@ -14,6 +14,29 @@ describe("Hanna Agent Core", () => {
     expect(result.plan.approvalRequired).toBe(true);
     expect(result.text).toContain("need your approval");
     expect(result.trace.find(item => item.stage === "decide")?.status).toBe("waiting");
+  });
+
+  it("discovers and executes tools added after registry creation", async () => {
+    const registry = createDefaultToolRegistry();
+    registry.register({
+      id: "mock.module.create",
+      label: "Create module",
+      description: "Create a learning module in the mock adapter.",
+      capabilities: ["education.module.create"],
+      requiresApproval: false,
+      scopes: ["education:write"],
+      execute: async args => ({ id: "module_123", title: args.title }),
+    });
+    const result = await runAgentLoop(
+      { userMessage: "Create a biology module", requestId: "test-request" },
+      async state => state.step === 0
+        ? { type: "tool_call", toolId: "mock.module.create", arguments: { title: "Biology" } }
+        : { type: "final", response: "Created the module." },
+      registry,
+    );
+    expect(registry.discover("education.module.create").map(tool => tool.id)).toContain("mock.module.create");
+    expect(result.status).toBe("completed");
+    expect(result.toolResults[0]?.data).toEqual({ id: "module_123", title: "Biology" });
   });
 
   it("returns a safe provider failure without claiming a tool ran", async () => {
