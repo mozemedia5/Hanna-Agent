@@ -38,7 +38,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { FormEvent, useEffect, useMemo, useState } from "react";
 
 type NavItem = { label: string; icon: typeof Activity; section?: string };
 
@@ -77,7 +77,21 @@ const recentProjects: ProjectItem[] = [
   { name: "Personal Knowledge", type: "Knowledge space", icon: Library, color: "peach", meta: "Updated 3 days ago" },
 ];
 
+type ProviderSummary = { provider: string };
+type WorkspaceProviderSettings = { defaultProvider?: string };
+export function getProviderKeyError(user: unknown, settings?: WorkspaceProviderSettings, providers?: ProviderSummary[]) {
+  if (!user || !settings || settings.defaultProvider === "automatic" || !providers) return null;
+  const selected = settings.defaultProvider;
+  if (!selected || providers.some(provider => provider.provider === selected)) return null;
+  return `Connect your ${selected} API key in Settings to send this request.`;
+}
+
+export function getProviderFailureError(text: string) {
+  return text.includes("Check its API key in Settings") ? text : null;
+}
+
 export default function Home() {
+  const { user } = useAuth();
   const [active, setActive] = useState("Home");
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
@@ -85,7 +99,10 @@ export default function Home() {
   const [dark, setDark] = useState(() => localStorage.getItem("hanna-theme") === "dark");
   useEffect(() => { localStorage.setItem("hanna-theme", dark ? "dark" : "light"); }, [dark]);
   const [route, setRoute] = useState({ model: "gemini-3-flash-preview", capability: "Multimodal reasoning" });
+  const [composerError, setComposerError] = useState<string | null>(null);
   const ask = trpc.hanna.ask.useMutation();
+  const { data: providers } = trpc.providers.list.useQuery(undefined, { enabled: !!user });
+  const { data: settings } = trpc.settings.get.useQuery(undefined, { enabled: !!user });
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -96,11 +113,19 @@ export default function Home() {
     e?.preventDefault();
     const value = prompt.trim();
     if (!value || isWorking) return;
+    setComposerError(null);
+    const keyError = getProviderKeyError(user, settings, providers);
+    if (keyError) {
+      setComposerError(keyError);
+      return;
+    }
     setPrompt("");
     setMessages(prev => [...prev, { role: "user", text: value }]);
     setIsWorking(true);
     try {
       const result = await ask.mutateAsync({ prompt: value, context: active === "Home" ? "Home command center" : active });
+      const providerError = getProviderFailureError(result.text);
+      if (providerError) setComposerError(providerError);
       setRoute({ model: result.model, capability: result.capability });
       setMessages(prev => [...prev, { role: "assistant", text: result.text }]);
     } catch {
@@ -145,13 +170,13 @@ export default function Home() {
           <div className="top-actions"><button className="icon-btn" aria-label="Search"><Search size={17} /></button><button className="icon-btn" onClick={() => setDark(!dark)} aria-label="Toggle theme">{dark ? <Sun size={17} /> : <Moon size={17} />}</button><button className="help-btn"><CircleHelp size={16} /> Help</button></div>
         </header>
 
-        {active === "Home" ? <Dashboard greeting={greeting} chooseAction={chooseAction} activeWork={activeWork} recentProjects={recentProjects} setActive={setActive} /> : <Workspace title={active} messages={messages} isWorking={isWorking} route={route} />}
+        {active === "Home" ? <Dashboard greeting={greeting} chooseAction={chooseAction} activeWork={activeWork} recentProjects={recentProjects} setActive={setActive} /> : <Workspace title={active} messages={messages} isWorking={isWorking} route={route} composerError={composerError} />}
 
         {messages.length > 0 && active !== "Hanna" && <div className="floating-chat"><button onClick={() => setActive("Hanna")}><Sparkles size={15} /> Open Hanna conversation <ArrowUpRight size={15} /></button></div>}
         <div className="mobile-nav">{primaryNav.slice(0, 4).map(item => <button key={item.label} className={active === item.label ? "mobile-nav-active" : ""} onClick={() => setActive(item.label)}><item.icon size={18} /><span>{item.label}</span></button>)}</div>
       </main>
 
-      {(active === "Home" || active === "Hanna") && <Composer prompt={prompt} setPrompt={setPrompt} submit={submit} isWorking={isWorking} />}
+      {(active === "Home" || active === "Hanna") && <Composer prompt={prompt} setPrompt={setPrompt} submit={submit} isWorking={isWorking} composerError={composerError} clearComposerError={() => setComposerError(null)} setActive={setActive} />}
     </div>
   );
 }
@@ -170,7 +195,7 @@ function Dashboard({ greeting, chooseAction, activeWork, recentProjects, setActi
   </div>
 }
 
-function Workspace({ title, messages, isWorking, route }: { title: string; messages: { role: "user" | "assistant"; text: string }[]; isWorking: boolean; route: { model: string; capability: string } }) {
+function Workspace({ title, messages, isWorking, route, composerError }: { title: string; messages: { role: "user" | "assistant"; text: string }[]; isWorking: boolean; route: { model: string; capability: string }; composerError: string | null }) {
   const [chatSearch, setChatSearch] = useState("");
   const [chatName, setChatName] = useState("New conversation");
   const [archived, setArchived] = useState(false);
@@ -180,7 +205,7 @@ function Workspace({ title, messages, isWorking, route }: { title: string; messa
   if (title === "AI Models") return <ModelsView />;
   if (title === "Activity") return <ActivityView />;
   if (["Projects", "Tasks", "Knowledge", "Files"].includes(title)) return <CollectionView title={title} description={description[title]} />;
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> HANNA WORKSPACE</p><h1>{title}</h1><p>{description[title] || "A focused workspace for your next outcome."}</p></div><button className="outline-btn"><Plus size={15} /> New {title === "Hanna" ? "conversation" : "item"}</button></div>{title === "Hanna" ? <><div className="chat-history-strip"><div className="history-title"><Inbox size={15} /><strong>Conversations</strong></div><input aria-label="Search conversations" placeholder="Search conversations" value={chatSearch} onChange={e => setChatSearch(e.target.value)} /><button className="history-action" onClick={() => { setChatName("New conversation"); setArchived(false); }}> <Plus size={14} /> New</button><button className="history-action" onClick={() => setChatName(chatName === "New conversation" ? "Untitled workspace chat" : "New conversation")}>Rename</button><button className="history-action" onClick={() => setArchived(!archived)}>{archived ? "Restore" : "Archive"}</button></div><div className="history-results">{["Research brief · Today", "Liverton website · Yesterday", "Document analysis · Monday"].filter(item => item.toLowerCase().includes(chatSearch.toLowerCase())).map(item => <button key={item} onClick={() => setChatName(item)} className={chatName === item ? "history-item history-selected" : "history-item"}>{item}<MoreHorizontal size={13} /></button>)}{archived && <span className="archived-label">Archived: {chatName}</span>}</div><div className="chat-layout"><div className="chat-column">{messages.length === 0 ? <div className="empty-chat"><div className="empty-orb"><Sparkles size={27} /></div><h2>What should we work on?</h2><p>Ask Hanna to research, analyze, create, code, or manage something for you.</p><div className="suggestion-row"><button>Research a topic</button><button>Analyze a document</button><button>Plan a project</button></div></div> : <div className="messages">{messages.map((message, index) => <div className={message.role === "user" ? "message user-message" : "message assistant-message"} key={`${message.role}-${index}`}><div className="message-avatar">{message.role === "user" ? "AM" : <Sparkles size={14} />}</div><div className="message-body"><span className="message-label">{message.role === "user" ? "You" : "Hanna"}</span>{message.role === "assistant" ? <><MarkdownMessage content={message.text} /><div className="message-actions"><button onClick={() => navigator.clipboard?.writeText(message.text)}>Copy</button><button onClick={() => localStorage.setItem("hanna-saved-output", message.text)}>Save output</button></div></> : <p>{message.text}</p>}</div></div>)}</div>}{isWorking && <div className="working-indicator"><div className="message-avatar"><Sparkles size={14} /></div><span>Hanna is working</span><i /><i /><i /></div>}</div><aside className="agent-panel"><div className="agent-panel-header"><div><p className="section-kicker">OPERATIONS</p><h3>Hanna is ready</h3></div><span className="ready-dot" /></div><div className="route-card"><div className="route-header"><BrainCircuit size={15} /><span>Automatic routing</span><span className="route-state">Active</span></div><strong>{route.model}</strong><p>Selected for {route.capability.toLowerCase()}</p></div><p className="section-kicker activity-label">CURRENT ACTIVITY</p>{["Understanding request", "Searching Knowledge", "Selecting model", "Waiting for your request"].map((step, i) => <div className="agent-step" key={step}><span className={i === 3 ? "step-dot pending" : "step-dot"}>{i < 3 ? <Check size={11} /> : null}</span><span>{step}</span></div>)}<div className="tool-card"><Github size={15} /><span>GitHub</span><small>Connected</small></div><div className="tool-card"><Globe2 size={15} /><span>Web search</span><small>Available</small></div><div className="approval-card"><div><strong>Approval gate</strong><p>Consequential actions pause for your review.</p></div><button onClick={() => setApproved(!approved)}>{approved ? "Approved" : "Review"}</button></div></aside></div></> : <div className="workspace-empty"><div className="empty-icon"><LayoutGrid size={22} /></div><h2>Build your {title.toLowerCase()} workspace</h2><p>{description[title]}</p><button className="primary-btn"><Plus size={15} /> Get started</button></div>}</div>
+  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> HANNA WORKSPACE</p><h1>{title}</h1><p>{description[title] || "A focused workspace for your next outcome."}</p></div><button className="outline-btn"><Plus size={15} /> New {title === "Hanna" ? "conversation" : "item"}</button></div>{title === "Hanna" ? <><div className="chat-history-strip"><div className="history-title"><Inbox size={15} /><strong>Conversations</strong></div><input aria-label="Search conversations" placeholder="Search conversations" value={chatSearch} onChange={e => setChatSearch(e.target.value)} /><button className="history-action" onClick={() => { setChatName("New conversation"); setArchived(false); }}> <Plus size={14} /> New</button><button className="history-action" onClick={() => setChatName(chatName === "New conversation" ? "Untitled workspace chat" : "New conversation")}>Rename</button><button className="history-action" onClick={() => setArchived(!archived)}>{archived ? "Restore" : "Archive"}</button></div><div className="history-results">{["Research brief · Today", "Liverton website · Yesterday", "Document analysis · Monday"].filter(item => item.toLowerCase().includes(chatSearch.toLowerCase())).map(item => <button key={item} onClick={() => setChatName(item)} className={chatName === item ? "history-item history-selected" : "history-item"}>{item}<MoreHorizontal size={13} /></button>)}{archived && <span className="archived-label">Archived: {chatName}</span>}</div><div className="chat-layout"><div className="chat-column">{messages.length === 0 ? <div className="empty-chat"><div className="empty-orb"><Sparkles size={27} /></div><h2>What should we work on?</h2><p>Ask Hanna to research, analyze, create, code, or manage something for you.</p><div className="suggestion-row"><button>Research a topic</button><button>Analyze a document</button><button>Plan a project</button></div></div> : <div className="messages">{messages.map((message, index) => <div className={message.role === "user" ? "message user-message" : "message assistant-message"} key={`${message.role}-${index}`}><div className="message-avatar">{message.role === "user" ? "AM" : <Sparkles size={14} />}</div><div className="message-body"><span className="message-label">{message.role === "user" ? "You" : "Hanna"}</span>{message.role === "assistant" ? <><MarkdownMessage content={message.text} /><div className="message-actions"><button onClick={() => navigator.clipboard?.writeText(message.text)}>Copy</button><button onClick={() => localStorage.setItem("hanna-saved-output", message.text)}>Save output</button></div></> : <p>{message.text}</p>}</div></div>)}</div>}{isWorking && <div className="working-indicator"><div className="message-avatar"><Sparkles size={14} /></div><span>Hanna is working</span><i /><i /><i /></div>}</div><aside className="agent-panel"><div className="agent-panel-header"><div><p className="section-kicker">OPERATIONS</p><h3>Hanna is ready</h3></div><span className="ready-dot" /></div><div className={composerError ? "route-card route-error" : "route-card"}><div className="route-header"><BrainCircuit size={15} /><span>{composerError ? "Routing error" : "Automatic routing"}</span><span className="route-state">{composerError ? "Warning" : "Active"}</span></div><strong>{composerError ? "Missing credential" : route.model}</strong><p>{composerError ? "Check provider settings" : `Selected for ${route.capability.toLowerCase()}`}</p></div><p className="section-kicker activity-label">CURRENT ACTIVITY</p>{["Understanding request", "Searching Knowledge", "Selecting model", "Waiting for your request"].map((step, i) => <div className="agent-step" key={step}><span className={i === 3 ? "step-dot pending" : "step-dot"}>{i < 3 ? <Check size={11} /> : null}</span><span>{step}</span></div>)}<div className="tool-card"><Github size={15} /><span>GitHub</span><small>Connected</small></div><div className="tool-card"><Globe2 size={15} /><span>Web search</span><small>Available</small></div><div className="approval-card"><div><strong>Approval gate</strong><p>Consequential actions pause for your review.</p></div><button onClick={() => setApproved(!approved)}>{approved ? "Approved" : "Review"}</button></div></aside></div></> : <div className="workspace-empty"><div className="empty-icon"><LayoutGrid size={22} /></div><h2>Build your {title.toLowerCase()} workspace</h2><p>{description[title]}</p><button className="primary-btn"><Plus size={15} /> Get started</button></div>}</div>
 }
 
 function SettingsView() {
@@ -231,7 +256,7 @@ function CollectionView({ title, description }: { title: string; description?: s
   return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> HANNA WORKSPACE</p><h1>{title}</h1><p>{description}</p></div><button className="outline-btn"><Plus size={15} /> New {title === "Files" ? "upload" : title === "Knowledge" ? "space" : title.slice(0, -1).toLowerCase()}</button></div><div className="collection-grid">{cards.map((card, index) => <button type="button" className="collection-card" key={card} onClick={() => setSelected(card)}><div className={`collection-icon c-${index}`}><Icon size={18} /></div><div><strong>{card}</strong><p>{title === "Files" ? "Ready · 2.4 MB" : title === "Tasks" ? "Working · 67% complete" : title === "Knowledge" ? "12 sources · Updated today" : "Workspace · Updated recently"}</p></div><ArrowUpRight size={15} className="muted" /></button>)}</div>{selected && <div className="deferred-dialog" role="dialog" aria-modal="true"><div className="deferred-dialog-card"><button className="icon-btn dialog-close" onClick={() => setSelected(null)} aria-label="Close"><X size={16} /></button><div className="empty-icon"><Icon size={20} /></div><h2>{selected}</h2><p>Hanna has this workspace ready. Detailed editing and connected data will be available in the next build.</p><button className="primary-btn" onClick={() => setSelected(null)}>Got it</button></div></div>}</div>;
 }
 
-function Composer({ prompt, setPrompt, submit, isWorking }: { prompt: string; setPrompt: (value: string) => void; submit: (e?: FormEvent) => void; isWorking: boolean }) {
+export function Composer({ prompt, setPrompt, submit, isWorking, composerError, clearComposerError, setActive }: { prompt: string; setPrompt: (value: string) => void; submit: (e?: FormEvent) => void; isWorking: boolean; composerError: string | null; clearComposerError: () => void; setActive: (value: string) => void }) {
   const [attachment, setAttachment] = useState<File | null>(null);
-  return <form className="composer-dock" onSubmit={submit}><div className="composer-inner"><div className="composer-input">{attachment && <div className="attachment-chip"><Paperclip size={12} /> {attachment.name}<button type="button" onClick={() => setAttachment(null)} aria-label="Remove attachment"><X size={12} /></button></div>}<textarea value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }} placeholder="Ask Hanna to research, build, analyze, create, automate or manage something..." rows={1} /><div className="composer-bottom"><div className="composer-left"><label className="attachment-button" aria-label="Attach a file"><Paperclip size={16} /><input type="file" hidden onChange={event => setAttachment(event.target.files?.[0] || null)} /></label><button type="button"><span className="model-dot" /> Auto <ChevronDown size={13} /></button><button type="button"><span className="context-dot" /> Personal <ChevronDown size={13} /></button></div><div className="composer-right"><span className="composer-hint">Enter to send</span><button className="send-button" type="submit" disabled={!prompt.trim() && !isWorking}>{isWorking ? <Square size={14} fill="currentColor" /> : <Send size={15} />}</button></div></div></div></div></form>
+  return <form className="composer-dock" onSubmit={submit}><div className="composer-inner"><div className="composer-input">{attachment && <div className="attachment-chip"><Paperclip size={12} /> {attachment.name}<button type="button" onClick={() => setAttachment(null)} aria-label="Remove attachment"><X size={12} /></button></div>}<textarea value={prompt} onChange={e => { setPrompt(e.target.value); if (composerError) clearComposerError(); }} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }} placeholder="Ask Hanna to research, build, analyze, create, automate or manage something..." rows={1} /><div className="composer-bottom"><div className="composer-left"><label className="attachment-button" aria-label="Attach a file"><Paperclip size={16} /><input type="file" hidden onChange={event => setAttachment(event.target.files?.[0] || null)} /></label><button type="button"><span className="model-dot" /> Auto <ChevronDown size={13} /></button><button type="button"><span className="context-dot" /> Personal <ChevronDown size={13} /></button></div><div className="composer-right">{composerError && <div className="composer-error-bubble"><Zap size={12} /> {composerError} <button type="button" onClick={() => setActive("Settings")}>Settings</button></div>}<span className="composer-hint">Enter to send</span><button aria-label="Send message" className={composerError ? "send-button send-warning" : "send-button"} type="submit" disabled={(!prompt.trim() && !isWorking) || !!composerError}>{isWorking ? <Square size={14} fill="currentColor" /> : <Send size={15} />}</button></div></div></div></div></form>
 }

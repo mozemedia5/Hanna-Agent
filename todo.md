@@ -70,3 +70,23 @@
 - [x] Add a deployment troubleshooting document describing the Vercel serverless entrypoint, required environment variables, and the supplied bundle-output diagnosis.
 - [x] Add tests for settings/provider save, disconnect, connection-test, and masked-key behavior.
 - [x] Add a lightweight test validating the Vercel serverless entrypoint wiring and rerun the full suite.
+
+# Chat API-key validation update
+
+- [x] Detect missing or invalid API-key/provider configuration before sending a chat request.
+- [x] Show an inline chat error with clear recovery guidance and a direct settings action.
+- [x] Add visual warning/disabled states to the composer and provider routing indicator.
+- [x] Add tests for missing-key and invalid-key error behavior.
+- [x] Run checks, save a checkpoint, and push the update to Hanna-Agent on GitHub.
+
+# Browser error repair
+
+- [x] Diagnose the attached browser error and locate the broken component prop/state contract.
+- [x] Repair the chat composer/API-key error state without removing secure backend provider handling.
+- [x] Add a regression test for the repaired error-state contract.
+- [x] Run TypeScript, tests, production build, and live preview verification.
+- [ ] Save a checkpoint and push the validated fix to Hanna-Agent on GitHub.
+- [x] Add a frontend regression test for the repaired Composer error-state contract, including visible error guidance, disabled send, settings action, and error clearing on input.
+- [x] Extract and test the actual pre-send missing-provider-key decision used by Home.submit.
+- [x] Extract and test the actual backend provider-failure response decision used by Home.submit.
+- [ ] Save a fresh checkpoint and push the validated chat API-key error fix to Hanna-Agent on GitHub.
