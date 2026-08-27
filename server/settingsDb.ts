@@ -1,17 +1,15 @@
-import { eq } from "drizzle-orm";
-import { workspaceSettings } from "../drizzle/schema";
-import { getDb } from "./db";
+type WorkspaceSettings = { userId: number; theme: "light" | "dark"; defaultProvider: string; autoRouting: boolean };
+const runtimeSettings = new Map<number, WorkspaceSettings>();
 
-export async function getWorkspaceSettings(userId: number) {
-  const db = await getDb();
-  if (!db) return { userId, theme: "light", defaultProvider: "automatic", autoRouting: true };
-  const rows = await db.select().from(workspaceSettings).where(eq(workspaceSettings.userId, userId)).limit(1);
-  return rows[0] ?? { userId, theme: "light", defaultProvider: "automatic", autoRouting: true };
+export async function getWorkspaceSettings(userId: number): Promise<WorkspaceSettings> {
+  return runtimeSettings.get(userId) ?? { userId, theme: "light", defaultProvider: "automatic", autoRouting: true };
 }
 
-export async function updateWorkspaceSettings(userId: number, values: { theme?: string; defaultProvider?: string; autoRouting?: boolean }) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  await db.insert(workspaceSettings).values({ userId, theme: values.theme ?? "light", defaultProvider: values.defaultProvider ?? "automatic", autoRouting: values.autoRouting ?? true }).onDuplicateKeyUpdate({ set: values });
-  return getWorkspaceSettings(userId);
+export async function updateWorkspaceSettings(userId: number, values: { theme?: "light" | "dark"; defaultProvider?: string; autoRouting?: boolean }) {
+  const current = await getWorkspaceSettings(userId);
+  const next = { ...current, ...values, userId };
+  runtimeSettings.set(userId, next);
+  return next;
 }
+
+/** Replace this store with Firebase Firestore when the custom backend is configured. */

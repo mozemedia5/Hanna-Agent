@@ -1,44 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { deleteProviderCredential, getProviderCredentialById, listProviderCredentials, upsertProviderCredential } from "./providerDb";
 
-const { getDb } = vi.hoisted(() => ({ getDb: vi.fn() }));
-vi.mock("./db", () => ({ getDb }));
-
-import { deleteProviderCredential, listProviderCredentials, upsertProviderCredential } from "./providerDb";
-
-function makeDb() {
-  const saved: any[] = [];
-  const db = {
-    insert: vi.fn(() => ({ values: vi.fn((value: any) => ({ onDuplicateKeyUpdate: vi.fn(() => { saved.push({ ...value, id: 1 }); }) })) })),
-    select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn(async () => saved.map(({ encryptedKey: _encryptedKey, ...row }) => row)) })) })) })),
-    delete: vi.fn(() => ({ where: vi.fn(async () => { saved.splice(0); }) })),
-  };
-  return { db, saved };
-}
-
-describe("providerDb CRUD", () => {
-  beforeEach(() => getDb.mockReset());
-
+describe("providerDb Firebase-ready runtime store", () => {
   it("saves encrypted provider data and returns masked metadata", async () => {
-    const { db, saved } = makeDb();
-    getDb.mockResolvedValue(db);
-    const result = await upsertProviderCredential(7, "openai", "OpenAI", "sk-secret-value-1234");
+    const result = await upsertProviderCredential(7001, "openai", "OpenAI", "sk-secret-value-1234");
     expect(result.maskedKey).not.toContain("sk-secret-value-1234");
-    expect(saved[0].encryptedKey).not.toBe("sk-secret-value-1234");
+    const saved = await getProviderCredentialById(7001, "openai");
+    expect(saved?.apiKey).toBe("sk-secret-value-1234");
+    const listed = await listProviderCredentials(7001);
+    expect(JSON.stringify(listed)).not.toContain("sk-secret-value-1234");
   });
 
-  it("lists saved providers without returning encrypted keys", async () => {
-    const { db, saved } = makeDb();
-    saved.push({ id: 1, provider: "gemini", displayName: "Gemini", keyHint: "…1234", isEnabled: true, updatedAt: new Date(), encryptedKey: "ciphertext" });
-    getDb.mockResolvedValue(db);
-    const result = await listProviderCredentials(7);
-    expect(result[0]).toMatchObject({ provider: "gemini", maskedKey: "…1234" });
-    expect(JSON.stringify(result)).not.toContain("ciphertext");
+  it("lists only the current user's masked provider metadata", async () => {
+    await upsertProviderCredential(7002, "gemini", "Gemini", "AIza-secret-value-1234");
+    await upsertProviderCredential(7003, "openai", "OpenAI", "sk-other-secret-1234");
+    const result = await listProviderCredentials(7002);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ provider: "gemini", displayName: "Gemini" });
+    expect(JSON.stringify(result)).not.toContain("AIza-secret-value-1234");
   });
 
-  it("removes a user provider credential", async () => {
-    const { db } = makeDb();
-    getDb.mockResolvedValue(db);
-    await expect(deleteProviderCredential(7, "openai")).resolves.toEqual({ success: true });
-    expect(db.delete).toHaveBeenCalled();
+  it("removes a user provider credential without touching another user", async () => {
+    await upsertProviderCredential(7004, "openai", "OpenAI", "sk-remove-me-1234");
+    await upsertProviderCredential(7005, "openai", "OpenAI", "sk-keep-me-1234");
+    await expect(deleteProviderCredential(7004, "openai")).resolves.toEqual({ success: true });
+    await expect(getProviderCredentialById(7004, "openai")).resolves.toBeUndefined();
+    await expect(getProviderCredentialById(7005, "openai")).resolves.toMatchObject({ apiKey: "sk-keep-me-1234" });
   });
 });

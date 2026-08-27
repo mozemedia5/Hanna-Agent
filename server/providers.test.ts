@@ -1,7 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("./db", () => ({ getDb: vi.fn().mockResolvedValue(null) }));
-
+import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 
 const caller = () => appRouter.createCaller({
@@ -10,11 +7,13 @@ const caller = () => appRouter.createCaller({
   res: {} as any,
 });
 
-describe("providers", () => {
-  it("exposes the supported provider catalog without secrets", async () => {
+describe("providers and integrations", () => {
+  it("exposes supported providers and integrations without secrets", async () => {
     const catalog = await appRouter.createCaller({ user: null, req: {} as any, res: {} as any }).providers.catalog();
-    expect(catalog.map(provider => provider.id)).toEqual(expect.arrayContaining(["gemini", "openai", "anthropic", "llama", "cloudinary", "jules", "stitch", "v0", "custom"]));
-    expect(JSON.stringify(catalog)).not.toContain("encryptedKey");
+    expect(catalog.map(provider => provider.id)).toEqual(expect.arrayContaining(["gemini", "openai", "anthropic", "llama", "mistral", "openrouter", "custom"]));
+    const integrations = await appRouter.createCaller({ user: null, req: {} as any, res: {} as any }).integrations.catalog();
+    expect(integrations.map(integration => integration.id)).toEqual(expect.arrayContaining(["shopify", "slack", "whatsapp", "tiktok", "instagram", "meta", "google-workspace", "gmail", "mcp-custom"]));
+    expect(JSON.stringify({ catalog, integrations })).not.toContain("encryptedKey");
   });
 
   it("returns a safe connection-test result when no credential is connected", async () => {
@@ -22,8 +21,9 @@ describe("providers", () => {
     expect(result).toEqual({ success: false, message: "Connect this provider first." });
   });
 
-  it("fails closed when a credential cannot be persisted without a database", async () => {
-    await expect(caller().providers.save({ provider: "openai", displayName: "OpenAI", apiKey: "sk-test-key-123456" })).rejects.toThrow("Database is not available");
-    await expect(caller().providers.remove({ provider: "openai" })).rejects.toThrow("Database is not available");
+  it("saves and removes a user-owned provider without database access", async () => {
+    const saved = await caller().providers.save({ provider: "openai", displayName: "OpenAI", apiKey: "sk-test-key-987654" });
+    expect(saved.maskedKey).not.toContain("sk-test-key-987654");
+    await expect(caller().providers.remove({ provider: "openai" })).resolves.toEqual({ success: true });
   });
 });

@@ -1,17 +1,8 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+/** Temporary auth compatibility record; replace with Firebase Auth during backend migration. */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -25,6 +16,7 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/** Preserved for migration safety; runtime credential storage is delegated to Firebase-ready adapters. */
 export const providerCredentials = mysqlTable("providerCredentials", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -39,10 +31,10 @@ export const providerCredentials = mysqlTable("providerCredentials", {
 }, table => ({
   userProviderUnique: uniqueIndex("providerCredentials_user_provider_idx").on(table.userId, table.provider),
 }));
-
 export type ProviderCredential = typeof providerCredentials.$inferSelect;
 export type InsertProviderCredential = typeof providerCredentials.$inferInsert;
 
+/** Preserved for migration safety; runtime settings storage is delegated to Firebase-ready adapters. */
 export const workspaceSettings = mysqlTable("workspaceSettings", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
@@ -52,5 +44,5 @@ export const workspaceSettings = mysqlTable("workspaceSettings", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type WorkspaceSettings = typeof workspaceSettings.$inferSelect;
+export type InsertWorkspaceSettings = typeof workspaceSettings.$inferInsert;

@@ -19,7 +19,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -65,11 +64,11 @@ export default function DashboardLayout({
               Sign in to continue
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Authentication is provided by your configured Firebase backend. Connect it to unlock this workspace.
             </p>
           </div>
           <Button
-            onClick={() => startLogin()}
+            onClick={() => window.dispatchEvent(new CustomEvent("hanna:auth-configure"))}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
