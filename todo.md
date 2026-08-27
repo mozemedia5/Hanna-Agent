@@ -1,0 +1,21 @@
+# Project TODO
+
+- [x] Create a premium responsive application shell with Hanna identity, online/working status, desktop sidebar, mobile navigation, and light/dark theme support.
+- [x] Build the Home command center with contextual greeting, Hanna command composer, quick actions, active work, recent projects, and recent activity.
+- [x] Build the Hanna workspace with readable conversation UI, operational activity panel, model-routing summary, tool execution cards, and composer controls.
+- [x] Add navigable workspace views for Projects, Tasks, Knowledge, Files, Apps & Integrations, AI Models, Marketing, Commerce, Automations, Developer, Activity, and Settings.
+- [x] Add interactive task/project/knowledge/file cards with progressive disclosure and clear placeholder states for future capabilities.
+- [x] Add server-side Hanna orchestration endpoint using Manus built-in LLM infrastructure without exposing credentials to the client.
+- [x] Add provider-agnostic model catalog/routing presentation for Gemini, OpenAI, Claude, and future providers.
+- [x] Add Vitest coverage for the Hanna server procedure and core routing behavior.
+- [x] Run tests and visually verify desktop and mobile layouts.
+- [ ] Save a project checkpoint and create/sync a private GitHub repository named Hanna-Agent.
+- [x] Make the Activity sidebar item actually navigate to an Activity workspace view and verify all listed sections are reachable.
+- [x] Implement real interactive cards for tasks, projects, knowledge, and files, with click behavior and clear placeholder/empty states where features are deferred.
+- [x] Add a visible AI Models and routing UI that presents Gemini, OpenAI, Claude, and future-provider slots, and reflect routing choices dynamically instead of hardcoding Gemini.
+- [x] Add Vitest tests for the hanna.ask tRPC/server procedure, including success and fallback/error behavior, alongside the routing tests.
+- [x] Wire CollectionView cards for Projects, Tasks, Knowledge, and Files to real click actions or navigation, with intentional deferred-state UX.
+- [x] Bind the Hanna workspace routing panel to live routing results so model and capability update dynamically.
+- [x] Add a Vitest case for hanna.ask covering an invokeLLM rejection and safe error behavior.
+- [x] Replace CollectionView alert handlers with real in-app deferred-state dialogs for Projects, Tasks, Knowledge, and Files.
+- [x] Add a caller().hanna.ask rejection test that verifies the safe error response from the actual tRPC procedure.
