@@ -1,0 +1,1 @@
+ALTER TABLE `providerCredentials` ADD `endpoint` varchar(255) DEFAULT '' NOT NULL;

@@ -29,7 +29,7 @@ describe("hanna.ask", () => {
 
   it("returns a safe error response when the provider rejects", async () => {
     const failingProvider = async () => { throw new Error("provider unavailable"); };
-    const result = await executeHannaRequest("Analyze this report", undefined, failingProvider as any);
+    const result = await executeHannaRequest("Analyze this report", undefined, undefined, failingProvider as any);
     expect(result.text).toContain("unable to reach");
     expect(result.model).toBe("gpt-5-mini");
   });

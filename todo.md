@@ -9,7 +9,7 @@
 - [x] Add provider-agnostic model catalog/routing presentation for Gemini, OpenAI, Claude, and future providers.
 - [x] Add Vitest coverage for the Hanna server procedure and core routing behavior.
 - [x] Run tests and visually verify desktop and mobile layouts.
-- [ ] Save a project checkpoint and create/sync a private GitHub repository named Hanna-Agent.
+- [x] Save a project checkpoint and create/sync a private GitHub repository named Hanna-Agent.
 - [x] Make the Activity sidebar item actually navigate to an Activity workspace view and verify all listed sections are reachable.
 - [x] Implement real interactive cards for tasks, projects, knowledge, and files, with click behavior and clear placeholder/empty states where features are deferred.
 - [x] Add a visible AI Models and routing UI that presents Gemini, OpenAI, Claude, and future-provider slots, and reflect routing choices dynamically instead of hardcoding Gemini.
@@ -19,3 +19,31 @@
 - [x] Add a Vitest case for hanna.ask covering an invokeLLM rejection and safe error behavior.
 - [x] Replace CollectionView alert handlers with real in-app deferred-state dialogs for Projects, Tasks, Knowledge, and Files.
 - [x] Add a caller().hanna.ask rejection test that verifies the safe error response from the actual tRPC procedure.
+
+# Upgrade TODO
+
+- [x] Upgrade Hanna chat to a richer ChatGPT-style workspace with conversation history, search, rename/archive affordances, markdown/code actions, and working composer controls.
+- [x] Add a polished dark theme with persisted theme preference and accessible contrast across all workspaces.
+- [x] Add user-managed provider/API key fields for Gemini, OpenAI, Anthropic, Llama, Cloudinary, Jules, Stitch, v0, and extensible custom providers.
+- [x] Store provider credentials only through backend procedures, encrypt at rest with server-side secrets, and return masked metadata to the client.
+- [x] Add backend provider abstraction so agents can route to Manus temporarily and later to user-owned providers without client-side API calls.
+- [x] Add functional agent tool controls, approval states, file/context attachment affordances, and provider connection tests.
+- [x] Add database schema, query helpers, and tRPC procedures for provider credentials and workspace settings.
+- [x] Add Vitest coverage for credential encryption/masking, provider CRUD, routing, and error paths.
+- [x] Verify desktop/mobile UX, run checks, save a checkpoint, and commit/push the upgrade to GitHub.
+
+# Final upgrade verification
+
+- [x] Add conversation history/search UI, rename/archive affordances, and message actions in Hanna chat.
+- [x] Add extensible custom provider entries beyond the fixed provider catalog.
+- [x] Implement tool controls, approval workflow, and provider connection testing.
+- [x] Add database-backed workspace settings schema, helpers, and procedures for theme/provider preferences.
+- [x] Add Vitest coverage for provider credential save/list/remove procedures.
+- [ ] Save a fresh post-upgrade checkpoint and create a new git commit/push reflecting the upgraded code.
+
+# Final quality pass
+
+- [x] Add message-level actions in Hanna chat such as copy, save, regenerate, or export.
+- [x] Implement a real custom-provider creation flow with user-defined metadata and endpoint fields.
+- [x] Add provider connection-test backend procedure and UI, and make tool cards trigger meaningful in-app actions.
+- [x] Add Vitest coverage for provider credential CRUD helper behavior.

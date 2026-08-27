@@ -8,6 +8,27 @@
       "when": 1787833756715,
       "tag": "0000_friendly_millenium_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1787836054598,
+      "tag": "0001_safe_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787836643990,
+      "tag": "0002_tense_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787836807632,
+      "tag": "0003_colorful_bloodaxe",
+      "breakpoints": true
     }
   ]
 }
