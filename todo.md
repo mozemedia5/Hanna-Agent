@@ -54,4 +54,19 @@
 - [x] Add syntax highlighting for fenced code blocks with language labels and readable dark code surfaces.
 - [x] Add one-click copy buttons to every generated code block with copied-state feedback.
 - [x] Add tests for Markdown/code rendering helpers and copy-action behavior where practical.
-- [ ] Run checks, save a new checkpoint, and push the changes to the Hanna-Agent GitHub repository.
+- [x] Run checks, save a new checkpoint, and push the changes to the Hanna-Agent GitHub repository.
+
+# Vercel and settings modal update
+
+- [x] Diagnose and document the Vercel deployment issue from the supplied output.
+- [x] Add a secure settings modal for user-owned API keys with save, disconnect, masking, and connection-test actions.
+- [x] Keep all provider calls and credential handling on the backend; never expose raw keys to browser or client bundles.
+- [x] Add Vercel-compatible serverless entrypoint/configuration without removing Manus infrastructure.
+- [x] Add/update tests for the settings flow and deployment-safe imports.
+- [x] Run checks, save a checkpoint, and push the update to Hanna-Agent on GitHub.
+
+# Vercel final verification
+
+- [x] Add a deployment troubleshooting document describing the Vercel serverless entrypoint, required environment variables, and the supplied bundle-output diagnosis.
+- [x] Add tests for settings/provider save, disconnect, connection-test, and masked-key behavior.
+- [x] Add a lightweight test validating the Vercel serverless entrypoint wiring and rerun the full suite.
