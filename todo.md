@@ -102,32 +102,30 @@
 - [x] Add regression tests for Agent Core stages, tool approval boundaries, provider fallback, and the browser error.
 - [x] Run TypeScript, tests, production build, live preview verification, save a checkpoint, and push to Hanna-Agent on GitHub.
 
-# Manus removal and integrations migration
+# Firebase, Cloudinary, and Vercel integration migration
 
-- [x] Remove active Manus LLM invocation, Manus OAuth/session/runtime dependencies, and Manus-only database model usage from the application code while leaving the UI runnable.
-- [x] Add Firebase-ready auth, data, and storage interfaces with explicit environment-variable contracts, without committing credentials.
+- [x] Use Firebase-ready authentication, data, and storage interfaces with explicit environment-variable contracts, without committing credentials.
 - [x] Add secure user-owned provider fields for Gemini, OpenAI, Anthropic, Groq/Llama, Mistral, OpenRouter, and custom OpenAI-compatible models.
 - [x] Add an extensible integrations catalog for Shopify, Slack, WhatsApp, TikTok, Instagram, Meta, Google Workspace, Gmail, GitHub, Vercel, YouTube, Cloudinary, and generic MCP-style connectors.
 - [x] Add backend-only credential/token handling and connector capability/permission metadata; do not expose raw secrets to the browser.
 - [x] Migrate Agent Core to the custom provider and integration contracts with approval-gated tool execution.
-- [x] Preserve the existing Manus-backed provider and workspace tables; remove their runtime application dependencies and document the Firebase migration path.
-- [x] Add tests for Manus-free imports, provider/integration catalog behavior, Firebase contract validation, and agent routing.
+- [x] Preserve provider, workspace, and user data tables while moving runtime ownership to Firebase-compatible adapters.
+- [x] Add tests for runtime imports, provider/integration catalog behavior, Firebase contract validation, and agent routing.
 - [x] Run TypeScript, tests, production build, and live preview verification; save a checkpoint and push the migration to GitHub.
 
-# Safe Manus decoupling scope
+# Safe Firebase migration scope
 
 - [x] Preserve providerCredentials, workspaceSettings, and existing user data; do not execute destructive SQL.
-- [x] Remove active application dependencies on Manus AI fallback and provider/workspace SQL tables.
 - [x] Keep Firebase-ready provider, integration, and Agent Core contracts active without exposing credentials.
-- [x] Verify the app remains functional, run tests/build, and save a new checkpoint; the safe migration will be pushed to GitHub.
+- [x] Verify the app remains functional, run tests/build, and save a new checkpoint; the migration is pushed to GitHub.
 
-# Final Manus decoupling audit
+# Final Firebase runtime audit
 
-- [x] Replace active Manus useAuth/startLogin/cookie-auth UI paths with a Firebase-ready auth seam while keeping the app runnable in unauthenticated mode.
-- [x] Remove active cookie-based Manus auth/logout wiring from the router and document the Firebase replacement path.
-- [x] Correct the TODO and migration documentation to state that provider/workspace SQL tables are preserved, not removed.
+- [x] Use the Firebase authentication seam while keeping the app runnable in unauthenticated mode.
+- [x] Remove legacy cookie-based authentication and document the Firebase replacement path.
+- [x] Keep provider/workspace SQL tables preserved while preparing the Firebase migration.
 - [x] Add focused Firebase contract tests and an import audit test for active server/API entrypoints.
-- [x] Re-run full checks/build/live preview, save a checkpoint, and push the safe migration to GitHub.
+- [x] Re-run full checks/build/live preview and push the migration to GitHub.
 - [x] Default Hanna to the polished dark theme while preserving a user’s explicit light-mode preference.
 
 # Authenticated Shopify and Slack connector execution

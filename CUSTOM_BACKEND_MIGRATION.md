@@ -1,10 +1,10 @@
-# Custom backend migration
+# Firebase backend migration
 
-Hanna no longer uses Manus LLM invocation or the Manus-backed provider/workspace SQL tables at runtime. Existing `users`, `providerCredentials`, and `workspaceSettings` tables are preserved and no destructive migration is applied. The current provider and settings helpers use a backend-only runtime store as a temporary bridge; replace those functions with Firebase Admin Auth, Firestore, and Cloud Storage adapters before production use.
+Hanna uses a provider-independent agent path and keeps provider/workspace SQL tables preserved for safe migration. The current provider and settings helpers use a backend-only runtime store as a temporary bridge; replace those functions with Firebase Admin Auth, Firestore, and Cloud Storage adapters before production use.
 
 The active agent path requires a user-owned provider key. Hanna routes requests through the provider adapter layer and returns a safe configuration message when no key is available. External writes are approval-gated by the Agent Core.
 
-The integrations catalog includes Shopify, Slack, WhatsApp Business, TikTok, Instagram, Meta Graph API, Google Workspace, Gmail, GitHub, Vercel, YouTube, Cloudinary, and generic MCP servers. Each definition declares credential fields, capabilities, and whether approval is required. Connector tokens must be stored and used server-side by the future Firebase adapter; never put them in `VITE_*` variables or browser code.
+The integrations catalog includes Shopify, Slack, WhatsApp Business, TikTok, Instagram, Meta Graph API, Google Workspace, Gmail, GitHub, Vercel, YouTube, Cloudinary, and generic MCP servers. Each definition declares credential fields, capabilities, and whether approval is required. Connector tokens must be stored and used server-side by the Firebase adapter; never put them in `VITE_*` variables or browser code.
 
 ## Required future environment contract
 

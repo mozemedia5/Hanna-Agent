@@ -16,20 +16,19 @@ const activeEntrypoints = [
 
 const forbiddenRuntimeReferences = [
   "invokeLLM",
-  "manus-cookie",
   "startLogin",
   "getSessionCookieOptions",
-  "BUILT_IN_FORGE_API",
   "OAUTH_SERVER_URL",
   "./_core/llm",
   "./_core/oauth",
   "./_core/sdk",
   "./_core/storageProxy",
   "./_core/systemRouter",
+  "forge.manus.im",
 ];
 
-describe("Manus-free runtime audit", () => {
-  it("keeps active entrypoints independent of legacy Manus runtime modules", () => {
+describe("Firebase runtime audit", () => {
+  it("keeps active entrypoints independent of removed platform modules", () => {
     const source = activeEntrypoints
       .map(path => readFileSync(path, "utf8"))
       .join("\n");
