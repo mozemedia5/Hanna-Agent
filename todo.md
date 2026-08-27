@@ -16,7 +16,7 @@
 - [x] Add Vitest tests for the hanna.ask tRPC/server procedure, including success and fallback/error behavior, alongside the routing tests.
 - [x] Wire CollectionView cards for Projects, Tasks, Knowledge, and Files to real click actions or navigation, with intentional deferred-state UX.
 - [x] Bind the Hanna workspace routing panel to live routing results so model and capability update dynamically.
-- [x] Add a Vitest case for hanna.ask covering an invokeLLM rejection and safe error behavior.
+- [x] Add a Vitest case for hanna.ask covering a provider adapter rejection and safe error behavior.
 - [x] Replace CollectionView alert handlers with real in-app deferred-state dialogs for Projects, Tasks, Knowledge, and Files.
 - [x] Add a caller().hanna.ask rejection test that verifies the safe error response from the actual tRPC procedure.
 

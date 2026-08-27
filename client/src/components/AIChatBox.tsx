@@ -17,7 +17,7 @@ export type Message = {
 export type AIChatBoxProps = {
   /**
    * Messages array to display in the chat.
-   * Should match the format used by invokeLLM on the server.
+   * Should match the format used by the configured provider adapter.
    */
   messages: Message[];
 
