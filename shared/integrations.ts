@@ -9,8 +9,8 @@ export type IntegrationDefinition = {
 };
 
 export const integrations: IntegrationDefinition[] = [
-  { id: "shopify", name: "Shopify", category: "commerce", credentialFields: ["accessToken", "storeDomain"], capabilities: ["catalog:read", "orders:read", "products:write"], requiresApproval: true },
-  { id: "slack", name: "Slack", category: "communication", credentialFields: ["botToken"], capabilities: ["messages:read", "messages:write", "channels:read"], requiresApproval: true },
+  { id: "shopify", name: "Shopify", category: "commerce", credentialFields: ["accessToken", "storeDomain"], capabilities: ["read_products", "write_products"], requiresApproval: true },
+  { id: "slack", name: "Slack", category: "communication", credentialFields: ["botToken"], capabilities: ["channels:read", "groups:read", "chat:write"], requiresApproval: true },
   { id: "whatsapp", name: "WhatsApp Business", category: "communication", credentialFields: ["accessToken", "phoneNumberId"], capabilities: ["messages:send", "templates:read"], requiresApproval: true },
   { id: "tiktok", name: "TikTok", category: "social", credentialFields: ["accessToken"], capabilities: ["profile:read", "content:publish"], requiresApproval: true },
   { id: "instagram", name: "Instagram", category: "social", credentialFields: ["accessToken", "businessAccountId"], capabilities: ["media:read", "content:publish", "insights:read"], requiresApproval: true },

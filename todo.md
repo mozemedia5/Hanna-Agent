@@ -129,3 +129,12 @@
 - [x] Add focused Firebase contract tests and an import audit test for active server/API entrypoints.
 - [x] Re-run full checks/build/live preview, save a checkpoint, and push the safe migration to GitHub.
 - [x] Default Hanna to the polished dark theme while preserving a user’s explicit light-mode preference.
+
+# Authenticated Shopify and Slack connector execution
+
+- [x] Add backend-only encrypted credential records and connector-specific authentication contracts for Shopify and Slack.
+- [x] Add typed Shopify and Slack action handlers with least-privilege scopes, approval requirements, and verification results.
+- [x] Add approval-gated tRPC procedures and UI controls for previewing, approving, executing, and verifying connector actions.
+- [x] Add tests proving tokens never reach client responses, unapproved writes never execute, and successful actions are verified.
+- [x] Document Shopify store connection requirements, Slack OAuth/token requirements, local setup, and Firebase migration notes.
+- [x] Run TypeScript, tests, build, live connector-flow verification, save a checkpoint, and push the changes to Hanna-Agent on GitHub.
