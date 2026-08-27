@@ -39,7 +39,7 @@
 - [x] Implement tool controls, approval workflow, and provider connection testing.
 - [x] Add database-backed workspace settings schema, helpers, and procedures for theme/provider preferences.
 - [x] Add Vitest coverage for provider credential save/list/remove procedures.
-- [ ] Save a fresh post-upgrade checkpoint and create a new git commit/push reflecting the upgraded code.
+- [x] Save a fresh post-upgrade checkpoint and create a new git commit/push reflecting the upgraded code.
 
 # Final quality pass
 
@@ -47,3 +47,11 @@
 - [x] Implement a real custom-provider creation flow with user-defined metadata and endpoint fields.
 - [x] Add provider connection-test backend procedure and UI, and make tool cards trigger meaningful in-app actions.
 - [x] Add Vitest coverage for provider credential CRUD helper behavior.
+
+# Chat rendering enhancement
+
+- [x] Add robust Markdown rendering for Hanna responses, including headings, lists, links, tables, blockquotes, and inline formatting.
+- [x] Add syntax highlighting for fenced code blocks with language labels and readable dark code surfaces.
+- [x] Add one-click copy buttons to every generated code block with copied-state feedback.
+- [x] Add tests for Markdown/code rendering helpers and copy-action behavior where practical.
+- [ ] Run checks, save a new checkpoint, and push the changes to the Hanna-Agent GitHub repository.
