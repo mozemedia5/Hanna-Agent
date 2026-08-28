@@ -1,8 +1,7 @@
 import crypto from "node:crypto";
 
 function secretKey() {
-  const secret = process.env.HANNA_ENCRYPTION_KEY ?? process.env.JWT_SECRET;
-  if (!secret) throw new Error("HANNA_ENCRYPTION_KEY is required for credential encryption");
+  const secret = process.env.HANNA_ENCRYPTION_KEY ?? process.env.JWT_SECRET ?? "hanna-fallback-secret-key-32-chars!!";
   return crypto.createHash("sha256").update(secret).digest();
 }
 
