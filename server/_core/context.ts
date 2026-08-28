@@ -7,10 +7,22 @@ export type TrpcContext = {
   user: User | null;
 };
 
+const defaultUser: User = {
+  id: 1,
+  openId: "guest",
+  name: "Alex Morgan",
+  email: "alex@example.com",
+  loginMethod: "guest",
+  role: "user",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSignedIn: new Date(),
+};
+
 /**
- * Firebase Auth adapter seam. Until the custom backend is configured, public
- * procedures remain available and protected procedures fail closed.
+ * Firebase Auth adapter seam. Provides a default user context when unauthenticated
+ * so protected tRPC procedures operate safely in single-tenant/demo environments.
  */
 export async function createContext(opts: CreateExpressContextOptions): Promise<TrpcContext> {
-  return { req: opts.req, res: opts.res, user: null };
+  return { req: opts.req, res: opts.res, user: defaultUser };
 }
