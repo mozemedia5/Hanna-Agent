@@ -10,9 +10,9 @@ const caller = () => appRouter.createCaller({
 describe("providers and integrations", () => {
   it("exposes supported providers and integrations without secrets", async () => {
     const catalog = await appRouter.createCaller({ user: null, req: {} as any, res: {} as any }).providers.catalog();
-    expect(catalog.map(provider => provider.id)).toEqual(expect.arrayContaining(["gemini", "openai", "anthropic", "llama", "mistral", "openrouter", "custom"]));
+    expect(catalog.map(provider => provider.id)).toEqual(expect.arrayContaining(["gemini", "openai", "anthropic", "llama", "mistral", "openrouter", "heygen", "synthesia", "elevenlabs", "custom"]));
     const integrations = await appRouter.createCaller({ user: null, req: {} as any, res: {} as any }).integrations.catalog();
-    expect(integrations.map(integration => integration.id)).toEqual(expect.arrayContaining(["shopify", "slack", "whatsapp", "tiktok", "instagram", "meta", "google-workspace", "gmail", "mcp-custom"]));
+    expect(integrations.map(integration => integration.id)).toEqual(expect.arrayContaining(["shopify", "cjdropshipping", "autods", "zendrop", "takeapp", "heygen", "synthesia", "elevenlabs", "tiktok", "instagram", "youtube", "pinterest", "linktree", "whatsapp", "slack", "github", "vercel", "google-workspace", "mcp-custom"]));
     expect(JSON.stringify({ catalog, integrations })).not.toContain("encryptedKey");
   });
 

@@ -1,27 +1,259 @@
-export type IntegrationCategory = "commerce" | "communication" | "social" | "workspace" | "developer" | "media" | "custom";
+export type IntegrationCategory =
+  | "commerce"
+  | "content_creation"
+  | "communication"
+  | "social"
+  | "workspace"
+  | "developer"
+  | "media"
+  | "custom_mcp";
+
+export type ConnectorId =
+  | "shopify"
+  | "cjdropshipping"
+  | "autods"
+  | "zendrop"
+  | "takeapp"
+  | "heygen"
+  | "synthesia"
+  | "elevenlabs"
+  | "jules"
+  | "stitch"
+  | "v0"
+  | "tiktok"
+  | "instagram"
+  | "youtube"
+  | "pinterest"
+  | "linktree"
+  | "whatsapp"
+  | "slack"
+  | "github"
+  | "vercel"
+  | "google-workspace"
+  | "mcp-custom";
+
 export type IntegrationDefinition = {
-  id: string;
+  id: ConnectorId;
   name: string;
   category: IntegrationCategory;
   credentialFields: string[];
   capabilities: string[];
   requiresApproval: boolean;
+  description: string;
+  supportsMcp?: boolean;
 };
 
 export const integrations: IntegrationDefinition[] = [
-  { id: "shopify", name: "Shopify", category: "commerce", credentialFields: ["accessToken", "storeDomain"], capabilities: ["read_products", "write_products"], requiresApproval: true },
-  { id: "slack", name: "Slack", category: "communication", credentialFields: ["botToken"], capabilities: ["channels:read", "groups:read", "chat:write"], requiresApproval: true },
-  { id: "whatsapp", name: "WhatsApp Business", category: "communication", credentialFields: ["accessToken", "phoneNumberId"], capabilities: ["messages:send", "templates:read"], requiresApproval: true },
-  { id: "tiktok", name: "TikTok", category: "social", credentialFields: ["accessToken"], capabilities: ["profile:read", "content:publish"], requiresApproval: true },
-  { id: "instagram", name: "Instagram", category: "social", credentialFields: ["accessToken", "businessAccountId"], capabilities: ["media:read", "content:publish", "insights:read"], requiresApproval: true },
-  { id: "meta", name: "Meta Graph API", category: "social", credentialFields: ["accessToken", "appId", "appSecret"], capabilities: ["pages:read", "ads:read", "content:publish"], requiresApproval: true },
-  { id: "google-workspace", name: "Google Workspace", category: "workspace", credentialFields: ["oauthRefreshToken"], capabilities: ["drive:read", "docs:read", "sheets:read", "calendar:read"], requiresApproval: true },
-  { id: "gmail", name: "Gmail", category: "workspace", credentialFields: ["oauthRefreshToken"], capabilities: ["email:read", "email:send"], requiresApproval: true },
-  { id: "github", name: "GitHub", category: "developer", credentialFields: ["personalAccessToken"], capabilities: ["repo:read", "issues:write", "pulls:write"], requiresApproval: true },
-  { id: "vercel", name: "Vercel", category: "developer", credentialFields: ["token"], capabilities: ["projects:read", "deployments:read", "deployments:create"], requiresApproval: true },
-  { id: "youtube", name: "YouTube", category: "media", credentialFields: ["oauthRefreshToken"], capabilities: ["videos:read", "videos:upload"], requiresApproval: true },
-  { id: "cloudinary", name: "Cloudinary", category: "media", credentialFields: ["cloudName", "apiKey", "apiSecret"], capabilities: ["assets:upload", "assets:transform"], requiresApproval: false },
-  { id: "mcp-custom", name: "Custom MCP server", category: "custom", credentialFields: ["serverUrl", "token"], capabilities: ["custom:tool"], requiresApproval: true },
+  // Commerce & Dropshipping
+  {
+    id: "shopify",
+    name: "Shopify",
+    category: "commerce",
+    credentialFields: ["accessToken", "storeDomain"],
+    capabilities: ["read_products", "write_products", "read_orders"],
+    requiresApproval: true,
+    description: "Connect your Shopify store to manage products, catalog, and orders.",
+  },
+  {
+    id: "cjdropshipping",
+    name: "CJ Dropshipping",
+    category: "commerce",
+    credentialFields: ["apiKey", "email"],
+    capabilities: ["search_products", "import_products", "sync_orders"],
+    requiresApproval: true,
+    description: "Automate product sourcing, inventory sync, and order fulfillment via CJ Dropshipping API.",
+  },
+  {
+    id: "autods",
+    name: "AutoDS",
+    category: "commerce",
+    credentialFields: ["apiKey", "storeId"],
+    capabilities: ["sync_inventory", "auto_order", "price_monitor"],
+    requiresApproval: true,
+    description: "Automate dropshipping product imports, price updates, and automated ordering.",
+  },
+  {
+    id: "zendrop",
+    name: "Zendrop",
+    category: "commerce",
+    credentialFields: ["apiKey"],
+    capabilities: ["catalog_search", "order_fulfill"],
+    requiresApproval: true,
+    description: "Fast US dropshipping fulfillment, custom branding, and automated order processing.",
+  },
+  {
+    id: "takeapp",
+    name: "Take.app",
+    category: "commerce",
+    credentialFields: ["apiKey", "storeSlug"],
+    capabilities: ["read_orders", "manage_catalog", "whatsapp_checkout"],
+    requiresApproval: true,
+    description: "WhatsApp-first store platform to manage storefront orders and instant checkout links.",
+  },
+
+  // Content Creation & AI Media
+  {
+    id: "heygen",
+    name: "HeyGen",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["generate_avatar_video", "translate_video", "list_avatars"],
+    requiresApproval: true,
+    description: "Generate studio-grade AI avatar videos, video translations, and custom digital humans.",
+  },
+  {
+    id: "synthesia",
+    name: "Synthesia",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["generate_video", "list_templates", "list_voices"],
+    requiresApproval: true,
+    description: "Create AI videos with lifelike avatars and natural text-to-speech voiceovers.",
+  },
+  {
+    id: "elevenlabs",
+    name: "ElevenLabs",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["text_to_speech", "voice_clone", "sound_effects"],
+    requiresApproval: false,
+    description: "Realistic AI speech generation, voice cloning, and audio content creation.",
+  },
+  {
+    id: "jules",
+    name: "Jules AI",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["agent_code_gen", "task_execution"],
+    requiresApproval: true,
+    description: "Autonomous AI software engineering agent integration.",
+  },
+  {
+    id: "stitch",
+    name: "Stitch AI",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["ui_design_gen", "component_export"],
+    requiresApproval: false,
+    description: "AI UI/UX design generation and design system component stitching.",
+  },
+  {
+    id: "v0",
+    name: "v0 by Vercel",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["generate_react_ui", "code_refactor"],
+    requiresApproval: false,
+    description: "Generative UI system powered by AI for React and Tailwind CSS components.",
+  },
+
+  // Social & Content Channels
+  {
+    id: "tiktok",
+    name: "TikTok",
+    category: "social",
+    credentialFields: ["accessToken"],
+    capabilities: ["profile:read", "content:publish", "analytics:read"],
+    requiresApproval: true,
+    description: "Publish short-form videos, analyze video performance, and manage creator profile.",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    category: "social",
+    credentialFields: ["accessToken", "businessAccountId"],
+    capabilities: ["media:read", "content:publish", "insights:read"],
+    requiresApproval: true,
+    description: "Publish Instagram Reels/Posts, reply to comments, and view engagement analytics.",
+  },
+  {
+    id: "youtube",
+    name: "YouTube",
+    category: "media",
+    credentialFields: ["oauthRefreshToken"],
+    capabilities: ["videos:read", "videos:upload", "shorts:publish"],
+    requiresApproval: true,
+    description: "Upload YouTube videos/Shorts, manage channel metadata, and view video analytics.",
+  },
+  {
+    id: "pinterest",
+    name: "Pinterest",
+    category: "social",
+    credentialFields: ["accessToken", "boardId"],
+    capabilities: ["pins:create", "boards:read", "analytics:read"],
+    requiresApproval: true,
+    description: "Publish visual Pins, manage moodboards, and track drive-to-store traffic.",
+  },
+  {
+    id: "linktree",
+    name: "Linktree",
+    category: "social",
+    credentialFields: ["apiKey"],
+    capabilities: ["links:read", "links:update", "analytics:read"],
+    requiresApproval: true,
+    description: "Update bio links, featured product URLs, and analyze link click-through rates.",
+  },
+
+  // Communication & Messaging
+  {
+    id: "whatsapp",
+    name: "WhatsApp Business",
+    category: "communication",
+    credentialFields: ["accessToken", "phoneNumberId"],
+    capabilities: ["messages:send", "templates:read", "broadcast:send"],
+    requiresApproval: true,
+    description: "Send automated WhatsApp order updates, support messages, and campaign broadcasts.",
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    category: "communication",
+    credentialFields: ["botToken"],
+    capabilities: ["channels:read", "groups:read", "chat:write"],
+    requiresApproval: true,
+    description: "Send team notifications, broadcast operational updates, and read channel messages.",
+  },
+
+  // Developer & Workspace
+  {
+    id: "github",
+    name: "GitHub",
+    category: "developer",
+    credentialFields: ["personalAccessToken"],
+    capabilities: ["repo:read", "issues:write", "pulls:write"],
+    requiresApproval: true,
+    description: "Manage repositories, create issues/pull requests, and trigger CI workflows.",
+  },
+  {
+    id: "vercel",
+    name: "Vercel",
+    category: "developer",
+    credentialFields: ["token"],
+    capabilities: ["projects:read", "deployments:read", "deployments:create"],
+    requiresApproval: true,
+    description: "Deploy frontend applications, monitor build logs, and manage domain settings.",
+  },
+  {
+    id: "google-workspace",
+    name: "Google Workspace",
+    category: "workspace",
+    credentialFields: ["oauthRefreshToken"],
+    capabilities: ["drive:read", "docs:read", "sheets:read", "calendar:read"],
+    requiresApproval: true,
+    description: "Access Google Docs, Sheets, Drive files, and Calendar schedule.",
+  },
+
+  // Custom MCP Server
+  {
+    id: "mcp-custom",
+    name: "Custom MCP Server",
+    category: "custom_mcp",
+    credentialFields: ["serverUrl", "token"],
+    capabilities: ["custom:tool", "mcp:discover"],
+    requiresApproval: true,
+    description: "Connect any custom app or service via Model Context Protocol (MCP) tool discovery.",
+    supportsMcp: true,
+  },
 ];
 
 export function getIntegration(id: string) {
