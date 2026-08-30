@@ -1,4 +1,5 @@
 import { routeHannaRequest, type HannaRoute } from "./hannaRouting";
+import type { IntegrationDefinition } from "@shared/integrations";
 
 export type AgentStage = "understand" | "plan" | "decide" | "execute" | "verify";
 export type RiskLevel = "low" | "medium" | "high" | "critical";
@@ -69,6 +70,53 @@ export class DynamicToolRegistry {
   discover(capability?: string): AgentTool[] {
     return this.list().filter(tool => tool.availability === "available" && (!capability || tool.capabilities?.includes(capability)));
   }
+}
+
+/** Converts an external Model Context Protocol (MCP) tool schema into a normalized AgentTool instance. */
+export function normalizeMcpTool(mcpTool: {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+  provider?: string;
+  category?: string;
+  requiresApproval?: boolean;
+}, executor?: (arguments_: Record<string, unknown>, context: ToolExecutionContext) => Promise<unknown>): AgentTool {
+  const toolId = `mcp.${mcpTool.provider ?? "custom"}.${mcpTool.name.replaceAll(/[^a-zA-Z0-9_.]/g, "_")}`;
+  return {
+    id: toolId,
+    label: mcpTool.name,
+    description: mcpTool.description ?? `MCP discovered tool: ${mcpTool.name}`,
+    category: mcpTool.category ?? "custom_mcp",
+    provider: mcpTool.provider ?? "mcp-custom",
+    capabilities: [`mcp:${mcpTool.name}`],
+    inputSchema: mcpTool.inputSchema ?? {},
+    requiresApproval: mcpTool.requiresApproval ?? true,
+    scopes: [`mcp:${mcpTool.name}`],
+    riskLevel: mcpTool.requiresApproval ? "high" : "medium",
+    availability: "available",
+    execute: executor ?? (async (args) => ({ mcpTool: mcpTool.name, executed: true, arguments: args })),
+  };
+}
+
+/** Converts an IntegrationDefinition into a normalized AgentTool instance for the registry. */
+export function normalizeIntegrationTool(
+  integration: IntegrationDefinition,
+  actionName: string,
+  executor?: (arguments_: Record<string, unknown>, context: ToolExecutionContext) => Promise<unknown>
+): AgentTool {
+  return {
+    id: `${integration.id}.${actionName}`,
+    label: `${integration.name} - ${actionName.replaceAll("_", " ")}`,
+    description: integration.description,
+    category: integration.category,
+    provider: integration.id,
+    capabilities: integration.capabilities,
+    requiresApproval: integration.requiresApproval,
+    scopes: integration.capabilities,
+    riskLevel: integration.requiresApproval ? "medium" : "low",
+    availability: "available",
+    execute: executor ?? (async (args) => ({ integration: integration.id, action: actionName, executed: true, arguments: args })),
+  };
 }
 
 export const createDefaultToolRegistry = (): DynamicToolRegistry => new DynamicToolRegistry(defaultTools);

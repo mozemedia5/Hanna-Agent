@@ -8,10 +8,13 @@ export const providerCatalog = [
   { id: "llama", name: "Llama / Groq", category: "AI model", placeholder: "gsk_..." },
   { id: "mistral", name: "Mistral", category: "AI model", placeholder: "mist-..." },
   { id: "openrouter", name: "OpenRouter", category: "AI router", placeholder: "sk-or-..." },
+  { id: "heygen", name: "HeyGen Video AI", category: "Content Creation", placeholder: "heygen_..." },
+  { id: "synthesia", name: "Synthesia AI", category: "Content Creation", placeholder: "synthesia_..." },
+  { id: "elevenlabs", name: "ElevenLabs Voice AI", category: "Content Creation", placeholder: "xi-..." },
   { id: "cloudinary", name: "Cloudinary", category: "Media", placeholder: "cloudinary://..." },
-  { id: "jules", name: "Jules", category: "Developer", placeholder: "jules_..." },
-  { id: "stitch", name: "Stitch", category: "Design", placeholder: "stitch_..." },
-  { id: "v0", name: "v0", category: "Developer", placeholder: "v0_..." },
+  { id: "jules", name: "Jules Agent", category: "Developer", placeholder: "jules_..." },
+  { id: "stitch", name: "Stitch UI", category: "Design", placeholder: "stitch_..." },
+  { id: "v0", name: "v0 Generator", category: "Developer", placeholder: "v0_..." },
   { id: "custom", name: "Custom provider", category: "OpenAI-compatible", placeholder: "Paste provider key..." },
 ] as const;
 

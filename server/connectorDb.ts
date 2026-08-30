@@ -1,15 +1,47 @@
 import crypto from "node:crypto";
 import { credentialHint, decryptCredential, encryptCredential } from "./credentialCrypto";
 
-export type ConnectorId = "shopify" | "slack";
+export type ConnectorId =
+  | "shopify"
+  | "cjdropshipping"
+  | "autods"
+  | "zendrop"
+  | "takeapp"
+  | "heygen"
+  | "synthesia"
+  | "elevenlabs"
+  | "jules"
+  | "stitch"
+  | "v0"
+  | "tiktok"
+  | "instagram"
+  | "youtube"
+  | "pinterest"
+  | "linktree"
+  | "whatsapp"
+  | "slack"
+  | "github"
+  | "vercel"
+  | "google-workspace"
+  | "mcp-custom";
+
 export type ConnectorValues = Record<string, string>;
 export type ConnectorCredential = { connector: ConnectorId; values: ConnectorValues };
 export type ConnectorSummary = { connector: ConnectorId; fields: Record<string, string>; updatedAt: Date };
+
 export type ConnectorAction =
   | { connector: "shopify"; action: "list_products"; parameters: { first?: number; query?: string } }
   | { connector: "shopify"; action: "update_product_title"; parameters: { productId: string; title: string } }
+  | { connector: "cjdropshipping"; action: "search_products"; parameters: { keyword: string } }
+  | { connector: "autods"; action: "sync_inventory"; parameters: { storeId?: string } }
+  | { connector: "takeapp"; action: "list_orders"; parameters: { storeSlug?: string } }
+  | { connector: "heygen"; action: "list_avatars"; parameters: {} }
+  | { connector: "tiktok"; action: "get_profile"; parameters: {} }
+  | { connector: "github"; action: "list_repos"; parameters: { username?: string } }
   | { connector: "slack"; action: "list_channels"; parameters: { limit?: number } }
-  | { connector: "slack"; action: "send_message"; parameters: { channel: string; text: string; threadTs?: string } };
+  | { connector: "slack"; action: "send_message"; parameters: { channel: string; text: string; threadTs?: string } }
+  | { connector: "mcp-custom"; action: "mcp_execute"; parameters: { toolName: string; arguments?: Record<string, unknown> } }
+  | { connector: ConnectorId; action: string; parameters: Record<string, unknown> };
 
 type StoredCredential = { encryptedValues: string; updatedAt: Date };
 type ApprovalRequest = { id: string; userId: number; action: ConnectorAction; status: "pending" | "approved" | "completed"; createdAt: Date; expiresAt: Date };
@@ -18,16 +50,18 @@ const credentials = new Map<string, StoredCredential>();
 const approvals = new Map<string, ApprovalRequest>();
 const keyFor = (userId: number, connector: ConnectorId) => `${userId}:${connector}`;
 
-const requiredFields: Record<ConnectorId, string[]> = {
-  shopify: ["storeDomain", "accessToken"],
-  slack: ["botToken"],
-};
-
 export async function saveConnectorCredential(userId: number, connector: ConnectorId, values: ConnectorValues) {
-  for (const field of requiredFields[connector]) {
-    if (!values[field]?.trim()) throw new Error(`${connector} requires ${field}`);
+  if (!values || Object.keys(values).length === 0) {
+    throw new Error(`${connector} requires at least one credential field`);
   }
-  const safeValues = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()]));
+  const safeValues = Object.fromEntries(
+    Object.entries(values)
+      .filter(([, val]) => typeof val === "string" && val.trim().length > 0)
+      .map(([key, value]) => [key, value.trim()])
+  );
+  if (Object.keys(safeValues).length === 0) {
+    throw new Error(`${connector} credential fields cannot be empty`);
+  }
   credentials.set(keyFor(userId, connector), { encryptedValues: encryptCredential(JSON.stringify(safeValues)), updatedAt: new Date() });
   return { connector, saved: true } as const;
 }
@@ -54,8 +88,8 @@ export async function deleteConnectorCredential(userId: number, connector: Conne
 }
 
 function validateAction(action: ConnectorAction) {
-  if (action.connector === "shopify" && action.action === "update_product_title" && (!action.parameters.productId?.trim() || !action.parameters.title?.trim())) throw new Error("Shopify product ID and title are required.");
-  if (action.connector === "slack" && action.action === "send_message" && (!action.parameters.channel?.trim() || !action.parameters.text?.trim())) throw new Error("Slack channel and message are required.");
+  if (action.connector === "shopify" && action.action === "update_product_title" && (!action.parameters.productId || !action.parameters.title)) throw new Error("Shopify product ID and title are required.");
+  if (action.connector === "slack" && action.action === "send_message" && (!action.parameters.channel || !action.parameters.text)) throw new Error("Slack channel and message are required.");
 }
 
 export function createApprovalRequest(userId: number, action: ConnectorAction) {

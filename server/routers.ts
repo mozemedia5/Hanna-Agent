@@ -25,7 +25,7 @@ export const appRouter = router({
   providers: router({
     catalog: publicProcedure.query(() => providerCatalog),
     list: protectedProcedure.query(({ ctx }) => listProviderCredentials(ctx.user.id)),
-    save: protectedProcedure.input(z.object({ provider: z.string().min(1), displayName: z.string().min(1).max(120), apiKey: z.string().min(8).max(4000), endpoint: z.string().url().max(255).optional() })).mutation(({ ctx, input }) => upsertProviderCredential(ctx.user.id, input.provider, input.displayName, input.apiKey, input.endpoint)),
+    save: protectedProcedure.input(z.object({ provider: z.string().min(1), displayName: z.string().min(1).max(120), apiKey: z.string().min(1).max(4000), endpoint: z.string().url().max(255).optional() })).mutation(({ ctx, input }) => upsertProviderCredential(ctx.user.id, input.provider, input.displayName, input.apiKey, input.endpoint)),
     remove: protectedProcedure.input(z.object({ provider: z.string().min(1) })).mutation(({ ctx, input }) => deleteProviderCredential(ctx.user.id, input.provider)),
     testConnection: protectedProcedure.input(z.object({ provider: z.string().min(1) })).mutation(async ({ ctx, input }) => {
       const credential = await getProviderCredentialById(ctx.user.id, input.provider);
@@ -41,9 +41,9 @@ export const appRouter = router({
   integrations: router({
     catalog: publicProcedure.query(() => integrations),
     listCredentials: protectedProcedure.query(({ ctx }) => listConnectorCredentials(ctx.user.id)),
-    saveCredential: protectedProcedure.input(z.object({ connector: z.enum(["shopify", "slack"]), values: z.record(z.string(), z.string().min(1).max(4000)) })).mutation(({ ctx, input }) => saveConnectorCredential(ctx.user.id, input.connector as ConnectorId, input.values)),
-    removeCredential: protectedProcedure.input(z.object({ connector: z.enum(["shopify", "slack"]) })).mutation(({ ctx, input }) => deleteConnectorCredential(ctx.user.id, input.connector)),
-    previewAction: protectedProcedure.input(z.object({ connector: z.enum(["shopify", "slack"]), action: z.enum(["list_products", "update_product_title", "list_channels", "send_message"]), parameters: z.record(z.string(), z.unknown()) })).mutation(({ ctx, input }) => createApprovalRequest(ctx.user.id, input as ConnectorAction)),
+    saveCredential: protectedProcedure.input(z.object({ connector: z.string().min(1), values: z.record(z.string(), z.string().min(1).max(4000)) })).mutation(({ ctx, input }) => saveConnectorCredential(ctx.user.id, input.connector as ConnectorId, input.values)),
+    removeCredential: protectedProcedure.input(z.object({ connector: z.string().min(1) })).mutation(({ ctx, input }) => deleteConnectorCredential(ctx.user.id, input.connector as ConnectorId)),
+    previewAction: protectedProcedure.input(z.object({ connector: z.string().min(1), action: z.string().min(1), parameters: z.record(z.string(), z.unknown()) })).mutation(({ ctx, input }) => createApprovalRequest(ctx.user.id, input as unknown as ConnectorAction)),
     approveAction: protectedProcedure.input(z.object({ approvalId: z.string().min(1) })).mutation(({ ctx, input }) => {
       const request = approveRequest(ctx.user.id, input.approvalId);
       if (!request) throw new Error("Approval request is missing, expired, or belongs to another user.");
