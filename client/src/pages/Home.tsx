@@ -13,6 +13,11 @@ import {
   ChevronDown,
   ChevronRight,
   CircleHelp,
+  KeyRound,
+  PlugZap,
+  Server,
+  ShieldCheck,
+  Webhook,
   Code2,
   Copy,
   FileText,
@@ -47,6 +52,7 @@ type ToolKey =
   | "Image Gen";
 
 type Panel = "artifacts" | "settings" | null;
+type SettingsSection = "overview" | "api-keys" | "connectors" | "mcps" | "workspace";
 
 type Message = {
   id: string;
@@ -188,6 +194,7 @@ export default function Home() {
   const [composer, setComposer] = useState("");
   const [selectedTools, setSelectedTools] = useState<ToolKey[]>([]);
   const [panel, setPanel] = useState<Panel>(null);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [model, setModel] = useState("Hanna Pro");
@@ -552,7 +559,7 @@ export default function Home() {
             <div className="context-title"><span className="context-kicker">Workspace</span><h2>{panel === "artifacts" ? "Artifacts" : "Settings"}</h2></div>
             <button className="icon-button" onClick={() => setPanel(null)} aria-label="Close panel"><X size={17} /></button>
           </div>
-          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} /> : <SettingsPanel theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
+          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} /> : <SettingsHub activeSection={settingsSection} onSectionChange={setSettingsSection} theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
         </aside>
       )}
 
@@ -588,13 +595,17 @@ function ArtifactsPanel({ onCopy }: { onCopy: () => void }) {
   );
 }
 
-function SettingsPanel({
+function SettingsHub({
+  activeSection,
+  onSectionChange,
   theme,
   onThemeToggle,
   connectedApps,
   onToggleApp,
   onToast,
 }: {
+  activeSection: SettingsSection;
+  onSectionChange: (section: SettingsSection) => void;
   theme: "light" | "dark";
   onThemeToggle: () => void;
   connectedApps: string[];
@@ -606,22 +617,49 @@ function SettingsPanel({
     { name: "Notion", description: "Search pages and save working notes", icon: BookOpen },
     { name: "Slack", description: "Find context across your team", icon: Zap },
   ];
+  const settingsNav: Array<{ id: SettingsSection; label: string; icon: typeof SlidersHorizontal }> = [
+    { id: "overview", label: "Overview", icon: SlidersHorizontal },
+    { id: "api-keys", label: "API keys", icon: KeyRound },
+    { id: "connectors", label: "Connectors", icon: PlugZap },
+    { id: "mcps", label: "MCP servers", icon: Server },
+    { id: "workspace", label: "Workspace", icon: ShieldCheck },
+  ];
   return (
     <div className="context-scroll custom-scroll settings-scroll">
-      <section className="settings-section">
+      <div className="settings-nav" role="tablist" aria-label="Settings sections">
+        {settingsNav.map(({ id, label, icon: Icon }) => <button key={id} className={activeSection === id ? "is-active" : ""} onClick={() => onSectionChange(id)} role="tab" aria-selected={activeSection === id}><Icon size={13} /><span>{label}</span></button>)}
+      </div>
+      {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section settings-overview-card">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Control center</span><h3>Everything in one place</h3></div><Webhook size={17} /></div>
+        <p className="settings-intro">Manage how Hanna connects to your models, apps, and tools. Secrets stay masked in the interface and are handled by your connected runtime.</p>
+        <div className="settings-category-list">
+          {[{ id: "api-keys" as const, icon: KeyRound, label: "Provider API keys", detail: "OpenAI, Anthropic, Gemini, Groq, custom" }, { id: "connectors" as const, icon: PlugZap, label: "Apps & connectors", detail: "Google Drive, Slack, Shopify, GitHub" }, { id: "mcps" as const, icon: Server, label: "MCP servers", detail: "Tools, endpoints, and permission scopes" }].map(({ id, icon: Icon, label, detail }) => <button key={id} className="settings-category" onClick={() => onSectionChange(id)}><span className="settings-category-icon"><Icon size={15} /></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={14} /></button>)}
+        </div>
+      </section>}
+      {(activeSection === "overview" || activeSection === "api-keys") && <section className="settings-section">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Provider access</span><h3>API keys</h3></div><KeyRound size={17} /></div>
+        <p className="settings-intro">Use your own provider keys for model routing. Hanna only shows connection status here; raw credentials never appear in the UI.</p>
+        <div className="credential-list">{[{ name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected" }, { name: "Anthropic", model: "Claude family", status: "Not connected" }, { name: "Google Gemini", model: "Gemini family", status: "Not connected" }, { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible" }].map(({ name, model, status }) => <div className="credential-row" key={name}><div className="credential-icon"><KeyRound size={13} /></div><div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div><button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button></div>)}</div>
+      </section>}
+      {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Appearance</span><h3>Make it yours</h3></div><SlidersHorizontal size={17} /></div>
         <div className="theme-setting"><div><strong>Theme</strong><span>{theme === "light" ? "Paper white and graphite" : "Charcoal and soft white"}</span></div><button className="theme-switch" onClick={onThemeToggle} aria-label="Toggle theme"><span className={theme === "dark" ? "is-dark" : ""} /></button></div>
         <div className="theme-options"><button className={theme === "light" ? "is-selected" : ""} onClick={() => theme === "dark" && onThemeToggle()}><Sun size={15} /> Light</button><button className={theme === "dark" ? "is-selected" : ""} onClick={() => theme === "light" && onThemeToggle()}><Moon size={15} /> Dark</button></div>
-      </section>
-      <section className="settings-section">
+      </section>}
+      {(activeSection === "overview" || activeSection === "connectors") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Apps & integrations</span><h3>Bring your work with you</h3></div><PanelRight size={17} /></div>
         <p className="settings-intro">Connect the places where your work already lives. Hanna will keep each connection visible and under your control.</p>
         <div className="integration-list">{apps.map(({ name, description, icon: Icon }) => { const isConnected = connectedApps.includes(name); return <div className="integration-row" key={name}><div className="integration-icon"><Icon size={16} /></div><div className="integration-copy"><strong>{name}</strong><span>{description}</span></div><button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>{isConnected ? <><Check size={13} /> Ready</> : "Connect"}</button></div>; })}</div>
-      </section>
-      <section className="settings-section compact-section">
+      </section>}
+      {(activeSection === "overview" || activeSection === "mcps") && <section className="settings-section">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Tool protocol</span><h3>MCP servers</h3></div><Server size={17} /></div>
+        <p className="settings-intro">Connect Model Context Protocol servers to give Hanna scoped tools. Each server remains visible with its endpoint and permission state.</p>
+        <div className="mcp-card"><div className="mcp-card-top"><div className="integration-icon"><Server size={15} /></div><div className="integration-copy"><strong>Custom MCP server</strong><span>Discover tools from a trusted endpoint</span></div><span className="mcp-status">Ready to connect</span></div><div className="mcp-endpoint"><Webhook size={13} /><span>https://your-server.example/mcp</span><button onClick={() => onToast("MCP endpoint setup is available in Settings")}>Configure</button></div></div>
+      </section>}
+      {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section compact-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> What's new</span><h3>Hanna, in focus</h3></div><CircleHelp size={17} /></div>
         <div className="release-note"><div className="release-number">02</div><div><strong>Artifacts live beside the conversation.</strong><p>Keep a generated direction, code snippet, or research surface close without leaving the thread.</p><button onClick={() => onToast("You are already looking at the latest Hanna workspace")}>Read release notes <ChevronRight size={14} /></button></div></div>
-      </section>
+      </section>}
       <div className="settings-footer">Hanna <span>•</span> Personal workspace <span>•</span> v0.2</div>
     </div>
   );

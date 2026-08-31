@@ -136,3 +136,11 @@
 - [x] Add tests proving tokens never reach client responses, unapproved writes never execute, and successful actions are verified.
 - [x] Document Shopify store connection requirements, Slack OAuth/token requirements, local setup, and Firebase migration notes.
 - [x] Run TypeScript, tests, build, live connector-flow verification, save a checkpoint, and push the changes to Hanna-Agent on GitHub.
+
+# Direct GitHub Settings Update
+
+- [x] Inspect the current Hanna-Agent frontend Settings and connection-management contracts.
+- [x] Add a unified Settings area for app integrations, connectors, API keys, MCPs, and related connection controls.
+- [x] Preserve existing backend/server implementation and existing test contracts unless frontend wiring requires a compatible change.
+- [x] Run type checks, tests, and production build against Hanna-Agent.
+- [x] Commit and push the verified changes to the Hanna-Agent GitHub repository.
