@@ -10,11 +10,12 @@ import { approveRequest, completeRequest, createApprovalRequest, deleteConnector
 
 export async function executeHannaRequest(prompt: string, context?: string, userId?: number) {
   return runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
-    if (!userId) throw new Error("No authenticated provider owner");
-    const personalProvider = await getProviderCredentialForRequest(userId, prompt);
-    if (!personalProvider) throw new Error("No user-owned provider configured");
-    const text = await invokeUserProvider({ ...personalProvider, prompt: `${plan.steps.join("\n") }\n\n${prompt}`, context: requestContext });
-    return { text, model: `${personalProvider.provider} · ${personalProvider.model}` };
+    const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt) : undefined;
+    const apiKey = personalProvider?.apiKey || process.env.HANNA_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) throw new Error("Hanna’s default Gemini key is not configured yet.");
+    const provider = personalProvider ?? { provider: "gemini", apiKey, model: process.env.HANNA_GEMINI_MODEL || process.env.GEMINI_MODEL || "gemini-3.7-flash", endpoint: "" };
+    const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n") }\n\n${prompt}`, context: requestContext });
+    return { text, model: `${provider.provider} · ${provider.model}` };
   });
 }
 

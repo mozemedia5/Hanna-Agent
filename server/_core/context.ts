@@ -1,5 +1,6 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
+import { verifyFirebaseToken } from "../firebaseAuth";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -7,22 +8,18 @@ export type TrpcContext = {
   user: User | null;
 };
 
-const defaultUser: User = {
-  id: 1,
-  openId: "guest",
-  name: "Alex Morgan",
-  email: "alex@example.com",
-  loginMethod: "guest",
-  role: "user",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  lastSignedIn: new Date(),
-};
-
-/**
- * Firebase Auth adapter seam. Provides a default user context when unauthenticated
- * so protected tRPC procedures operate safely in single-tenant/demo environments.
- */
 export async function createContext(opts: CreateExpressContextOptions): Promise<TrpcContext> {
-  return { req: opts.req, res: opts.res, user: defaultUser };
+  const header = opts.req.headers.authorization;
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
+  const decoded = token ? await verifyFirebaseToken(token) : null;
+  const user = decoded ? {
+    id: Math.abs(decoded.uid.split("").reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0)) || 1,
+    openId: decoded.uid,
+    name: decoded.name ?? decoded.email ?? "Hanna user",
+    email: decoded.email ?? null,
+    loginMethod: decoded.firebase?.sign_in_provider ?? "firebase",
+    role: "user" as const,
+    createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
+  } : null;
+  return { req: opts.req, res: opts.res, user };
 }

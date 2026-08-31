@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import { getFirebaseIdToken } from "./_core/hooks/useAuth";
 
 const queryClient = new QueryClient();
 const trpcClient = trpc.createClient({
@@ -12,8 +13,9 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-      fetch(input, init) {
-        return globalThis.fetch(input, { ...(init ?? {}), credentials: "include" });
+      async fetch(input, init) {
+        const token = await getFirebaseIdToken();
+        return globalThis.fetch(input, { ...(init ?? {}), credentials: "include", headers: { ...(init?.headers ?? {}), ...(token ? { authorization: `Bearer ${token}` } : {}) } });
       },
     }),
   ],

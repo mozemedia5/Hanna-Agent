@@ -42,6 +42,8 @@ import {
   Zap,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
+import type { User } from "firebase/auth";
 
 type ToolKey =
   | "Web Search"
@@ -77,80 +79,8 @@ const toolConfigs: Array<{ label: ToolKey; icon: typeof Globe2; hint: string }> 
   { label: "Image Gen", icon: Sparkles, hint: "Create a visual" },
 ];
 
-const seedChats: Chat[] = [
-  {
-    id: 0,
-    title: "Website redesign ideas",
-    period: "Today",
-    messages: [
-      {
-        id: "0-1",
-        role: "user",
-        content: "I want a calmer AI workspace that still feels capable. What should the redesign prioritize?",
-        time: "10:42",
-      },
-      {
-        id: "0-2",
-        role: "assistant",
-        content:
-          "Start with a quiet command center: a persistent chat rail, a readable conversation column, and a contextual panel for artifacts or settings. Keep actions close, but let the work remain the visual anchor.\n\nFor Hanna, I would make the system feel authored through hairline dividers, an ink-black action color, and a strong typographic rhythm instead of gradients or decorative noise.",
-        time: "10:43",
-      },
-    ],
-  },
-  {
-    id: 1,
-    title: "Python debugging help",
-    period: "Today",
-    messages: [
-      { id: "1-1", role: "user", content: "Why is my list comprehension returning an empty list?", time: "09:18" },
-      {
-        id: "1-2",
-        role: "assistant",
-        content: "Let’s trace the filter first. An empty result usually means the predicate never evaluates to true, or the source iterable has already been consumed.",
-        time: "09:19",
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Deep research on quantum",
-    period: "Yesterday",
-    messages: [
-      { id: "2-1", role: "user", content: "Explain quantum error correction without assuming a physics degree.", time: "16:04" },
-      {
-        id: "2-2",
-        role: "assistant",
-        content: "Think of it as protecting a fragile message by spreading its information across a carefully designed pattern, so a small amount of noise can be detected and corrected.",
-        time: "16:06",
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "Image generation prompt",
-    period: "Yesterday",
-    messages: [{ id: "3-1", role: "user", content: "Make a restrained, editorial prompt for a monochrome city study.", time: "13:27" }],
-  },
-  {
-    id: 4,
-    title: "Study plan for ML",
-    period: "Previous 7 days",
-    messages: [{ id: "4-1", role: "user", content: "Help me build a six-week plan for machine learning fundamentals.", time: "Mon" }],
-  },
-  {
-    id: 5,
-    title: "Voice memo transcript",
-    period: "Previous 7 days",
-    messages: [{ id: "5-1", role: "user", content: "Turn this meeting memo into a short decision log.", time: "Sun" }],
-  },
-];
+const seedChats: Chat[] = [{ id: 0, title: "New conversation", period: "Today", messages: [] }];
 
-const assistantReplies = [
-  "I’ve shaped that into a clear next step. The useful move is to keep the surface quiet and let the structure do the work.",
-  "Here’s a practical way to approach it: define the outcome first, then choose the smallest tool that helps you reach it.",
-  "That sounds like a good place to focus. I’d keep the hierarchy explicit so the important detail is easy to find later.",
-];
 
 function HannaMark({ small = false }: { small?: boolean }) {
   return (
@@ -188,7 +118,7 @@ function ToolChip({
   );
 }
 
-export default function Home() {
+export default function Home({ user, onLogout }: { user?: User | null; onLogout?: () => Promise<void> }) {
   const [chats, setChats] = useState<Chat[]>(seedChats);
   const [activeChatId, setActiveChatId] = useState(0);
   const [composer, setComposer] = useState("");
@@ -252,47 +182,25 @@ export default function Home() {
     if (window.innerWidth < 860) setSidebarOpen(false);
   };
 
-  const submitMessage = () => {
+  const submitMessage = async () => {
     const text = composer.trim();
     if (!text || isThinking) return;
     const chatId = activeChatId;
-    const userMessage: Message = {
-      id: `${chatId}-${Date.now()}`,
-      role: "user",
-      content: text,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setChats((current) =>
-      current.map((chat) =>
-        chat.id === chatId
-          ? { ...chat, title: chat.messages.length === 0 ? text.slice(0, 32) : chat.title, messages: [...chat.messages, userMessage] }
-          : chat,
-      ),
-    );
-    setComposer("");
-    setIsThinking(true);
-    window.setTimeout(() => {
-      const reply = assistantReplies[Math.floor(Math.random() * assistantReplies.length)];
-      setChats((current) =>
-        current.map((chat) =>
-          chat.id === chatId
-            ? {
-                ...chat,
-                messages: [
-                  ...chat.messages,
-                  {
-                    id: `${chatId}-assistant-${Date.now()}`,
-                    role: "assistant",
-                    content: reply,
-                    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                  },
-                ],
-              }
-            : chat,
-        ),
-      );
-      setIsThinking(false);
-    }, 720);
+    const userMessage: Message = { id: `${chatId}-${Date.now()}`, role: "user", content: text, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+    setChats((current) => current.map((chat) => chat.id === chatId ? { ...chat, title: chat.messages.length === 0 ? text.slice(0, 32) : chat.title, messages: [...chat.messages, userMessage] } : chat));
+    setComposer(""); setIsThinking(true);
+    try {
+      const token = await getFirebaseIdToken();
+      const response = await fetch("/api/trpc/hanna.ask?batch=1", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ 0: { json: { prompt: text } } }) });
+      const payload = await response.json() as Array<{ result?: { data?: { json?: { answer?: string }; answer?: string } } }>;
+      if (!response.ok) throw new Error("Hanna could not complete that request.");
+      const data = payload[0]?.result?.data;
+      const reply = data && "json" in data ? (data.json?.answer || (data.json as unknown as { text?: string })?.text) : data?.answer || (data as unknown as { text?: string })?.text;
+      if (!reply) throw new Error("Hanna returned an empty response.");
+      setChats((current) => current.map((chat) => chat.id === chatId ? { ...chat, messages: [...chat.messages, { id: `${chatId}-assistant-${Date.now()}`, role: "assistant", content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }] } : chat));
+    } catch (reason) {
+      setChats((current) => current.map((chat) => chat.id === chatId ? { ...chat, messages: [...chat.messages, { id: `${chatId}-error-${Date.now()}`, role: "assistant", content: reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }] } : chat));
+    } finally { setIsThinking(false); }
   };
 
   const handleComposerKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -388,12 +296,9 @@ export default function Home() {
             <span>{theme === "light" ? "Dark theme" : "Light theme"}</span>
           </button>
           <div className="account-row">
-            <div className="avatar">U</div>
-            <div className="account-copy">
-              <span className="account-name">You</span>
-              <span className="account-plan">Personal workspace</span>
-            </div>
-            <MoreHorizontal size={16} className="muted-icon" />
+            <div className="avatar">{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</div>
+            <div className="account-copy"><span className="account-name">{user?.displayName || user?.email || "You"}</span><span className="account-plan">Personal workspace</span></div>
+            <button className="icon-button" onClick={() => onLogout?.()} aria-label="Sign out"><MoreHorizontal size={16} className="muted-icon" /></button>
           </div>
         </div>
       </aside>
@@ -438,7 +343,7 @@ export default function Home() {
             <button className="header-settings-button" onClick={() => togglePanel("settings")} aria-label="Open settings">
               <Settings size={17} />
             </button>
-            <div className="header-avatar">U</div>
+            <div className="header-avatar">{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</div>
           </div>
         </header>
 

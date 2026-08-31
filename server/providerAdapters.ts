@@ -17,7 +17,7 @@ export async function invokeUserProvider(request: ProviderRequest): Promise<stri
     return data.content?.find(item => item.type === "text")?.text ?? "I’m ready to help. Could you rephrase that request?";
   }
   if (request.provider === "gemini") {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(request.apiKey)}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(request.model || "gemini-3.7-flash")}:generateContent?key=${encodeURIComponent(request.apiKey)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ systemInstruction: { parts: [{ text: "You are Hanna, a concise agentic AI workspace orchestrator. Never reveal private chain-of-thought. Answer clearly in Markdown." }] }, contents: [{ role: "user", parts: [{ text: message }] }] }),
