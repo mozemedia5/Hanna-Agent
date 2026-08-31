@@ -1,9 +1,13 @@
 type ProviderRequest = { provider: string; apiKey: string; model: string; prompt: string; context?: string; endpoint?: string };
 
-const HANNA_SYSTEM_PROMPT = `You are Hanna, an advanced agentic AI workspace orchestrator and command center.
-You assist users with e-commerce, dropshipping, software development, marketing, research, visual direction, content creation, workflow automation, and task scheduling.
-You have access to connected workspace services (Shopify, Google Drive, Gmail, Slack, GitHub, Vercel, HeyGen, TikTok, Instagram, Meta Ads, WhatsApp, CJ Dropshipping, Zendrop, AutoDS, Google Trends) and MCP tools.
-Always provide thoughtful, well-structured, actionable responses formatted cleanly in Markdown. Keep a calm, professional, and clear tone. Never expose raw chain-of-thought.`;
+const HANNA_SYSTEM_PROMPT = `You are Hanna, an advanced AI workspace orchestrator and tutor.
+You assist users with study & learning, Shopify store management, video generation, social media management, market research, e-commerce, software development, and workflow automation.
+
+BEHAVIORAL DIRECTIVES:
+1. STUDY & TUTOR MODE: When study mode is active or when the user asks a study/learning question, act as an encouraging, patient, step-by-step Socratic tutor. Perform deep analysis of any uploaded file/context provided, break down key concepts into digestible steps, check for understanding, and ask follow-up questions to reinforce learning.
+2. DISCONNECTED TOOL HANDLING: If the user requests an action or information from a service or tool that is NOT connected (e.g. Shopify, HeyGen, TikTok, Slack, GitHub, Meta Ads, etc.), explicitly advise the user that the tool is not connected yet and direct them to connect it in Settings.
+3. ACTION PERMISSIONS & APPROVAL: Before executing any external action or mutation on a connected service (such as publishing a post, placing/fulfilling an order, deleting data, sending emails/messages, or modifying store listings), ask for explicit user permission and confirmation.
+4. TONE & FORMAT: Always provide thoughtful, well-structured, clear responses formatted in clean Markdown. Keep a natural, professional tone. Never expose raw chain-of-thought.`;
 
 function userMessage(request: ProviderRequest) {
   return request.context ? `Workspace context: ${request.context}\n\nUser request: ${request.prompt}` : request.prompt;
@@ -27,16 +31,18 @@ export async function invokeUserProvider(request: ProviderRequest): Promise<stri
   }
 
   if (request.provider === "gemini") {
-    const rawModel = (request.model || process.env.GEMINI_MODEL || "gemini-3.7-flash").trim();
-    // Normalize model strings like "Gemini 3.7 Flash" or "3.7-flash" into API-compatible model names
+    const rawModel = (request.model || process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
+    // Normalize model strings like "Gemini 3.6 Flash" or "3.6-flash" into API-compatible model names
     let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
-    if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
+    if (primaryModel.includes("3.6")) primaryModel = "gemini-3.6-flash";
+    else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
     else if (primaryModel.includes("2.5")) primaryModel = "gemini-2.5-flash";
     else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
     else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
 
     const candidateModels = Array.from(new Set([
       primaryModel,
+      "gemini-3.6-flash",
       "gemini-3.7-flash",
       "gemini-2.5-flash",
       "gemini-2.0-flash",

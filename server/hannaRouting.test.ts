@@ -3,7 +3,7 @@ import { routeHannaRequest } from "./hannaRouting";
 
 describe("routeHannaRequest", () => {
   it("routes document and visual work to Gemini", () => {
-    expect(routeHannaRequest("Analyze this PDF and extract the key points").model).toBe("gemini-3-flash-preview");
+    expect(routeHannaRequest("Analyze this PDF and extract the key points").model).toBe("gemini-3.6-flash");
   });
 
   it("routes coding and deployment work to Claude", () => {

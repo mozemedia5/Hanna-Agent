@@ -20,7 +20,7 @@ export async function executeHannaRequest(prompt: string, context?: string, user
       const quota = userId ? consumeDailyTokens(String(userId), Math.ceil(prompt.length / 4), tier) : { allowed: true as const, used: 0, limit: tier === "pro" ? 1500 : 300, remaining: tier === "pro" ? 1500 : 300, resetAt: "" };
       if (!quota.allowed) throw new Error(`Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`);
       if (!apiKey) throw new Error("Hanna’s default Gemini API key (GEMINI_API_KEY) is not configured in Vercel or Settings.");
-      const envModel = (process.env.GEMINI_MODEL || "gemini-3.7-flash").trim();
+      const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
       const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : envModel, endpoint: "" };
       const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n")}\n\n${prompt}`, context: requestContext });
       return { text, model: `${provider.provider} · ${provider.model}` };
