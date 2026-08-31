@@ -7,6 +7,7 @@ import { runAgentCore } from "./agentCore";
 import { integrations } from "@shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import { approveRequest, completeRequest, createApprovalRequest, deleteConnectorCredential, getApprovalRequest, getConnectorCredential, listConnectorCredentials, saveConnectorCredential, type ConnectorAction, type ConnectorId } from "./connectorDb";
+import { deleteConversation, getProfile, listConversations, saveConversation, saveProfile } from "./firestore";
 
 export async function executeHannaRequest(prompt: string, context?: string, userId?: number) {
   return runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
@@ -59,6 +60,15 @@ export const appRouter = router({
       completeRequest(ctx.user.id, request.id);
       return { ...result, approvalId: request.id, status: "completed" as const };
     }),
+  }),
+  conversations: router({
+    list: protectedProcedure.query(({ ctx }) => listConversations(ctx.user.openId)),
+    save: protectedProcedure.input(z.object({ id: z.string().min(1).max(100), title: z.string().min(1).max(200), period: z.string().max(64), messages: z.array(z.object({ id: z.string(), role: z.enum(["user", "assistant"]), content: z.string().max(20000), time: z.string().optional() })).max(200) })).mutation(({ ctx, input }) => saveConversation(ctx.user.openId, input)),
+    remove: protectedProcedure.input(z.object({ id: z.string().min(1).max(100) })).mutation(({ ctx, input }) => deleteConversation(ctx.user.openId, input.id)),
+  }),
+  profile: router({
+    get: protectedProcedure.query(({ ctx }) => getProfile(ctx.user.openId)),
+    save: protectedProcedure.input(z.object({ displayName: z.string().trim().min(1).max(120), photoURL: z.string().url().or(z.literal("")), bio: z.string().max(500), jobTitle: z.string().max(120) })).mutation(({ ctx, input }) => saveProfile(ctx.user.openId, input)),
   }),
   settings: router({
     get: protectedProcedure.query(({ ctx }) => getWorkspaceSettings(ctx.user.id)),

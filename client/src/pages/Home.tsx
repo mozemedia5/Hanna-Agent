@@ -44,6 +44,7 @@ import {
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
+import { trpc } from "@/lib/trpc";
 
 type ToolKey =
   | "Web Search"
@@ -54,7 +55,7 @@ type ToolKey =
   | "Image Gen";
 
 type Panel = "artifacts" | "settings" | null;
-type SettingsSection = "overview" | "api-keys" | "connectors" | "mcps" | "workspace";
+type SettingsSection = "overview" | "api-keys" | "connectors" | "mcps" | "workspace" | "profile";
 
 type Message = {
   id: string;
@@ -133,9 +134,17 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [toast, setToast] = useState("");
   const [connectedApps, setConnectedApps] = useState<string[]>(["Google Drive"]);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const conversationsQuery = trpc.conversations.list.useQuery(undefined, { retry: false });
+  const conversationSave = trpc.conversations.save.useMutation();
 
   const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId) ?? chats[0], [activeChatId, chats]);
   const hasMessages = activeChat.messages.length > 0;
+  useEffect(() => {
+    if (!conversationsQuery.data?.length) return;
+    const stored = conversationsQuery.data.map((chat) => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() }));
+    setChats(stored);
+    setActiveChatId(stored[0].id);
+  }, [conversationsQuery.data]);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("hanna-theme") as "light" | "dark" | null;
@@ -187,7 +196,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     if (!text || isThinking) return;
     const chatId = activeChatId;
     const userMessage: Message = { id: `${chatId}-${Date.now()}`, role: "user", content: text, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
-    setChats((current) => current.map((chat) => chat.id === chatId ? { ...chat, title: chat.messages.length === 0 ? text.slice(0, 32) : chat.title, messages: [...chat.messages, userMessage] } : chat));
+    const currentChat = chats.find((chat) => chat.id === chatId) ?? activeChat;
+    const chatWithUser = { ...currentChat, title: currentChat.messages.length === 0 ? text.slice(0, 32) : currentChat.title, messages: [...currentChat.messages, userMessage] };
+    setChats((current) => current.map((chat) => chat.id === chatId ? chatWithUser : chat));
+    conversationSave.mutate({ ...chatWithUser, id: String(chatWithUser.id) });
     setComposer(""); setIsThinking(true);
     try {
       const token = await getFirebaseIdToken();
@@ -197,9 +209,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const data = payload[0]?.result?.data;
       const reply = data && "json" in data ? (data.json?.answer || (data.json as unknown as { text?: string })?.text) : data?.answer || (data as unknown as { text?: string })?.text;
       if (!reply) throw new Error("Hanna returned an empty response.");
-      setChats((current) => current.map((chat) => chat.id === chatId ? { ...chat, messages: [...chat.messages, { id: `${chatId}-assistant-${Date.now()}`, role: "assistant", content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }] } : chat));
+      const assistantMessage = { id: `${chatId}-assistant-${Date.now()}`, role: "assistant" as const, content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      const completedChat = { ...chatWithUser, messages: [...chatWithUser.messages, assistantMessage] };
+      setChats((current) => current.map((chat) => chat.id === chatId ? completedChat : chat));
+      conversationSave.mutate({ ...completedChat, id: String(completedChat.id) });
     } catch (reason) {
-      setChats((current) => current.map((chat) => chat.id === chatId ? { ...chat, messages: [...chat.messages, { id: `${chatId}-error-${Date.now()}`, role: "assistant", content: reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }] } : chat));
+      const errorMessage = { id: `${chatId}-error-${Date.now()}`, role: "assistant" as const, content: reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      const failedChat = { ...chatWithUser, messages: [...chatWithUser.messages, errorMessage] };
+      setChats((current) => current.map((chat) => chat.id === chatId ? failedChat : chat));
+      conversationSave.mutate({ ...failedChat, id: String(failedChat.id) });
     } finally { setIsThinking(false); }
   };
 
@@ -528,7 +546,14 @@ function SettingsHub({
     { id: "connectors", label: "Connectors", icon: PlugZap },
     { id: "mcps", label: "MCP servers", icon: Server },
     { id: "workspace", label: "Workspace", icon: ShieldCheck },
+    { id: "profile", label: "Profile", icon: CircleHelp },
   ];
+  const profileQuery = trpc.profile.get.useQuery(undefined, { retry: false });
+  const profileSave = trpc.profile.save.useMutation();
+  const [profile, setProfile] = useState({ displayName: "", photoURL: "", bio: "", jobTitle: "" });
+  useEffect(() => { if (profileQuery.data) setProfile({ displayName: profileQuery.data.displayName, photoURL: profileQuery.data.photoURL, bio: profileQuery.data.bio, jobTitle: profileQuery.data.jobTitle }); }, [profileQuery.data]);
+  const updateProfileField = (field: keyof typeof profile, value: string) => setProfile((current) => ({ ...current, [field]: value }));
+  const saveProfile = () => { profileSave.mutate(profile, { onSuccess: () => onToast("Profile saved to your workspace") }); };
   return (
     <div className="context-scroll custom-scroll settings-scroll">
       <div className="settings-nav" role="tablist" aria-label="Settings sections">
@@ -539,6 +564,17 @@ function SettingsHub({
         <p className="settings-intro">Manage how Hanna connects to your models, apps, and tools. Secrets stay masked in the interface and are handled by your connected runtime.</p>
         <div className="settings-category-list">
           {[{ id: "api-keys" as const, icon: KeyRound, label: "Provider API keys", detail: "OpenAI, Anthropic, Gemini, Groq, custom" }, { id: "connectors" as const, icon: PlugZap, label: "Apps & connectors", detail: "Google Drive, Slack, Shopify, GitHub" }, { id: "mcps" as const, icon: Server, label: "MCP servers", detail: "Tools, endpoints, and permission scopes" }].map(({ id, icon: Icon, label, detail }) => <button key={id} className="settings-category" onClick={() => onSectionChange(id)}><span className="settings-category-icon"><Icon size={15} /></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={14} /></button>)}
+        </div>
+      </section>}
+      {activeSection === "profile" && <section className="settings-section profile-settings-section">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Your profile</span><h3>Make Hanna feel like yours</h3></div><CircleHelp size={17} /></div>
+        <p className="settings-intro">This profile is private to your workspace and helps Hanna understand how to speak to you.</p>
+        <div className="profile-form">
+          <label>Display name<input value={profile.displayName} onChange={(event) => updateProfileField("displayName", event.target.value)} placeholder="Your name" /></label>
+          <label>Job title<input value={profile.jobTitle} onChange={(event) => updateProfileField("jobTitle", event.target.value)} placeholder="What do you do?" /></label>
+          <label>Avatar URL<input value={profile.photoURL} onChange={(event) => updateProfileField("photoURL", event.target.value)} placeholder="https://…" type="url" /></label>
+          <label>About you<textarea value={profile.bio} onChange={(event) => updateProfileField("bio", event.target.value)} placeholder="A little context Hanna should keep in mind" maxLength={500} rows={4} /></label>
+          <button className="profile-save-button" onClick={saveProfile} disabled={profileSave.isPending || !profile.displayName.trim()}>{profileSave.isPending ? "Saving…" : "Save profile"}</button>
         </div>
       </section>}
       {(activeSection === "overview" || activeSection === "api-keys") && <section className="settings-section">
