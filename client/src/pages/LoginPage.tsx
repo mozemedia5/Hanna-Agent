@@ -114,17 +114,20 @@ export default function LoginPage({ auth, mode = "login" }: { auth: AuthApi; mod
           <div className="social-grid">
             <button className="social-provider-btn social-google" disabled={busy} onClick={() => social(auth.loginWithGoogle)}>
               <GoogleIcon />
+              <span>Google</span>
             </button>
             <button className="social-provider-btn social-apple" disabled={busy} onClick={() => social(auth.loginWithApple)}>
               <AppleIcon />
+              <span>Apple</span>
             </button>
             <button className="social-provider-btn social-github" disabled={busy} onClick={() => social(auth.loginWithGithub)}>
               <GitHubIcon />
+              <span>GitHub</span>
             </button>
           </div>
 
           <div className="auth-divider">
-            <span>or continue with email</span>
+            <span>or use email</span>
           </div>
 
           <form onSubmit={submit} className="auth-form">

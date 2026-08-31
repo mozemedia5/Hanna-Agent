@@ -6,6 +6,17 @@ export type ClientProfile = { displayName: string; photoURL: string; bio: string
 const requireStore = () => { const db = getFirebaseFirestore(); const uid = getFirebaseAuth()?.currentUser?.uid; if (!db || !uid) throw new Error("Your Firebase session is not ready."); return { db, uid }; };
 export async function listUserConversations() { const { db, uid } = requireStore(); const snapshot = await getDocs(query(collection(db, "users", uid, "conversations"), orderBy("updatedAt", "desc"))); return snapshot.docs.map((item) => item.data() as ClientConversation); }
 export async function saveUserConversation(conversation: ClientConversation) { const { db, uid } = requireStore(); const ref = doc(db, "users", uid, "conversations", conversation.id); await setDoc(ref, { ...conversation, updatedAt: new Date().toISOString() }, { merge: true }); }
-export async function getUserProfile() { const { db, uid } = requireStore(); const snapshot = await getDocs(query(collection(db, "users", uid, "private"))); const profile = snapshot.docs.find((item) => item.id === "profile")?.data(); return (profile as ClientProfile | undefined) ?? { displayName: "", photoURL: "", bio: "", jobTitle: "" }; }
+export async function getUserProfile() {
+  const { db, uid } = requireStore();
+  const authUser = getFirebaseAuth()?.currentUser;
+  const snapshot = await getDocs(query(collection(db, "users", uid, "private")));
+  const profile = snapshot.docs.find((item) => item.id === "profile")?.data() as ClientProfile | undefined;
+  return {
+    displayName: profile?.displayName || authUser?.displayName || "",
+    photoURL: profile?.photoURL || authUser?.photoURL || "",
+    bio: profile?.bio || "",
+    jobTitle: profile?.jobTitle || "",
+  };
+}
 export async function saveUserProfile(profile: ClientProfile) { const { db, uid } = requireStore(); await setDoc(doc(db, "users", uid, "private", "profile"), { ...profile, updatedAt: new Date().toISOString() }, { merge: true }); }
 export function calculateConversationAnalytics(conversations: ClientConversation[]) { const messages = conversations.flatMap((item) => item.messages); const tokens = (message: ClientMessage) => message.tokenCount ?? Math.max(1, Math.ceil(message.content.length / 4)); const byDate = new Map<string, { date: string; messages: number; tokens: number }>(); for (let offset = 13; offset >= 0; offset -= 1) { const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() - offset); const key = date.toISOString().slice(0, 10); byDate.set(key, { date: key, messages: 0, tokens: 0 }); } conversations.forEach((item) => { const bucket = byDate.get((item.updatedAt || "").slice(0, 10)); if (bucket) { bucket.messages += item.messages.length; bucket.tokens += item.messages.reduce((sum, message) => sum + tokens(message), 0); } }); return { totalConversations: conversations.length, totalMessages: messages.length, userMessages: messages.filter((message) => message.role === "user").length, assistantMessages: messages.filter((message) => message.role === "assistant").length, estimatedTokens: messages.reduce((sum, message) => sum + tokens(message), 0), activeDays: new Set(conversations.map((item) => (item.updatedAt || "").slice(0, 10))).size, daily: Array.from(byDate.values()), topConversations: conversations.slice().sort((a, b) => b.messages.length - a.messages.length).slice(0, 5).map((item) => ({ id: item.id, title: item.title, messages: item.messages.length, tokens: item.messages.reduce((sum, message) => sum + tokens(message), 0) })) }; }

@@ -192,10 +192,10 @@ export function buildAgentPlan(prompt: string): AgentPlan {
   const selected: AgentTool[] = [];
   const steps = ["Understand the request and identify the desired outcome."];
   const add = (id: string, step: string) => { const tool = registry.get(id); if (tool && !selected.some(item => item.id === id)) { selected.push(tool); steps.push(step); } };
-  if (/(pdf|document|file|upload|image|scan)/.test(lower)) add("files.read", "Read the supplied file or document context.");
-  if (/(knowledge|research|source|compare|context)/.test(lower)) add("knowledge.search", "Search connected knowledge sources when available.");
-  if (/(create|generate|summar|question|quiz|write|draft|build|plan)/.test(lower) || selected.length === 0) add("content.generate", "Generate the requested result from verified context.");
-  if (/(send|publish|delete|purchase|deploy|update|post)/.test(lower)) add("external.write", "Pause for explicit approval before any consequential external action.");
+  if (/(pdf|document|file|upload|image|scan|picture|video|photo)/.test(lower)) add("files.read", "Read the supplied file or document context.");
+  if (/(knowledge|research|source|compare|context|trend|market|stats)/.test(lower)) add("knowledge.search", "Search connected knowledge sources and market data when available.");
+  if (/(create|generate|summar|question|quiz|write|draft|build|plan|design|ad|post|campaign|product|list|code)/.test(lower) || selected.length === 0) add("content.generate", "Generate the requested result from verified context.");
+  if (/(send|publish|delete|purchase|deploy|update|post|order|fulfill|checkout|sync)/.test(lower)) add("external.write", "Pause for explicit approval before any consequential external action.");
   steps.push("Verify the response against the request and report any unavailable tools or context.");
   return { intent: prompt.trim().slice(0, 160), route, tools: selected, approvalRequired: selected.some(tool => tool.requiresApproval), steps };
 }
