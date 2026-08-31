@@ -1,352 +1,684 @@
-import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
-import MarkdownMessage from "@/components/MarkdownMessage";
-import type { IntegrationCategory } from "@shared/integrations";
+/*
+ * Hanna / Quiet Command Center
+ * This page owns the product surface: asymmetric chat rail, restrained monochrome
+ * surfaces, ink actions, honest tool affordances, and a contextual right panel.
+ */
+import { Button } from "@/components/ui/button";
 import {
-  Activity,
-  ArrowUpRight,
-  Bot,
-  BrainCircuit,
-  BriefcaseBusiness,
+  Archive,
+  ArrowUp,
+  BarChart3,
+  BookOpen,
   Check,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   Code2,
-  Compass,
+  Copy,
   FileText,
-  FolderKanban,
-  Gauge,
-  Github,
-  KeyRound,
   Globe2,
-  Inbox,
-  LayoutGrid,
-  Library,
-  ListTodo,
+  ImageIcon,
+  Layers3,
+  Lightbulb,
   Menu,
-  Moon,
+  Mic,
   MoreHorizontal,
+  Moon,
   Paperclip,
+  PanelRight,
   Plus,
   Search,
   Send,
-  ShoppingBag,
-  MessageSquare,
   Settings,
+  SlidersHorizontal,
   Sparkles,
-  Square,
   Sun,
-  Workflow,
   X,
   Zap,
-  Video,
-  Mic,
-  Share2,
-  Store,
-  Layers,
-  Terminal,
-  Cpu,
-  Plug,
 } from "lucide-react";
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-type NavItem = { label: string; icon: typeof Activity; section?: string };
+type ToolKey =
+  | "Web Search"
+  | "Image Input"
+  | "Voice"
+  | "Study"
+  | "Deep Research"
+  | "Image Gen";
 
-const primaryNav: NavItem[] = [
-  { label: "Home", icon: Compass },
-  { label: "Hanna", icon: Sparkles },
-  { label: "Projects", icon: FolderKanban },
-  { label: "Tasks", icon: ListTodo },
-  { label: "Knowledge", icon: Library },
-  { label: "Files", icon: FileText },
-];
-const secondaryNav: NavItem[] = [
-  { label: "Apps & Integrations", icon: LayoutGrid },
-  { label: "AI Models", icon: BrainCircuit },
-  { label: "Marketing", icon: Zap },
-  { label: "Commerce", icon: BriefcaseBusiness },
-  { label: "Automations", icon: Workflow },
-  { label: "Developer", icon: Code2 },
-];
+type Panel = "artifacts" | "settings" | null;
 
-const quickActions = [
-  ["Research", Search], ["Analyze", Gauge], ["Build", Code2], ["Create", Sparkles], ["Write", FileText], ["Automate", Workflow],
-] as const;
+type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  time?: string;
+};
 
-type WorkItem = { title: string; project: string; progress: number; stage: string; tools: string[]; tone: string };
-type ProjectItem = { name: string; type: string; icon: typeof Code2; color: string; meta: string };
+type Chat = {
+  id: number;
+  title: string;
+  period: string;
+  messages: Message[];
+};
 
-const activeWork: WorkItem[] = [
-  { title: "Website authentication", project: "Liverton Learning", progress: 67, stage: "Testing authentication", tools: ["GitHub", "Gemini", "Vercel"], tone: "blue" },
-  { title: "Quarterly knowledge digest", project: "Liverton Business", progress: 31, stage: "Reading 4 documents", tools: ["Knowledge", "Gemini"], tone: "violet" },
-  { title: "Avatar promotional video", project: "Brand Launch", progress: 85, stage: "Rendering HeyGen video", tools: ["HeyGen", "Synthesia", "Shopify"], tone: "mint" },
-];
-
-const recentProjects: ProjectItem[] = [
-  { name: "Hanna Development", type: "Software project", icon: Code2, color: "lavender", meta: "Updated 12 min ago" },
-  { name: "Liverton Learning", type: "Business workspace", icon: BriefcaseBusiness, color: "mint", meta: "Updated yesterday" },
-  { name: "Personal Knowledge", type: "Knowledge space", icon: Library, color: "peach", meta: "Updated 3 days ago" },
+const toolConfigs: Array<{ label: ToolKey; icon: typeof Globe2; hint: string }> = [
+  { label: "Web Search", icon: Globe2, hint: "Search the web" },
+  { label: "Image Input", icon: ImageIcon, hint: "Add an image" },
+  { label: "Voice", icon: Mic, hint: "Talk to Hanna" },
+  { label: "Study", icon: BookOpen, hint: "Learn step by step" },
+  { label: "Deep Research", icon: Search, hint: "Build a sourced brief" },
+  { label: "Image Gen", icon: Sparkles, hint: "Create a visual" },
 ];
 
-type ProviderSummary = { provider: string };
-type WorkspaceProviderSettings = { defaultProvider?: string };
-export function getProviderKeyError(user: unknown, settings?: WorkspaceProviderSettings, providers?: ProviderSummary[]) {
-  if (!user || !settings || settings.defaultProvider === "automatic" || !providers) return null;
-  const selected = settings.defaultProvider;
-  if (!selected || providers.some(provider => provider.provider === selected)) return null;
-  return `Connect your ${selected} API key in Settings to send this request.`;
+const seedChats: Chat[] = [
+  {
+    id: 0,
+    title: "Website redesign ideas",
+    period: "Today",
+    messages: [
+      {
+        id: "0-1",
+        role: "user",
+        content: "I want a calmer AI workspace that still feels capable. What should the redesign prioritize?",
+        time: "10:42",
+      },
+      {
+        id: "0-2",
+        role: "assistant",
+        content:
+          "Start with a quiet command center: a persistent chat rail, a readable conversation column, and a contextual panel for artifacts or settings. Keep actions close, but let the work remain the visual anchor.\n\nFor Hanna, I would make the system feel authored through hairline dividers, an ink-black action color, and a strong typographic rhythm instead of gradients or decorative noise.",
+        time: "10:43",
+      },
+    ],
+  },
+  {
+    id: 1,
+    title: "Python debugging help",
+    period: "Today",
+    messages: [
+      { id: "1-1", role: "user", content: "Why is my list comprehension returning an empty list?", time: "09:18" },
+      {
+        id: "1-2",
+        role: "assistant",
+        content: "Let’s trace the filter first. An empty result usually means the predicate never evaluates to true, or the source iterable has already been consumed.",
+        time: "09:19",
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: "Deep research on quantum",
+    period: "Yesterday",
+    messages: [
+      { id: "2-1", role: "user", content: "Explain quantum error correction without assuming a physics degree.", time: "16:04" },
+      {
+        id: "2-2",
+        role: "assistant",
+        content: "Think of it as protecting a fragile message by spreading its information across a carefully designed pattern, so a small amount of noise can be detected and corrected.",
+        time: "16:06",
+      },
+    ],
+  },
+  {
+    id: 3,
+    title: "Image generation prompt",
+    period: "Yesterday",
+    messages: [{ id: "3-1", role: "user", content: "Make a restrained, editorial prompt for a monochrome city study.", time: "13:27" }],
+  },
+  {
+    id: 4,
+    title: "Study plan for ML",
+    period: "Previous 7 days",
+    messages: [{ id: "4-1", role: "user", content: "Help me build a six-week plan for machine learning fundamentals.", time: "Mon" }],
+  },
+  {
+    id: 5,
+    title: "Voice memo transcript",
+    period: "Previous 7 days",
+    messages: [{ id: "5-1", role: "user", content: "Turn this meeting memo into a short decision log.", time: "Sun" }],
+  },
+];
+
+const assistantReplies = [
+  "I’ve shaped that into a clear next step. The useful move is to keep the surface quiet and let the structure do the work.",
+  "Here’s a practical way to approach it: define the outcome first, then choose the smallest tool that helps you reach it.",
+  "That sounds like a good place to focus. I’d keep the hierarchy explicit so the important detail is easy to find later.",
+];
+
+function HannaMark({ small = false }: { small?: boolean }) {
+  return (
+    <span className={`hanna-mark ${small ? "hanna-mark-small" : ""}`} aria-hidden="true">
+      <img src="/manus-storage/hanna-mark_7f8ef04a.png" alt="" />
+    </span>
+  );
 }
 
-export function getProviderFailureError(text: string) {
-  return text.includes("Check its API key in Settings") ? text : null;
+function ChatItem({ chat, active, onClick }: { chat: Chat; active: boolean; onClick: () => void }) {
+  return (
+    <button className={`chat-history-item ${active ? "is-active" : ""}`} onClick={onClick} title={chat.title}>
+      <span className="chat-history-title">{chat.title}</span>
+      {active && <span className="chat-history-dot" aria-hidden="true" />}
+    </button>
+  );
+}
+
+function ToolChip({
+  label,
+  icon: Icon,
+  active,
+  onClick,
+}: {
+  label: ToolKey;
+  icon: typeof Globe2;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button className={`tool-chip ${active ? "is-active" : ""}`} onClick={onClick} aria-pressed={active}>
+      <Icon size={14} strokeWidth={1.8} />
+      <span>{label}</span>
+    </button>
+  );
 }
 
 export default function Home() {
-  const { user } = useAuth();
-  const [active, setActive] = useState("Home");
-  const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
-  const [isWorking, setIsWorking] = useState(false);
-  const [dark, setDark] = useState(() => localStorage.getItem("hanna-theme") !== "light");
-  useEffect(() => { localStorage.setItem("hanna-theme", dark ? "dark" : "light"); }, [dark]);
-  const [route, setRoute] = useState({ model: "gemini-3-flash-preview", capability: "Multimodal reasoning" });
-  const [composerError, setComposerError] = useState<string | null>(null);
-  const ask = trpc.hanna.ask.useMutation();
-  const { data: providers } = trpc.providers.list.useQuery(undefined, { enabled: !!user });
-  const { data: settings } = trpc.settings.get.useQuery(undefined, { enabled: !!user });
+  const [chats, setChats] = useState<Chat[]>(seedChats);
+  const [activeChatId, setActiveChatId] = useState(0);
+  const [composer, setComposer] = useState("");
+  const [selectedTools, setSelectedTools] = useState<ToolKey[]>([]);
+  const [panel, setPanel] = useState<Panel>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [model, setModel] = useState("Hanna Pro");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [isThinking, setIsThinking] = useState(false);
+  const [toast, setToast] = useState("");
+  const [connectedApps, setConnectedApps] = useState<string[]>(["Google Drive"]);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId) ?? chats[0], [activeChatId, chats]);
+  const hasMessages = activeChat.messages.length > 0;
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("hanna-theme") as "light" | "dark" | null;
+    const nextTheme = savedTheme ?? "light";
+    setTheme(nextTheme);
+    document.documentElement.classList.toggle("dark", nextTheme === "dark");
+    document.documentElement.classList.toggle("light", nextTheme === "light");
   }, []);
 
-  async function submit(e?: FormEvent) {
-    e?.preventDefault();
-    const value = prompt.trim();
-    if (!value || isWorking) return;
-    setComposerError(null);
-    const keyError = getProviderKeyError(user, settings, providers);
-    if (keyError) {
-      setComposerError(keyError);
-      return;
-    }
-    setPrompt("");
-    setMessages(prev => [...prev, { role: "user", text: value }]);
-    setIsWorking(true);
-    try {
-      const result = await ask.mutateAsync({ prompt: value, context: active === "Home" ? "Home command center" : active });
-      const providerError = getProviderFailureError(result.text);
-      if (providerError) setComposerError(providerError);
-      setRoute({ model: result.model, capability: result.capability });
-      setMessages(prev => [...prev, { role: "assistant", text: result.text }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", text: "I’m unable to reach the model right now. Your request is saved locally—please try again in a moment." }]);
-    } finally {
-      setIsWorking(false);
-    }
-  }
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(""), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
-  function chooseAction(label: string) {
-    setActive("Hanna");
-    setPrompt(`${label} `);
-  }
+  const showToast = (message: string) => setToast(message);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    document.documentElement.classList.toggle("dark", nextTheme === "dark");
+    document.documentElement.classList.toggle("light", nextTheme === "light");
+    window.localStorage.setItem("hanna-theme", nextTheme);
+  };
+
+  const createChat = () => {
+    const newChat: Chat = {
+      id: Date.now(),
+      title: "Untitled conversation",
+      period: "Today",
+      messages: [],
+    };
+    setChats((current) => [newChat, ...current]);
+    setActiveChatId(newChat.id);
+    setPanel(null);
+    setComposer("");
+    showToast("New conversation ready");
+    window.setTimeout(() => composerRef.current?.focus(), 0);
+  };
+
+  const selectChat = (id: number) => {
+    setActiveChatId(id);
+    setPanel(null);
+    if (window.innerWidth < 860) setSidebarOpen(false);
+  };
+
+  const submitMessage = () => {
+    const text = composer.trim();
+    if (!text || isThinking) return;
+    const chatId = activeChatId;
+    const userMessage: Message = {
+      id: `${chatId}-${Date.now()}`,
+      role: "user",
+      content: text,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setChats((current) =>
+      current.map((chat) =>
+        chat.id === chatId
+          ? { ...chat, title: chat.messages.length === 0 ? text.slice(0, 32) : chat.title, messages: [...chat.messages, userMessage] }
+          : chat,
+      ),
+    );
+    setComposer("");
+    setIsThinking(true);
+    window.setTimeout(() => {
+      const reply = assistantReplies[Math.floor(Math.random() * assistantReplies.length)];
+      setChats((current) =>
+        current.map((chat) =>
+          chat.id === chatId
+            ? {
+                ...chat,
+                messages: [
+                  ...chat.messages,
+                  {
+                    id: `${chatId}-assistant-${Date.now()}`,
+                    role: "assistant",
+                    content: reply,
+                    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  },
+                ],
+              }
+            : chat,
+        ),
+      );
+      setIsThinking(false);
+    }, 720);
+  };
+
+  const handleComposerKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submitMessage();
+    }
+  };
+
+  const useSuggestion = (text: string) => {
+    setComposer(text);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
+  };
+
+  const toggleTool = (tool: ToolKey) => {
+    setSelectedTools((current) => (current.includes(tool) ? current.filter((item) => item !== tool) : [...current, tool]));
+  };
+
+  const togglePanel = (nextPanel: Exclude<Panel, null>) => {
+    setPanel((current) => (current === nextPanel ? null : nextPanel));
+  };
+
+  const copyArtifact = async () => {
+    await navigator.clipboard?.writeText(artifactCode);
+    showToast("Artifact copied to clipboard");
+  };
+
+  const toggleApp = (name: string) => {
+    setConnectedApps((current) => (current.includes(name) ? current.filter((app) => app !== name) : [...current, name]));
+    showToast(connectedApps.includes(name) ? `${name} disconnected` : `${name} connected`);
+  };
 
   return (
-    <div className={dark ? "hanna-app dark" : "hanna-app"}>
-      <aside className="hanna-sidebar">
-        <div className="brand-row">
-          <div className="brand-mark"><Sparkles size={17} strokeWidth={2.4} /></div>
-          <span className="brand-name">hanna</span>
-          <button className="icon-btn sidebar-collapse" aria-label="Collapse sidebar"><Menu size={17} /></button>
+    <div className="hanna-app">
+      <div className={`sidebar-scrim ${sidebarOpen ? "is-visible" : ""}`} onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+      <aside className={`hanna-sidebar ${sidebarOpen ? "is-open" : "is-collapsed"}`} aria-label="Chat history">
+        <div className="sidebar-top">
+          <div className="brand-lockup">
+            <HannaMark />
+            <div>
+              <div className="brand-name">Hanna</div>
+              <div className="brand-caption">AI workspace</div>
+            </div>
+          </div>
+          <button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
+            <X size={17} />
+          </button>
         </div>
-        <div className="status-pill"><span className="online-dot" /> Hanna is online <ChevronDown size={13} /></div>
-        <button className="new-task" onClick={() => { setActive("Hanna"); setMessages([]); }}><Plus size={16} /> New request <span>⌘ K</span></button>
-        <nav className="nav-groups">
-          <p className="nav-label">Workspace</p>
-          {primaryNav.map(item => <NavButton key={item.label} item={item} active={active} setActive={setActive} />)}
-          <p className="nav-label secondary-label">Capabilities</p>
-          {secondaryNav.map(item => <NavButton key={item.label} item={item} active={active} setActive={setActive} />)}
-        </nav>
+
+        <div className="sidebar-content custom-scroll">
+          <Button className="new-chat-button" onClick={createChat}>
+            <Plus size={16} />
+            <span>New chat</span>
+            <kbd>⌘ K</kbd>
+          </Button>
+
+          <div className="sidebar-section quick-links">
+            <button className="sidebar-link is-current" onClick={() => setPanel(null)}>
+              <Layers3 size={16} />
+              <span>All conversations</span>
+              <span className="sidebar-count">{chats.length}</span>
+            </button>
+            <button className="sidebar-link" onClick={() => showToast("Search is ready for your conversations") }>
+              <Search size={16} />
+              <span>Search chats</span>
+            </button>
+          </div>
+
+          <div className="history-label">Recent chats</div>
+          <div className="history-list">
+            {(["Today", "Yesterday", "Previous 7 days"] as const).map((period) => {
+              const group = chats.filter((chat) => chat.period === period);
+              if (!group.length) return null;
+              return (
+                <div className="history-group" key={period}>
+                  <div className="history-period">{period}</div>
+                  {group.map((chat) => (
+                    <ChatItem key={chat.id} chat={chat} active={chat.id === activeChatId} onClick={() => selectChat(chat.id)} />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="sidebar-bottom">
-          <button className={active === "Activity" ? "nav-button nav-active" : "nav-button"} onClick={() => setActive("Activity")}><Activity size={16} /> Activity <span className="nav-count">3</span></button>
-          <button className={active === "Settings" ? "nav-button nav-active" : "nav-button"} onClick={() => setActive("Settings")}><Settings size={16} /> Settings</button>
-          <div className="profile-row"><div className="avatar">AM</div><div><strong>Alex Morgan</strong><small>Personal workspace</small></div><MoreHorizontal size={16} className="muted" /></div>
+          <button className="sidebar-link" onClick={() => togglePanel("settings")}>
+            <Settings size={16} />
+            <span>Settings</span>
+          </button>
+          <button className="sidebar-link" onClick={toggleTheme}>
+            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+            <span>{theme === "light" ? "Dark theme" : "Light theme"}</span>
+          </button>
+          <div className="account-row">
+            <div className="avatar">U</div>
+            <div className="account-copy">
+              <span className="account-name">You</span>
+              <span className="account-plan">Personal workspace</span>
+            </div>
+            <MoreHorizontal size={16} className="muted-icon" />
+          </div>
         </div>
       </aside>
 
-      <main className="hanna-main">
-        <header className="topbar">
-          <div className="mobile-brand"><div className="brand-mark"><Sparkles size={15} /></div><span>hanna</span></div>
-          <div className="breadcrumbs"><span>{active === "Home" ? "Workspace" : "Hanna"}</span><span>/</span><strong>{active}</strong></div>
-          <div className="top-actions"><button className="icon-btn" aria-label="Search"><Search size={17} /></button><button className="icon-btn" onClick={() => setDark(!dark)} aria-label="Toggle theme">{dark ? <Sun size={17} /> : <Moon size={17} />}</button><button className="help-btn"><CircleHelp size={16} /> Help</button></div>
+      <main className="main-workspace">
+        <header className="workspace-header">
+          <div className="header-leading">
+            <button className="icon-button" onClick={() => setSidebarOpen((current) => !current)} aria-label="Toggle sidebar">
+              <Menu size={19} />
+            </button>
+            <div className="workspace-breadcrumb">
+              <span className="breadcrumb-quiet">Hanna</span>
+              <ChevronRight size={14} />
+              <span>{activeChat.title}</span>
+            </div>
+          </div>
+          <div className="header-actions">
+            <div className="model-picker">
+              <button className="model-button" onClick={() => setModelMenuOpen((current) => !current)} aria-expanded={modelMenuOpen}>
+                <span className="model-pulse" />
+                {model}
+                <ChevronDown size={14} />
+              </button>
+              {modelMenuOpen && (
+                <div className="model-menu">
+                  {["Hanna Pro", "Hanna Fast", "Hanna Focus"].map((option) => (
+                    <button
+                      key={option}
+                      className={`model-option ${model === option ? "is-selected" : ""}`}
+                      onClick={() => {
+                        setModel(option);
+                        setModelMenuOpen(false);
+                      }}
+                    >
+                      <span>{option}</span>
+                      {model === option && <Check size={14} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button className="header-settings-button" onClick={() => togglePanel("settings")} aria-label="Open settings">
+              <Settings size={17} />
+            </button>
+            <div className="header-avatar">U</div>
+          </div>
         </header>
 
-        {active === "Home" ? <Dashboard greeting={greeting} chooseAction={chooseAction} activeWork={activeWork} recentProjects={recentProjects} setActive={setActive} /> : <Workspace title={active} messages={messages} isWorking={isWorking} route={route} composerError={composerError} />}
+        <div className="workspace-body custom-scroll">
+          <div className={`conversation-stage ${hasMessages ? "has-messages" : "is-empty"}`}>
+            {!hasMessages ? (
+              <div className="welcome-layout">
+                <section className="welcome-copy">
+                  <div className="eyebrow"><span className="eyebrow-line" /> A clear place to begin</div>
+                  <h1>What are we<br /><em>working through?</em></h1>
+                  <p>Bring a question, a rough idea, or a piece of work. Hanna helps you make the next move with less noise.</p>
+                  <div className="suggestion-grid">
+                    {[
+                      { icon: Lightbulb, text: "Shape a product idea into a clear brief" },
+                      { icon: Code2, text: "Debug a small piece of Python" },
+                      { icon: FileText, text: "Turn notes into an action plan" },
+                      { icon: ImageIcon, text: "Create a visual direction for a launch" },
+                    ].map(({ icon: Icon, text }) => (
+                      <button key={text} className="suggestion-card" onClick={() => useSuggestion(text)}>
+                        <Icon size={17} strokeWidth={1.7} />
+                        <span>{text}</span>
+                        <ArrowUp size={14} className="suggestion-arrow" />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                <aside className="welcome-art" aria-label="Hanna visual study">
+                  <div className="welcome-art-frame">
+                    <img src="/manus-storage/hanna-ink-field_8c79b00b.png" alt="Abstract graphite curve on a paper field" />
+                    <div className="welcome-art-caption"><span>H / 001</span><span>Quietly in motion</span></div>
+                  </div>
+                  <div className="welcome-note"><span className="note-marker" /> Designed for considered work.</div>
+                </aside>
+              </div>
+            ) : (
+              <div className="message-stack">
+                <div className="conversation-heading">
+                  <div>
+                    <div className="eyebrow"><span className="eyebrow-line" /> Conversation</div>
+                    <h1>{activeChat.title}</h1>
+                  </div>
+                  <button className="subtle-action" onClick={() => togglePanel("artifacts")}>
+                    <PanelRight size={15} />
+                    Artifacts
+                  </button>
+                </div>
+                {activeChat.messages.map((message) => (
+                  <article className={`message-row ${message.role}`} key={message.id}>
+                    <div className="message-avatar">{message.role === "assistant" ? <HannaMark small /> : "U"}</div>
+                    <div className="message-body">
+                      <div className="message-meta"><strong>{message.role === "assistant" ? "Hanna" : "You"}</strong><span>{message.time}</span></div>
+                      <div className="message-content">{message.content.split("\n").map((paragraph, index) => <p key={`${message.id}-${index}`}>{paragraph}</p>)}</div>
+                      {message.role === "assistant" && (
+                        <div className="message-actions">
+                          <button onClick={() => showToast("Response copied") }><Copy size={13} /> Copy</button>
+                          <button onClick={() => showToast("Response saved to your workspace") }><Archive size={13} /> Save</button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+                {isThinking && (
+                  <article className="message-row assistant thinking-row">
+                    <div className="message-avatar"><HannaMark small /></div>
+                    <div className="message-body"><div className="message-meta"><strong>Hanna</strong><span>thinking</span></div><div className="thinking-dots"><i /><i /><i /></div></div>
+                  </article>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-        {messages.length > 0 && active !== "Hanna" && <div className="floating-chat"><button onClick={() => setActive("Hanna")}><Sparkles size={15} /> Open Hanna conversation <ArrowUpRight size={15} /></button></div>}
-        <div className="mobile-nav">{primaryNav.slice(0, 4).map(item => <button key={item.label} className={active === item.label ? "mobile-nav-active" : ""} onClick={() => setActive(item.label)}><item.icon size={18} /><span>{item.label}</span></button>)}</div>
+        <div className="composer-region">
+          <div className="composer-shell">
+            <div className="composer-topline">
+              <span className="composer-context"><span className="status-dot" /> {selectedTools.length ? `${selectedTools.length} tools ready` : "Ask Hanna anything"}</span>
+              <span className="composer-hint"><kbd>Enter</kbd> to send <span className="hint-divider" /> <kbd>Shift</kbd> <span className="hint-plus">+</span> <kbd>Enter</kbd> for a new line</span>
+            </div>
+            <textarea
+              ref={composerRef}
+              value={composer}
+              onChange={(event) => setComposer(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
+              placeholder="Message Hanna..."
+              rows={1}
+              aria-label="Message Hanna"
+            />
+            <div className="composer-footer">
+              <div className="composer-tools">
+                <button className="attach-button" onClick={() => showToast("File attachments are ready for connection")} aria-label="Attach a file"><Paperclip size={16} /></button>
+                {toolConfigs.map((tool) => <ToolChip key={tool.label} {...tool} active={selectedTools.includes(tool.label)} onClick={() => toggleTool(tool.label)} />)}
+              </div>
+              <Button className="send-button" onClick={submitMessage} disabled={!composer.trim() || isThinking} aria-label="Send message">
+                <Send size={16} />
+              </Button>
+            </div>
+          </div>
+          <div className="composer-disclaimer">Hanna can make mistakes. Check important information.</div>
+        </div>
       </main>
 
-      {(active === "Home" || active === "Hanna") && <Composer prompt={prompt} setPrompt={setPrompt} submit={submit} isWorking={isWorking} composerError={composerError} clearComposerError={() => setComposerError(null)} setActive={setActive} />}
+      {!panel && (
+        <aside className="context-dock" aria-label="Workspace context">
+          <div className="dock-topline"><span className="eyebrow"><span className="eyebrow-line" /> Context</span><button className="icon-button" onClick={() => togglePanel("settings")} aria-label="Open workspace settings"><Settings size={16} /></button></div>
+          <div className="dock-identity"><HannaMark /><div><span className="dock-code">HANNA / 02</span><strong>Keep the signal.</strong></div></div>
+          <div className="dock-rule" />
+          <div className="dock-section-label">Working set</div>
+          <div className="dock-visual"><img src="/manus-storage/hanna-research-study_3af4f707.png" alt="Layered paper study with measurement marks" /><span>01 / live surface</span></div>
+          <div className="dock-card"><div className="dock-card-heading"><span>Tools in reach</span><span className="dock-card-count">{selectedTools.length.toString().padStart(2, "0")}</span></div><div className="dock-tool-list">{toolConfigs.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={selectedTools.includes(label) ? "is-on" : ""} onClick={() => toggleTool(label)}><Icon size={13} /><span>{label}</span><span className="dock-tool-state" /></button>)}</div></div>
+          <button className="dock-artifact-link" onClick={() => togglePanel("artifacts")}><span><PanelRight size={14} /> Open artifact space</span><ArrowUp size={14} /></button>
+          <div className="dock-footer"><span className="status-dot" /> All systems quiet <span className="dock-footer-code">local</span></div>
+        </aside>
+      )}
+
+      {panel && (
+        <aside className="context-panel" aria-label={panel === "artifacts" ? "Artifacts" : "Settings"}>
+          <div className="context-header">
+            <div className="context-title"><span className="context-kicker">Workspace</span><h2>{panel === "artifacts" ? "Artifacts" : "Settings"}</h2></div>
+            <button className="icon-button" onClick={() => setPanel(null)} aria-label="Close panel"><X size={17} /></button>
+          </div>
+          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} /> : <SettingsPanel theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
+        </aside>
+      )}
+
+      {toast && <div className="hanna-toast"><Check size={15} /> {toast}</div>}
     </div>
   );
 }
 
-function NavButton({ item, active, setActive }: { item: NavItem; active: string; setActive: (value: string) => void }) {
-  return <button className={active === item.label ? "nav-button nav-active" : "nav-button"} onClick={() => setActive(item.label)}><item.icon size={16} /><span>{item.label}</span>{item.label === "Tasks" && <span className="nav-count">4</span>}</button>;
+const artifactCode = `import React from "react";
+
+export default function FocusCard() {
+  return (
+    <section className="focus-card">
+      <span className="eyebrow">Today / 01</span>
+      <h1>Make room for the next good idea.</h1>
+      <p>A quiet place to turn questions into considered work.</p>
+      <button>Open workspace</button>
+    </section>
+  );
+}`;
+
+function ArtifactsPanel({ onCopy }: { onCopy: () => void }) {
+  return (
+    <div className="context-scroll custom-scroll">
+      <div className="artifact-file-row"><div className="file-kind"><Code2 size={15} /> JSX</div><span>focus-card.jsx</span><button onClick={onCopy} aria-label="Copy artifact"><Copy size={15} /></button></div>
+      <div className="artifact-preview">
+        <div className="artifact-preview-media"><img src="/manus-storage/hanna-artifact-grid_d66bb62d.png" alt="Abstract technical grid" /><span className="preview-tag">Preview</span></div>
+        <div className="preview-copy"><span className="eyebrow"><span className="eyebrow-line" /> UI direction</span><h3>Focused work, less ceremony.</h3><p>A compact artifact preview lives beside your conversation so ideas can become something you can keep.</p><button onClick={() => window.alert("Preview opened")}>Open preview <ArrowUp size={14} /></button></div>
+      </div>
+      <div className="code-card"><div className="code-card-heading"><span>Generated code</span><span className="code-language">React / JSX</span></div><pre><code>{artifactCode}</code></pre></div>
+      <div className="artifact-actions"><Button variant="outline" onClick={onCopy}><Copy size={15} /> Copy code</Button><Button onClick={() => window.alert("Download prepared")}>Download</Button></div>
+    </div>
+  );
 }
 
-function Dashboard({ greeting, chooseAction, activeWork, recentProjects, setActive }: { greeting: string; chooseAction: (label: string) => void; activeWork: WorkItem[]; recentProjects: ProjectItem[]; setActive: (value: string) => void }) {
-  return <div className="page dashboard-page"><section className="hero"><div className="eyebrow"><span className="eyebrow-line" /> YOUR COMMAND CENTER</div><h1>{greeting}, Alex<span className="period">.</span></h1><p className="hero-subtitle">What should Hanna handle?</p><div className="hero-orbit"><div className="orbit-ring orbit-one" /><div className="orbit-ring orbit-two" /><div className="hero-spark"><Sparkles size={25} /></div></div></section>
-    <section className="command-card"><div className="command-top"><div className="command-icon"><Sparkles size={18} /></div><div><strong>Ask Hanna anything</strong><span>Research, build, analyze, create, automate or connect tools</span></div><div className="command-context">Personal workspace <ChevronDown size={14} /></div></div><div className="command-input-placeholder" onClick={() => chooseAction("Help me")}><span>Ask Hanna to research, build, analyze, create video, automate dropshipping or sync apps...</span><div className="composer-actions"><button aria-label="Attach"><Paperclip size={17} /></button><button aria-label="Voice"><Activity size={17} /></button><button className="send-circle"><Send size={15} /></button></div></div><div className="command-footer"><span><kbd>⌘</kbd><kbd>↵</kbd> to send</span><span>Hanna routes work across connected AI models & MCP adapters</span></div></section>
-    <section className="quick-section"><div className="section-heading"><div><p className="section-kicker">START WITH A DIRECTION</p><h2>What do you want to do?</h2></div><button className="text-button">View all <ArrowUpRight size={14} /></button></div><div className="quick-grid">{quickActions.map(([label, Icon]) => <button key={label} className="quick-card" onClick={() => chooseAction(label)}><div className="quick-icon"><Icon size={18} /></div><span>{label}</span><ArrowUpRight size={14} className="quick-arrow" /></button>)}</div></section>
-    <section className="content-grid"><div className="panel active-panel"><div className="panel-heading"><div><p className="section-kicker">IN MOTION</p><h2>Active work <span className="live-badge"><span /> LIVE</span></h2></div><button className="text-button">See all <ArrowUpRight size={14} /></button></div>{activeWork.map(work => <div className="work-item" key={work.title} role="button" tabIndex={0} onClick={() => chooseAction(`Continue ${work.title}`)}><div className={`work-icon ${work.tone}`}><Bot size={18} /></div><div className="work-info"><div className="work-title"><strong>{work.title}</strong><span className="work-status">Working</span></div><p>{work.project}</p><div className="progress-row"><div className="progress-track"><div style={{ width: `${work.progress}%` }} /></div><span>{work.progress}%</span></div><div className="work-meta"><span><Zap size={12} /> {work.stage}</span><span>{work.tools.join(" · ")}</span></div></div><button className="work-open">Open <ArrowUpRight size={14} /></button></div>)}</div>
-      <div className="panel"><div className="panel-heading"><div><p className="section-kicker">YOUR CONTEXTS</p><h2>Recent projects</h2></div><button className="icon-btn"><Plus size={16} /></button></div>{recentProjects.map(project => <button className="project-item" key={project.name} onClick={() => setActive(project.name === "Personal Knowledge" ? "Knowledge" : "Projects")}><div className={`project-icon ${project.color}`}><project.icon size={17} /></div><div><strong>{project.name}</strong><p>{project.type}</p></div><span className="project-time">{project.meta}</span></button>)}<button className="add-project"><Plus size={15} /> Create a project</button></div></section>
-    <section className="activity-strip"><div className="activity-title"><div className="activity-pulse"><Activity size={16} /></div><div><p className="section-kicker">RECENT ACTIVITY</p><strong>Hanna finished rendering <span>HeyGen Promo Video.mp4</span> and synced catalog with <span>Shopify</span></strong></div></div><div className="activity-detail"><span><Check size={14} /> Completed</span><small>5 minutes ago</small></div><button className="icon-btn"><ArrowUpRight size={16} /></button></section>
-  </div>
-}
-
-function Workspace({ title, messages, isWorking, route, composerError }: { title: string; messages: { role: "user" | "assistant"; text: string }[]; isWorking: boolean; route: { model: string; capability: string }; composerError: string | null }) {
-  const [chatSearch, setChatSearch] = useState("");
-  const [chatName, setChatName] = useState("New conversation");
-  const [archived, setArchived] = useState(false);
-  const [approved, setApproved] = useState(false);
-  const description: Record<string, string> = { Hanna: "Your intelligent workspace for getting things done.", Projects: "Organize conversations, tasks, files and knowledge around meaningful work.", Tasks: "Long-running work, approvals and outcomes in one place.", Knowledge: "Give Hanna the context she needs to be more useful.", Files: "Your documents and generated assets, ready when you are.", "Apps & Integrations": "Connect Shopify, CJ Dropshipping, HeyGen, TikTok, GitHub, MCP servers & social channels.", "AI Models": "Choose how Hanna thinks, creates and routes work across AI providers.", Marketing: "Turn ideas, avatar videos, and knowledge into campaigns that move.", Commerce: "Operate Shopify, CJ Dropshipping, AutoDS, Zendrop & Take.app storefronts.", Automations: "Build repeatable workflows with humanized approvals.", Developer: "Repositories, MCP servers, Jules, v0, and deployments.", Settings: "Shape how Hanna works for you." };
-  if (title === "Settings") return <SettingsView />;
-  if (title === "AI Models") return <ModelsView />;
-  if (title === "Apps & Integrations") return <IntegrationsView />;
-  if (title === "Activity") return <ActivityView />;
-  if (["Projects", "Tasks", "Knowledge", "Files"].includes(title)) return <CollectionView title={title} description={description[title]} />;
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> HANNA WORKSPACE</p><h1>{title}</h1><p>{description[title] || "A focused workspace for your next outcome."}</p></div><button className="outline-btn"><Plus size={15} /> New {title === "Hanna" ? "conversation" : "item"}</button></div>{title === "Hanna" ? <><div className="chat-history-strip"><div className="history-title"><Inbox size={15} /><strong>Conversations</strong></div><input aria-label="Search conversations" placeholder="Search conversations" value={chatSearch} onChange={e => setChatSearch(e.target.value)} /><button className="history-action" onClick={() => { setChatName("New conversation"); setArchived(false); }}> <Plus size={14} /> New</button><button className="history-action" onClick={() => setChatName(chatName === "New conversation" ? "Untitled workspace chat" : "New conversation")}>Rename</button><button className="history-action" onClick={() => setArchived(!archived)}>{archived ? "Restore" : "Archive"}</button></div><div className="history-results">{["Research brief · Today", "Liverton website · Yesterday", "CJ Dropshipping & Shopify Sync · Tuesday", "HeyGen Avatar Video Campaign · Monday"].filter(item => item.toLowerCase().includes(chatSearch.toLowerCase())).map(item => <button key={item} onClick={() => setChatName(item)} className={chatName === item ? "history-item history-selected" : "history-item"}>{item}<MoreHorizontal size={13} /></button>)}{archived && <span className="archived-label">Archived: {chatName}</span>}</div><div className="chat-layout"><div className="chat-column">{messages.length === 0 ? <div className="empty-chat"><div className="empty-orb"><Sparkles size={27} /></div><h2>What should we work on?</h2><p>Ask Hanna to research, analyze, create video, code, manage dropshipping or connect an MCP app.</p><div className="suggestion-row"><button>Research a topic</button><button>Create HeyGen video</button><button>Sync CJ Dropshipping catalog</button></div></div> : <div className="messages">{messages.map((message, index) => <div className={message.role === "user" ? "message user-message" : "message assistant-message"} key={`${message.role}-${index}`}><div className="message-avatar">{message.role === "user" ? "AM" : <Sparkles size={14} />}</div><div className="message-body"><span className="message-label">{message.role === "user" ? "You" : "Hanna"}</span>{message.role === "assistant" ? <><MarkdownMessage content={message.text} /><div className="message-actions"><button onClick={() => navigator.clipboard?.writeText(message.text)}>Copy</button><button onClick={() => localStorage.setItem("hanna-saved-output", message.text)}>Save output</button></div></> : <p>{message.text}</p>}</div></div>)}</div>}{isWorking && <div className="working-indicator"><div className="message-avatar"><Sparkles size={14} /></div><span>Hanna is working</span><i /><i /><i /></div>}</div><aside className="agent-panel"><div className="agent-panel-header"><div><p className="section-kicker">OPERATIONS</p><h3>Hanna is ready</h3></div><span className="ready-dot" /></div><div className={composerError ? "route-card route-error" : "route-card"}><div className="route-header"><BrainCircuit size={15} /><span>{composerError ? "Routing error" : "Automatic routing"}</span><span className="route-state">{composerError ? "Warning" : "Active"}</span></div><strong>{composerError ? "Missing credential" : route.model}</strong><p>{composerError ? "Check provider settings" : `Selected for ${route.capability.toLowerCase()}`}</p></div><p className="section-kicker activity-label">CURRENT ACTIVITY</p>{["Understanding request", "Searching Knowledge", "Selecting model", "Waiting for your request"].map((step, i) => <div className="agent-step" key={step}><span className={i === 3 ? "step-dot pending" : "step-dot"}>{i < 3 ? <Check size={11} /> : null}</span><span>{step}</span></div>)}<div className="tool-card"><Github size={15} /><span>GitHub</span><small>Connected</small></div><div className="tool-card"><ShoppingBag size={15} /><span>Shopify & CJ Dropshipping</span><small>Connected</small></div><div className="tool-card"><Plug size={15} /><span>Custom MCP Adapter</span><small>Active</small></div><div className="approval-card"><div><strong>Approval gate</strong><p>Consequential actions pause for your human review.</p></div><button onClick={() => setApproved(!approved)}>{approved ? "Approved" : "Review"}</button></div></aside></div></> : <div className="workspace-empty"><div className="empty-icon"><LayoutGrid size={22} /></div><h2>Build your {title.toLowerCase()} workspace</h2><p>{description[title]}</p><button className="primary-btn"><Plus size={15} /> Get started</button></div>}</div>
-}
-
-function SettingsView() {
-  const { user } = useAuth();
-  const { data: catalog = [] } = trpc.providers.catalog.useQuery();
-  const { data: connected = [] } = trpc.providers.list.useQuery(undefined, { enabled: !!user });
-  const save = trpc.providers.save.useMutation();
-  const remove = trpc.providers.remove.useMutation();
-  const testConnection = trpc.providers.testConnection.useMutation();
-  const [keys, setKeys] = useState<Record<string, string>>({});
-  const [customName, setCustomName] = useState("My custom provider");
-  const [endpoints, setEndpoints] = useState<Record<string, string>>({});
-  const [notice, setNotice] = useState("");
-  const [modalOpen, setModalOpen] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const connectedMap = new Map(connected.map(item => [item.provider, item]));
-
-  const filteredCatalog = useMemo(() => {
-    if (activeCategory === "all") return catalog;
-    return catalog.filter(p => p.category.toLowerCase().includes(activeCategory.toLowerCase()));
-  }, [catalog, activeCategory]);
-
-  async function saveKey(provider: (typeof catalog)[number]) {
-    const apiKey = keys[provider.id]?.trim();
-    if (!apiKey) return;
-    await save.mutateAsync({ provider: provider.id, displayName: provider.id === "custom" ? customName : provider.name, apiKey, endpoint: endpoints[provider.id] || undefined });
-    setKeys(prev => ({ ...prev, [provider.id]: "" }));
-    setNotice(`${provider.name} key saved securely on the backend.`);
-  }
-
-  async function removeKey(provider: string) {
-    await remove.mutateAsync({ provider });
-    setNotice("Provider disconnected.");
-  }
-
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> CONNECTIONS & AI VAULT</p><h1>Provider API Keys</h1><p>Bring your own keys for AI models, video generators (HeyGen, Synthesia), voice, and developer agents. Stored securely on the backend.</p></div><div className="settings-heading-actions"><div className="secure-badge"><Check size={14} /> Backend GCM Encrypted</div><button className="outline-btn" onClick={() => setModalOpen(true)}>Manage keys</button></div></div>{!user && <div className="login-note"><Inbox size={17} /><div><strong>Sign in to save provider keys</strong><p>Keys are encrypted at rest with server-side secrets and never exposed to browser bundles.</p></div><button className="outline-btn" onClick={() => setNotice("Firebase Auth is ready. Add environment secrets to enable sign-in.")}>Configure auth</button></div>}{notice && <div className="success-note"><Check size={15} /> {notice}<button className="icon-btn" onClick={() => setNotice("")}><X size={14} /></button></div>}{modalOpen ? <div className="settings-modal-overlay" role="dialog" aria-modal="true" aria-label="API key settings"><div className="settings-modal"><div className="settings-modal-header"><div><span className="section-kicker">SECURE KEY VAULT</span><h2>Manage API Keys</h2></div><button className="icon-btn" onClick={() => setModalOpen(false)} aria-label="Close settings"><X size={16} /></button></div><div className="category-filter-strip"><button className={activeCategory === "all" ? "filter-chip active" : "filter-chip"} onClick={() => setActiveCategory("all")}>All ({catalog.length})</button><button className={activeCategory === "model" ? "filter-chip active" : "filter-chip"} onClick={() => setActiveCategory("model")}>AI Models</button><button className={activeCategory === "content" ? "filter-chip active" : "filter-chip"} onClick={() => setActiveCategory("content")}>Content & Video</button><button className={activeCategory === "developer" ? "filter-chip active" : "filter-chip"} onClick={() => setActiveCategory("developer")}>Code & Design</button></div><p className="settings-modal-copy">Keys are encrypted with AES-256-GCM. Raw keys are never returned by API calls.</p><div className="provider-grid">{filteredCatalog.map(provider => { const current = connectedMap.get(provider.id); return <div className="provider-card" key={provider.id}><div className="provider-card-header"><div className="provider-avatar">{provider.category.includes("Content") ? <Video size={16} /> : provider.category.includes("Developer") || provider.category.includes("Design") ? <Terminal size={16} /> : <BrainCircuit size={16} />}</div><div><strong>{provider.name}</strong><span>{provider.category}</span></div><span className={current ? "connected-status" : "disconnected-status"}>{current ? "Connected" : "Not connected"}</span></div>{provider.id === "custom" && <label className="key-label">Provider name<input value={customName} onChange={e => setCustomName(e.target.value)} placeholder="My custom provider" /></label>}<label className="key-label">{provider.id === "custom" ? "Endpoint URL" : "API key"}{provider.id === "custom" && <input type="url" value={endpoints[provider.id] || ""} onChange={e => setEndpoints(prev => ({ ...prev, [provider.id]: e.target.value }))} placeholder="https://api.example.com/v1/chat/completions" />}<input type="password" value={keys[provider.id] || ""} onChange={e => setKeys(prev => ({ ...prev, [provider.id]: e.target.value }))} placeholder={current ? `Saved ${current.keyHint}` : provider.placeholder} autoComplete="new-password" /></label><div className="provider-actions"><button className="primary-small" disabled={!user || !keys[provider.id] || save.isPending} onClick={() => saveKey(provider)}>{save.isPending ? "Saving…" : "Save key"}</button>{current && <><button className="remove-small" onClick={() => removeKey(provider.id)}>Disconnect</button><button className="test-small" onClick={async () => { const result = await testConnection.mutateAsync({ provider: provider.id }); setNotice(result.message); }}>{testConnection.isPending ? "Testing…" : "Test"}</button></>}</div></div>; })}</div></div></div> : <div className="settings-placeholder"><div className="empty-icon"><KeyRound size={20} /></div><h2>Your API keys are protected</h2><p>Open the key vault to connect Gemini, OpenAI, HeyGen, Synthesia, ElevenLabs, Jules or custom models.</p><button className="primary-btn" onClick={() => setModalOpen(true)}>Open key vault</button></div>}</div>;
-}
-
-function IntegrationsView() {
-  const { user } = useAuth();
-  const { data: catalog = [] } = trpc.integrations.catalog.useQuery();
-  const { data: connected = [], refetch } = trpc.integrations.listCredentials.useQuery(undefined, { enabled: !!user });
-  const save = trpc.integrations.saveCredential.useMutation({ onSuccess: () => refetch() });
-  const preview = trpc.integrations.previewAction.useMutation();
-  const approve = trpc.integrations.approveAction.useMutation();
-  const execute = trpc.integrations.executeApproved.useMutation();
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeIntegrationId, setActiveIntegrationId] = useState<string>("shopify");
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [notice, setNotice] = useState("");
-  const [approvalId, setApprovalId] = useState("");
-
-  const connectedMap = new Map(connected.map(item => [item.connector, item]));
-
-  const filteredCatalog = useMemo(() => {
-    return catalog.filter(item => {
-      const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [catalog, selectedCategory, searchQuery]);
-
-  const activeIntegration = useMemo(() => {
-    return catalog.find(item => item.id === activeIntegrationId) || catalog[0];
-  }, [catalog, activeIntegrationId]);
-
-  const saveConnection = async () => {
-    if (!activeIntegration) return;
-    await save.mutateAsync({ connector: activeIntegration.id, values });
-    setValues({});
-    setNotice(`${activeIntegration.name} credentials saved securely.`);
-  };
-
-  const previewAction = async () => {
-    if (!activeIntegration) return;
-    const actionName = activeIntegration.id === "shopify" ? "list_products" : activeIntegration.id === "slack" ? "list_channels" : "sync_inventory";
-    const result = await preview.mutateAsync({ connector: activeIntegration.id, action: actionName, parameters: values });
-    setApprovalId(result.id);
-    setNotice(`Approval required for ${result.action.replaceAll("_", " ")}.`);
-  };
-
-  const approveAndExecute = async () => {
-    await approve.mutateAsync({ approvalId });
-    const result = await execute.mutateAsync({ approvalId });
-    setNotice(`${result.summary} ${result.verification.detail}`);
-    setApprovalId("");
-  };
-
-  const getCategoryIcon = (cat: IntegrationCategory) => {
-    switch (cat) {
-      case "commerce": return <Store size={16} />;
-      case "content_creation": return <Video size={16} />;
-      case "communication": return <MessageSquare size={16} />;
-      case "social": return <Share2 size={16} />;
-      case "developer": return <Code2 size={16} />;
-      case "workspace": return <BriefcaseBusiness size={16} />;
-      case "custom_mcp": return <Plug size={16} />;
-      default: return <LayoutGrid size={16} />;
-    }
-  };
-
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> CONNECTED WORKFLOWS & MCP</p><h1>Apps & Integrations</h1><p>Connect Shopify, CJ Dropshipping, AutoDS, Take.app, HeyGen, TikTok, Pinterest, GitHub & Custom MCP servers.</p></div><div className="secure-badge"><Check size={14} /> Server-side encrypted</div></div>{!user && <div className="login-note"><Inbox size={17} /><div><strong>Sign in to enable live integrations</strong><p>Credentials and tokens are stored encrypted and bounded to your account.</p></div></div>}{notice && <div className="success-note"><Check size={15} /> {notice}<button className="icon-btn" onClick={() => setNotice("")}><X size={14} /></button></div>}<div className="integration-filter-bar"><div className="category-filter-strip"><button className={selectedCategory === "all" ? "filter-chip active" : "filter-chip"} onClick={() => setSelectedCategory("all")}>All ({catalog.length})</button><button className={selectedCategory === "commerce" ? "filter-chip active" : "filter-chip"} onClick={() => setSelectedCategory("commerce")}><Store size={13} /> E-Commerce & Dropshipping</button><button className={selectedCategory === "content_creation" ? "filter-chip active" : "filter-chip"} onClick={() => setSelectedCategory("content_creation")}><Video size={13} /> Content Creation</button><button className={selectedCategory === "social" ? "filter-chip active" : "filter-chip"} onClick={() => setSelectedCategory("social")}><Share2 size={13} /> Social & Bio</button><button className={selectedCategory === "developer" ? "filter-chip active" : "filter-chip"} onClick={() => setSelectedCategory("developer")}><Code2 size={13} /> Developer</button><button className={selectedCategory === "custom_mcp" ? "filter-chip active" : "filter-chip"} onClick={() => setSelectedCategory("custom_mcp")}><Plug size={13} /> Custom MCP</button></div><div className="search-box"><Search size={15} /><input placeholder="Search apps, tools, or MCP..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div></div><div className="model-grid">{filteredCatalog.map(item => { const isConn = connectedMap.has(item.id); return <div className={`model-card ${activeIntegrationId === item.id ? "selected-integration-card" : ""}`} key={item.id} onClick={() => setActiveIntegrationId(item.id)}><div className="model-logo blue">{getCategoryIcon(item.category)}</div><div className="model-card-copy"><div className="model-card-top"><strong>{item.name}</strong><span className={isConn ? "status-connected" : "status-available"}>{isConn ? "Connected" : item.supportsMcp ? "MCP Adapter" : "Available"}</span></div><h3>{item.category.replaceAll("_", " ")}</h3><p>{item.description}</p></div><button className="icon-btn" aria-label={`Configure ${item.name}`}><ArrowUpRight size={16} /></button></div>; })}</div>{activeIntegration && <div className="settings-modal" style={{ maxWidth: 720, marginTop: 28 }}><div className="settings-modal-header"><div><span className="section-kicker">{activeIntegration.category.toUpperCase()} INTEGRATION</span><h2>Configure {activeIntegration.name}</h2></div><span className="connected-status">{connectedMap.has(activeIntegration.id) ? "Connected" : "Not connected"}</span></div><p className="settings-modal-copy">{activeIntegration.description}</p><div className="provider-grid">{activeIntegration.credentialFields.map(field => <label className="key-label" key={field}>{field.replaceAll(/([A-Z])/g, " $1")}<input type={field.toLowerCase().includes("token") || field.toLowerCase().includes("key") || field.toLowerCase().includes("secret") ? "password" : "text"} value={values[field] ?? ""} onChange={e => setValues(v => ({ ...v, [field]: e.target.value }))} placeholder={`Enter ${field}`} autoComplete="new-password" /></label>)}<div className="provider-actions"><button className="primary-small" disabled={!user || save.isPending} onClick={saveConnection}>{save.isPending ? "Saving…" : "Save connection"}</button><button className="test-small" disabled={!user || preview.isPending} onClick={previewAction}>{preview.isPending ? "Preparing…" : "Preview action"}</button>{approvalId && <button className="primary-small" disabled={approve.isPending || execute.isPending} onClick={approveAndExecute}>{approve.isPending || execute.isPending ? "Executing…" : "Approve & execute"}</button>}</div></div></div>}</div>;
-}
-
-function ModelsView() {
-  const models = [
-    { name: "Gemini", model: "Gemini 3 Flash", detail: "Fast multimodal reasoning", status: "Connected", color: "blue" },
-    { name: "OpenAI", model: "GPT-5 Mini", detail: "Structured analysis and writing", status: "Available", color: "green" },
-    { name: "Claude", model: "Claude Sonnet 4.6", detail: "Coding and deep reasoning", status: "Available", color: "violet" },
-    { name: "HeyGen / Synthesia", model: "AI Video & Voice Generation", detail: "Studio avatars & video translation", status: "Available", color: "mint" },
-    { name: "Custom MCP Models", model: "Model Context Protocol", detail: "Bring your own tool adapters and local LLMs", status: "Active", color: "peach" },
+function SettingsPanel({
+  theme,
+  onThemeToggle,
+  connectedApps,
+  onToggleApp,
+  onToast,
+}: {
+  theme: "light" | "dark";
+  onThemeToggle: () => void;
+  connectedApps: string[];
+  onToggleApp: (name: string) => void;
+  onToast: (message: string) => void;
+}) {
+  const apps = [
+    { name: "Google Drive", description: "Bring documents into a conversation", icon: FileText },
+    { name: "Notion", description: "Search pages and save working notes", icon: BookOpen },
+    { name: "Slack", description: "Find context across your team", icon: Zap },
   ];
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> INTELLIGENCE LAYER</p><h1>AI Models & Generators</h1><p>Hanna routes requests dynamically across AI models, video creators, and custom MCP tools.</p></div><button className="outline-btn"><Plus size={15} /> Connect provider</button></div><div className="model-grid">{models.map(model => <div className="model-card" key={model.name}><div className={`model-logo ${model.color}`}><BrainCircuit size={19} /></div><div className="model-card-copy"><div className="model-card-top"><strong>{model.name}</strong><span>{model.status}</span></div><h3>{model.model}</h3><p>{model.detail}</p></div><button className="icon-btn"><MoreHorizontal size={16} /></button></div>)}</div><div className="routing-note"><div className="command-icon"><Sparkles size={17} /></div><div><strong>Automatic capability selection active</strong><p>Hanna routes work by capability, context and tool requirements. You can override routing from the composer.</p></div><button className="text-button">Routing settings <ArrowUpRight size={14} /></button></div></div>;
+  return (
+    <div className="context-scroll custom-scroll settings-scroll">
+      <section className="settings-section">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Appearance</span><h3>Make it yours</h3></div><SlidersHorizontal size={17} /></div>
+        <div className="theme-setting"><div><strong>Theme</strong><span>{theme === "light" ? "Paper white and graphite" : "Charcoal and soft white"}</span></div><button className="theme-switch" onClick={onThemeToggle} aria-label="Toggle theme"><span className={theme === "dark" ? "is-dark" : ""} /></button></div>
+        <div className="theme-options"><button className={theme === "light" ? "is-selected" : ""} onClick={() => theme === "dark" && onThemeToggle()}><Sun size={15} /> Light</button><button className={theme === "dark" ? "is-selected" : ""} onClick={() => theme === "light" && onThemeToggle()}><Moon size={15} /> Dark</button></div>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Apps & integrations</span><h3>Bring your work with you</h3></div><PanelRight size={17} /></div>
+        <p className="settings-intro">Connect the places where your work already lives. Hanna will keep each connection visible and under your control.</p>
+        <div className="integration-list">{apps.map(({ name, description, icon: Icon }) => { const isConnected = connectedApps.includes(name); return <div className="integration-row" key={name}><div className="integration-icon"><Icon size={16} /></div><div className="integration-copy"><strong>{name}</strong><span>{description}</span></div><button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>{isConnected ? <><Check size={13} /> Ready</> : "Connect"}</button></div>; })}</div>
+      </section>
+      <section className="settings-section compact-section">
+        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> What's new</span><h3>Hanna, in focus</h3></div><CircleHelp size={17} /></div>
+        <div className="release-note"><div className="release-number">02</div><div><strong>Artifacts live beside the conversation.</strong><p>Keep a generated direction, code snippet, or research surface close without leaving the thread.</p><button onClick={() => onToast("You are already looking at the latest Hanna workspace")}>Read release notes <ChevronRight size={14} /></button></div></div>
+      </section>
+      <div className="settings-footer">Hanna <span>•</span> Personal workspace <span>•</span> v0.2</div>
+    </div>
+  );
 }
 
-function ActivityView() {
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> YOUR TIMELINE</p><h1>Activity</h1><p>A humanized timeline of what Hanna has accomplished across your workspace.</p></div><button className="outline-btn"><Search size={15} /> Filter</button></div><div className="activity-list">{[{icon: Video, title: "Generated HeyGen Avatar Video for Brand Launch", detail: "Content Creation · 5 minutes ago", color: "mint"}, {icon: ShoppingBag, title: "Synced 42 products from CJ Dropshipping to Shopify store", detail: "Commerce · 18 minutes ago", color: "blue"}, {icon: Check, title: "Finished analyzing Annual Business Report.pdf", detail: "Knowledge · 1 hour ago", color: "green"}, {icon: Github, title: "Connected GitHub to Hanna Development", detail: "Apps & Integrations · Yesterday", color: "violet"}].map(item => <div className="timeline-item" key={item.title}><div className={`timeline-icon ${item.color}`}><item.icon size={16} /></div><div><strong>{item.title}</strong><p>{item.detail}</p></div><ArrowUpRight size={15} className="muted" /></div>)}</div></div>;
+
+/**
+ * Compatibility API retained for the repository’s existing composer tests and
+ * any frontend callers that still import the old error helpers.
+ */
+export function getProviderKeyError(
+  _model: { id: number },
+  settings: { defaultProvider?: string },
+  connectedProviders: Array<{ provider?: string }>,
+): string | null {
+  const provider = settings.defaultProvider;
+  if (!provider || provider === "automatic") return null;
+  const hasProvider = connectedProviders.some((item) => item.provider === provider);
+  return hasProvider ? null : `Connect your ${provider} API key in Settings to send this request.`;
 }
 
-function CollectionView({ title, description }: { title: string; description?: string }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const cards = title === "Knowledge" ? ["Personal Knowledge", "Liverton Business", "Dropshipping Market Research"] : title === "Files" ? ["Annual Business Report.pdf", "HeyGen Promo Script.docx", "Shopify Store Banner.png"] : title === "Tasks" ? ["Website authentication", "Quarterly knowledge digest", "AutoDS order sync"] : ["Hanna Development", "Liverton Learning", "Commerce & Dropshipping Store"];
-  const Icon = title === "Files" ? FileText : title === "Tasks" ? ListTodo : title === "Knowledge" ? Library : FolderKanban;
-  return <div className="page workspace-page"><div className="workspace-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> HANNA WORKSPACE</p><h1>{title}</h1><p>{description}</p></div><button className="outline-btn"><Plus size={15} /> New {title === "Files" ? "upload" : title === "Knowledge" ? "space" : title.slice(0, -1).toLowerCase()}</button></div><div className="collection-grid">{cards.map((card, index) => <button type="button" className="collection-card" key={card} onClick={() => setSelected(card)}><div className={`collection-icon c-${index}`}><Icon size={18} /></div><div><strong>{card}</strong><p>{title === "Files" ? "Ready · 2.4 MB" : title === "Tasks" ? "Working · 67% complete" : title === "Knowledge" ? "12 sources · Updated today" : "Workspace · Updated recently"}</p></div><ArrowUpRight size={15} className="muted" /></button>)}</div>{selected && <div className="deferred-dialog" role="dialog" aria-modal="true"><div className="deferred-dialog-card"><button className="icon-btn dialog-close" onClick={() => setSelected(null)} aria-label="Close"><X size={16} /></button><div className="empty-icon"><Icon size={20} /></div><h2>{selected}</h2><p>Hanna has this workspace ready. Detailed editing and connected data will be available in the next build.</p><button className="primary-btn" onClick={() => setSelected(null)}>Got it</button></div></div>}</div>;
+export function getProviderFailureError(message: string): string | null {
+  return message.includes("connected provider") && message.includes("Check its API key in Settings") ? message : null;
 }
 
-export function Composer({ prompt, setPrompt, submit, isWorking, composerError, clearComposerError, setActive }: { prompt: string; setPrompt: (value: string) => void; submit: (e?: FormEvent) => void; isWorking: boolean; composerError: string | null; clearComposerError: () => void; setActive: (value: string) => void }) {
-  const [attachment, setAttachment] = useState<File | null>(null);
-  return <form className="composer-dock" onSubmit={submit}><div className="composer-inner"><div className="composer-input">{attachment && <div className="attachment-chip"><Paperclip size={12} /> {attachment.name}<button type="button" onClick={() => setAttachment(null)} aria-label="Remove attachment"><X size={12} /></button></div>}<textarea value={prompt} onChange={e => { setPrompt(e.target.value); if (composerError) clearComposerError(); }} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }} placeholder="Ask Hanna to research, build, create video, automate dropshipping, or connect an app..." rows={1} /><div className="composer-bottom"><div className="composer-left"><label className="attachment-button" aria-label="Attach a file"><Paperclip size={16} /><input type="file" hidden onChange={event => setAttachment(event.target.files?.[0] || null)} /></label><button type="button"><span className="model-dot" /> Auto <ChevronDown size={13} /></button><button type="button"><span className="context-dot" /> Personal <ChevronDown size={13} /></button></div><div className="composer-right">{composerError && <div className="composer-error-bubble"><Zap size={12} /> {composerError} <button type="button" onClick={() => setActive("Settings")}>Settings</button></div>}<span className="composer-hint">Enter to send</span><button aria-label="Send message" className={composerError ? "send-button send-warning" : "send-button"} type="submit" disabled={(!prompt.trim() && !isWorking) || !!composerError}>{isWorking ? <Square size={14} fill="currentColor" /> : <Send size={15} />}</button></div></div></div></div></form>
+export function Composer({
+  prompt,
+  setPrompt,
+  submit,
+  isWorking,
+  composerError,
+  clearComposerError,
+  setActive,
+}: {
+  prompt: string;
+  setPrompt: (value: string) => void;
+  submit: () => void;
+  isWorking: boolean;
+  composerError?: string | null;
+  clearComposerError: () => void;
+  setActive: (value: string) => void;
+}) {
+  return (
+    <div className="composer-shell" data-compatibility-composer="true">
+      {composerError && <div role="alert" className="composer-error">{composerError}</div>}
+      <textarea
+        aria-label="Message Hanna"
+        value={prompt}
+        onChange={(event) => {
+          clearComposerError();
+          setPrompt(event.target.value);
+        }}
+      />
+      <div className="composer-footer">
+        <button type="button" onClick={() => setActive("Settings")}>Settings</button>
+        <button type="button" aria-label="Send" disabled={isWorking || !prompt.trim() || Boolean(composerError)} onClick={submit}><Send size={16} /></button>
+      </div>
+    </div>
+  );
 }
