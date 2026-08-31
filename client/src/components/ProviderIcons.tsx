@@ -16,14 +16,15 @@ export function GoogleIcon({ size = 20, className = "" }: IconProps) {
 export function GeminiIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="url(#gemini-gradient)" d="M12 2C12 7.52 7.52 12 2 12c5.52 0 10 4.48 10 10 0-5.52 4.48-10 10-10-5.52 0-10-4.48-10-10Z" />
       <defs>
         <linearGradient id="gemini-gradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#1A73E8" />
-          <stop offset="0.5" stopColor="#8AB4F8" />
-          <stop offset="1" stopColor="#D93025" />
+          <stop offset="0%" stopColor="#1A73E8" />
+          <stop offset="35%" stopColor="#8AB4F8" />
+          <stop offset="70%" stopColor="#C5221F" />
+          <stop offset="100%" stopColor="#F29900" />
         </linearGradient>
       </defs>
+      <path fill="url(#gemini-gradient)" d="M12 2C12 7.52 7.52 12 2 12c5.52 0 10 4.48 10 10 0-5.52 4.48-10 10-10-5.52 0-10-4.48-10-10Z" />
     </svg>
   );
 }
@@ -169,7 +170,15 @@ export function GoogleTrendsIcon({ size = 20, className = "" }: IconProps) {
 export function HeyGenIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#8B5CF6" d="M4 4h4v16H4V4Zm12 0h4v16h-4V4Zm-8 6h8v4H8v-4Z" />
+      <defs>
+        <linearGradient id="heygen-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8A2BE2" />
+          <stop offset="50%" stopColor="#7C3AED" />
+          <stop offset="100%" stopColor="#4F46E5" />
+        </linearGradient>
+      </defs>
+      <rect width="20" height="20" x="2" y="2" rx="6" fill="url(#heygen-grad)" />
+      <path fill="#FFFFFF" d="M8 6.5v11l8.5-5.5L8 6.5Z" />
     </svg>
   );
 }
