@@ -5,6 +5,9 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 60
+    },
+    "api/config.ts": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
