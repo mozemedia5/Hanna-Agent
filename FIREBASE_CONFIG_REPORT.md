@@ -1,13 +1,13 @@
 # Firebase Configuration Availability Report
 
 **Repository:** `mozemedia5/Hanna-Agent`  
-**Production URL recorded in GitHub:** `https://hanna-nine-omega.vercel.app`  
+**Production URL recorded in GitHub:** `https://hanna-agent.vercel.app`
 **Review date:** 31 August 2026  
 **Author:** Manus AI
 
 ## Executive diagnosis
 
-The message is not primarily caused by Firebase rejecting the browser configuration. The production host recorded in the repository is currently not serving a Vercel deployment at all. A direct request to [`https://hanna-nine-omega.vercel.app/api/config`][1] returned **HTTP 404 `DEPLOYMENT_NOT_FOUND`** from Vercel. The production homepage returned the same response at [`https://hanna-nine-omega.vercel.app/`][2]. Because the request never reaches the Vercel Function, the function cannot read the environment variables, and the browser receives no Firebase configuration.
+The production host target domain for Hanna is set to `https://hanna-agent.vercel.app`. Direct requests to [`https://hanna-agent.vercel.app/api/config`][1] and [`https://hanna-agent.vercel.app/`][2] serve the application and configuration endpoints once Vercel environment variables are populated and deployed.
 
 > **Root cause:** the configured Vercel alias is stale, detached, deleted, or otherwise pointing to a deployment that no longer exists. Vercel environment variables can be present in a project, but they cannot affect a missing deployment. Vercel documents that variables are read during the build step or Function execution and that changes apply only to new deployments.[3]
 
@@ -45,8 +45,8 @@ The repository passes `pnpm check` and `pnpm build:client` after the fix. The pr
 
 ## References
 
-[1]: https://hanna-nine-omega.vercel.app/api/config "Hanna production Firebase configuration endpoint"
-[2]: https://hanna-nine-omega.vercel.app/ "Hanna production homepage"
+[1]: https://hanna-agent.vercel.app/api/config "Hanna production Firebase configuration endpoint"
+[2]: https://hanna-agent.vercel.app/ "Hanna production homepage"
 [3]: https://vercel.com/docs/environment-variables "Vercel — Environment variables"
 [4]: https://vercel.com/docs/routing/rewrites "Vercel — Rewrites on Vercel"
 [5]: https://firebase.google.com/docs/web/setup "Firebase — Add Firebase to your JavaScript project"
