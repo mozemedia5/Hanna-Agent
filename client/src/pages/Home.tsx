@@ -44,7 +44,7 @@ import {
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
-import { trpc } from "@/lib/trpc";
+import { calculateConversationAnalytics, getUserProfile, listUserConversations, saveUserConversation, saveUserProfile, type ClientConversation } from "@/lib/firestore";
 
 type ToolKey =
   | "Web Search"
@@ -54,7 +54,7 @@ type ToolKey =
   | "Deep Research"
   | "Image Gen";
 
-type Panel = "artifacts" | "settings" | null;
+type Panel = "artifacts" | "settings" | "analytics" | null;
 type SettingsSection = "overview" | "api-keys" | "connectors" | "mcps" | "workspace" | "profile";
 
 type Message = {
@@ -62,7 +62,9 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   time?: string;
+  tokenCount?: number;
 };
+const estimateTokens = (content: string) => Math.max(1, Math.ceil(content.length / 4));
 
 type Chat = {
   id: number;
@@ -128,23 +130,20 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [model, setModel] = useState("Hanna Pro");
+  const [model, setModel] = useState("Hanna Lite");
+  const [customModel, setCustomModel] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isThinking, setIsThinking] = useState(false);
   const [toast, setToast] = useState("");
   const [connectedApps, setConnectedApps] = useState<string[]>(["Google Drive"]);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const conversationsQuery = trpc.conversations.list.useQuery(undefined, { retry: false });
-  const conversationSave = trpc.conversations.save.useMutation();
+  const [storedConversations, setStoredConversations] = useState<ClientConversation[]>([]);
 
   const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId) ?? chats[0], [activeChatId, chats]);
   const hasMessages = activeChat.messages.length > 0;
   useEffect(() => {
-    if (!conversationsQuery.data?.length) return;
-    const stored = conversationsQuery.data.map((chat) => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() }));
-    setChats(stored);
-    setActiveChatId(stored[0].id);
-  }, [conversationsQuery.data]);
+    void listUserConversations().then((storedConversations) => { setStoredConversations(storedConversations); if (!storedConversations.length) return; const stored = storedConversations.map((chat) => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() })); setChats(stored); setActiveChatId(stored[0].id); }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("hanna-theme") as "light" | "dark" | null;
@@ -195,29 +194,30 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     const text = composer.trim();
     if (!text || isThinking) return;
     const chatId = activeChatId;
-    const userMessage: Message = { id: `${chatId}-${Date.now()}`, role: "user", content: text, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+    const userMessage: Message = { id: `${chatId}-${Date.now()}`, role: "user", content: text, tokenCount: estimateTokens(text), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
     const currentChat = chats.find((chat) => chat.id === chatId) ?? activeChat;
     const chatWithUser = { ...currentChat, title: currentChat.messages.length === 0 ? text.slice(0, 32) : currentChat.title, messages: [...currentChat.messages, userMessage] };
     setChats((current) => current.map((chat) => chat.id === chatId ? chatWithUser : chat));
-    conversationSave.mutate({ ...chatWithUser, id: String(chatWithUser.id) });
+    void saveUserConversation({ ...chatWithUser, id: String(chatWithUser.id) }).catch(() => undefined);
     setComposer(""); setIsThinking(true);
     try {
       const token = await getFirebaseIdToken();
-      const response = await fetch("/api/trpc/hanna.ask?batch=1", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ 0: { json: { prompt: text } } }) });
+      const response = await fetch("/api/trpc/hanna.ask?batch=1", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ 0: { json: { prompt: text, model: model === "Custom" ? customModel.trim() : model } } }) });
       const payload = await response.json() as Array<{ result?: { data?: { json?: { answer?: string }; answer?: string } } }>;
       if (!response.ok) throw new Error("Hanna could not complete that request.");
       const data = payload[0]?.result?.data;
       const reply = data && "json" in data ? (data.json?.answer || (data.json as unknown as { text?: string })?.text) : data?.answer || (data as unknown as { text?: string })?.text;
       if (!reply) throw new Error("Hanna returned an empty response.");
-      const assistantMessage = { id: `${chatId}-assistant-${Date.now()}`, role: "assistant" as const, content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      const assistantMessage = { id: `${chatId}-assistant-${Date.now()}`, role: "assistant" as const, content: reply, tokenCount: estimateTokens(reply), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
       const completedChat = { ...chatWithUser, messages: [...chatWithUser.messages, assistantMessage] };
       setChats((current) => current.map((chat) => chat.id === chatId ? completedChat : chat));
-      conversationSave.mutate({ ...completedChat, id: String(completedChat.id) });
+      void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
-      const errorMessage = { id: `${chatId}-error-${Date.now()}`, role: "assistant" as const, content: reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      const errorContent = reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.";
+      const errorMessage = { id: `${chatId}-error-${Date.now()}`, role: "assistant" as const, content: errorContent, tokenCount: estimateTokens(errorContent), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
       const failedChat = { ...chatWithUser, messages: [...chatWithUser.messages, errorMessage] };
       setChats((current) => current.map((chat) => chat.id === chatId ? failedChat : chat));
-      conversationSave.mutate({ ...failedChat, id: String(failedChat.id) });
+      void saveUserConversation({ ...failedChat, id: String(failedChat.id) }).catch(() => undefined);
     } finally { setIsThinking(false); }
   };
 
@@ -281,6 +281,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <span>All conversations</span>
               <span className="sidebar-count">{chats.length}</span>
             </button>
+            <button className="sidebar-link" onClick={() => togglePanel("analytics")}>
+              <BarChart3 size={16} />
+              <span>Activity & usage</span>
+            </button>
             <button className="sidebar-link" onClick={() => showToast("Search is ready for your conversations") }>
               <Search size={16} />
               <span>Search chats</span>
@@ -337,12 +341,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div className="model-picker">
               <button className="model-button" onClick={() => setModelMenuOpen((current) => !current)} aria-expanded={modelMenuOpen}>
                 <span className="model-pulse" />
-                {model}
+                {model === "Custom" && customModel ? customModel : model}
                 <ChevronDown size={14} />
               </button>
               {modelMenuOpen && (
                 <div className="model-menu">
-                  {["Hanna Pro", "Hanna Fast", "Hanna Focus"].map((option) => (
+                  {["Hanna Lite", "Hanna Pro", "Custom"].map((option) => (
                     <button
                       key={option}
                       className={`model-option ${model === option ? "is-selected" : ""}`}
@@ -351,10 +355,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         setModelMenuOpen(false);
                       }}
                     >
-                      <span>{option}</span>
+                      <span>{option}{option === "Hanna Pro" && <small className="model-plan-label">Paid plan</small>}</span>
                       {model === option && <Check size={14} />}
                     </button>
                   ))}
+                  {model === "Custom" && <div className="custom-model-field"><input value={customModel} onChange={(event) => setCustomModel(event.target.value)} placeholder="gemini-2.5-flash" aria-label="Custom model name" /></div>}
                 </div>
               )}
             </div>
@@ -403,10 +408,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     <div className="eyebrow"><span className="eyebrow-line" /> Conversation</div>
                     <h1>{activeChat.title}</h1>
                   </div>
-                  <button className="subtle-action" onClick={() => togglePanel("artifacts")}>
-                    <PanelRight size={15} />
-                    Artifacts
-                  </button>
+                  <div className="conversation-actions"><span className="conversation-usage">{activeChat.messages.length} messages · {activeChat.messages.reduce((total, message) => total + (message.tokenCount ?? estimateTokens(message.content)), 0)} est. tokens</span><button className="subtle-action" onClick={() => togglePanel("analytics")}><BarChart3 size={15} />Usage</button><button className="subtle-action" onClick={() => togglePanel("artifacts")}><PanelRight size={15} />Artifacts</button></div>
                 </div>
                 {activeChat.messages.map((message) => (
                   <article className={`message-row ${message.role}`} key={message.id}>
@@ -479,10 +481,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       {panel && (
         <aside className="context-panel" aria-label={panel === "artifacts" ? "Artifacts" : "Settings"}>
           <div className="context-header">
-            <div className="context-title"><span className="context-kicker">Workspace</span><h2>{panel === "artifacts" ? "Artifacts" : "Settings"}</h2></div>
+            <div className="context-title"><span className="context-kicker">Workspace</span><h2>{panel === "artifacts" ? "Artifacts" : panel === "analytics" ? "Activity" : "Settings"}</h2></div>
             <button className="icon-button" onClick={() => setPanel(null)} aria-label="Close panel"><X size={17} /></button>
           </div>
-          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} /> : <SettingsHub activeSection={settingsSection} onSectionChange={setSettingsSection} theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
+          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} /> : panel === "analytics" ? <AnalyticsPanel /> : <SettingsHub activeSection={settingsSection} onSectionChange={setSettingsSection} theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
         </aside>
       )}
 
@@ -518,6 +520,24 @@ function ArtifactsPanel({ onCopy }: { onCopy: () => void }) {
   );
 }
 
+function AnalyticsPanel() {
+  const [data, setData] = useState<ReturnType<typeof calculateConversationAnalytics> | null>(null);
+  useEffect(() => { void listUserConversations().then((conversations) => setData(calculateConversationAnalytics(conversations))).catch(() => setData(calculateConversationAnalytics([]))); }, []);
+  const maxTokens = Math.max(1, ...(data?.daily.map((day) => day.tokens) ?? [1]));
+  const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
+  return <div className="context-scroll custom-scroll analytics-panel">
+    <div className="analytics-intro"><span className="eyebrow"><span className="eyebrow-line" /> Last 14 days</span><p>Your Hanna workspace at a glance. Token counts are estimated from saved message content.</p></div>
+    <div className="analytics-stat-grid">
+      <div className="analytics-stat"><span>Conversations</span><strong>{formatNumber(data?.totalConversations ?? 0)}</strong></div>
+      <div className="analytics-stat"><span>Messages</span><strong>{formatNumber(data?.totalMessages ?? 0)}</strong></div>
+      <div className="analytics-stat"><span>Est. tokens</span><strong>{formatNumber(data?.estimatedTokens ?? 0)}</strong></div>
+      <div className="analytics-stat"><span>Active days</span><strong>{formatNumber(data?.activeDays ?? 0)}</strong></div>
+    </div>
+    <section className="analytics-section"><div className="analytics-section-heading"><h3>Daily activity</h3><span>{formatNumber(data?.userMessages ?? 0)} prompts</span></div><div className="analytics-chart" aria-label="Daily message and token activity">{(data?.daily ?? []).map((day) => <div className="analytics-bar-column" key={day.date} title={`${day.date}: ${day.messages} messages, ${day.tokens} tokens`}><div className="analytics-bar" style={{ height: `${Math.max(day.tokens ? 8 : 2, (day.tokens / maxTokens) * 100)}%` }} /><span>{day.date.slice(5)}</span></div>)}</div></section>
+    <section className="analytics-section"><div className="analytics-section-heading"><h3>Most active conversations</h3><span>{formatNumber(data?.assistantMessages ?? 0)} replies</span></div>{data?.topConversations?.length ? <div className="analytics-conversation-list">{data.topConversations.map((conversation) => <div className="analytics-conversation" key={conversation.id}><div><strong>{conversation.title}</strong><span>{conversation.messages} messages</span></div><b>{formatNumber(conversation.tokens)} tokens</b></div>)}</div> : <div className="analytics-empty">Start a conversation to see usage insights here.</div>}</section>
+    <p className="analytics-note">Usage is based on the content currently saved in Firestore. It is intended for workspace planning, not billing reconciliation.</p>
+  </div>;
+}
 function SettingsHub({
   activeSection,
   onSectionChange,
@@ -548,12 +568,11 @@ function SettingsHub({
     { id: "workspace", label: "Workspace", icon: ShieldCheck },
     { id: "profile", label: "Profile", icon: CircleHelp },
   ];
-  const profileQuery = trpc.profile.get.useQuery(undefined, { retry: false });
-  const profileSave = trpc.profile.save.useMutation();
   const [profile, setProfile] = useState({ displayName: "", photoURL: "", bio: "", jobTitle: "" });
-  useEffect(() => { if (profileQuery.data) setProfile({ displayName: profileQuery.data.displayName, photoURL: profileQuery.data.photoURL, bio: profileQuery.data.bio, jobTitle: profileQuery.data.jobTitle }); }, [profileQuery.data]);
+  const [profileSaving, setProfileSaving] = useState(false);
+  useEffect(() => { void getUserProfile().then(setProfile).catch(() => undefined); }, []);
   const updateProfileField = (field: keyof typeof profile, value: string) => setProfile((current) => ({ ...current, [field]: value }));
-  const saveProfile = () => { profileSave.mutate(profile, { onSuccess: () => onToast("Profile saved to your workspace") }); };
+  const saveProfile = () => { setProfileSaving(true); void saveUserProfile(profile).then(() => onToast("Profile saved to your workspace")).finally(() => setProfileSaving(false)); };
   return (
     <div className="context-scroll custom-scroll settings-scroll">
       <div className="settings-nav" role="tablist" aria-label="Settings sections">
@@ -574,7 +593,7 @@ function SettingsHub({
           <label>Job title<input value={profile.jobTitle} onChange={(event) => updateProfileField("jobTitle", event.target.value)} placeholder="What do you do?" /></label>
           <label>Avatar URL<input value={profile.photoURL} onChange={(event) => updateProfileField("photoURL", event.target.value)} placeholder="https://…" type="url" /></label>
           <label>About you<textarea value={profile.bio} onChange={(event) => updateProfileField("bio", event.target.value)} placeholder="A little context Hanna should keep in mind" maxLength={500} rows={4} /></label>
-          <button className="profile-save-button" onClick={saveProfile} disabled={profileSave.isPending || !profile.displayName.trim()}>{profileSave.isPending ? "Saving…" : "Save profile"}</button>
+          <button className="profile-save-button" onClick={saveProfile} disabled={profileSaving || !profile.displayName.trim()}>{profileSaving ? "Saving…" : "Save profile"}</button>
         </div>
       </section>}
       {(activeSection === "overview" || activeSection === "api-keys") && <section className="settings-section">

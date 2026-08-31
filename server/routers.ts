@@ -7,14 +7,18 @@ import { runAgentCore } from "./agentCore";
 import { integrations } from "@shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import { approveRequest, completeRequest, createApprovalRequest, deleteConnectorCredential, getApprovalRequest, getConnectorCredential, listConnectorCredentials, saveConnectorCredential, type ConnectorAction, type ConnectorId } from "./connectorDb";
-import { deleteConversation, getProfile, listConversations, saveConversation, saveProfile } from "./firestore";
+import { deleteConversation, getAnalytics, getProfile, listConversations, saveConversation, saveProfile } from "./firestore";
+import { consumeDailyTokens, type HannaTier } from "./usage";
 
-export async function executeHannaRequest(prompt: string, context?: string, userId?: number) {
+export async function executeHannaRequest(prompt: string, context?: string, userId?: number, requestedModel?: string) {
   return runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
     const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt) : undefined;
-    const apiKey = personalProvider?.apiKey || process.env.HANNA_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    const apiKey = personalProvider?.apiKey || process.env.GEMINI_API_KEY;
+    const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
+    const quota = userId ? consumeDailyTokens(String(userId), Math.ceil(prompt.length / 4), tier) : { allowed: true as const, used: 0, limit: tier === "pro" ? 1500 : 300, remaining: tier === "pro" ? 1500 : 300, resetAt: "" };
+    if (!quota.allowed) throw new Error(`Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`);
     if (!apiKey) throw new Error("Hanna’s default Gemini key is not configured yet.");
-    const provider = personalProvider ?? { provider: "gemini", apiKey, model: process.env.HANNA_GEMINI_MODEL || process.env.GEMINI_MODEL || "gemini-3.7-flash", endpoint: "" };
+    const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : process.env.GEMINI_MODEL || "gemini-3.7-flash", endpoint: "" };
     const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n") }\n\n${prompt}`, context: requestContext });
     return { text, model: `${provider.provider} · ${provider.model}` };
   });
@@ -63,8 +67,11 @@ export const appRouter = router({
   }),
   conversations: router({
     list: protectedProcedure.query(({ ctx }) => listConversations(ctx.user.openId)),
-    save: protectedProcedure.input(z.object({ id: z.string().min(1).max(100), title: z.string().min(1).max(200), period: z.string().max(64), messages: z.array(z.object({ id: z.string(), role: z.enum(["user", "assistant"]), content: z.string().max(20000), time: z.string().optional() })).max(200) })).mutation(({ ctx, input }) => saveConversation(ctx.user.openId, input)),
+    save: protectedProcedure.input(z.object({ id: z.string().min(1).max(100), title: z.string().min(1).max(200), period: z.string().max(64), messages: z.array(z.object({ id: z.string(), role: z.enum(["user", "assistant"]), content: z.string().max(20000), time: z.string().optional(), tokenCount: z.number().int().nonnegative().optional() })).max(200) })).mutation(({ ctx, input }) => saveConversation(ctx.user.openId, input)),
     remove: protectedProcedure.input(z.object({ id: z.string().min(1).max(100) })).mutation(({ ctx, input }) => deleteConversation(ctx.user.openId, input.id)),
+  }),
+  analytics: router({
+    summary: protectedProcedure.query(({ ctx }) => getAnalytics(ctx.user.openId)),
   }),
   profile: router({
     get: protectedProcedure.query(({ ctx }) => getProfile(ctx.user.openId)),
@@ -75,7 +82,7 @@ export const appRouter = router({
     update: protectedProcedure.input(z.object({ theme: z.enum(["light", "dark"]).optional(), defaultProvider: z.string().max(64).optional(), autoRouting: z.boolean().optional() })).mutation(({ ctx, input }) => updateWorkspaceSettings(ctx.user.id, input)),
   }),
   hanna: router({
-    ask: publicProcedure.input(z.object({ prompt: z.string().min(1).max(6000), context: z.string().optional() })).mutation(({ ctx, input }) => executeHannaRequest(input.prompt, input.context, ctx.user?.id)),
+    ask: publicProcedure.input(z.object({ prompt: z.string().min(1).max(6000), context: z.string().optional(), model: z.string().max(120).optional() })).mutation(({ ctx, input }) => executeHannaRequest(input.prompt, input.context, ctx.user?.id, input.model)),
   }),
 });
 
