@@ -86,7 +86,6 @@ const toolConfigs: Array<{ label: ToolKey; icon: typeof Globe2; hint: string }> 
 
 const seedChats: Chat[] = [{ id: 0, title: "New conversation", period: "Today", messages: [] }];
 
-
 function HannaMark({ small = false }: { small?: boolean }) {
   return (
     <span className={`hanna-mark ${small ? "hanna-mark-small" : ""}`} aria-hidden="true">
@@ -139,12 +138,18 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [toast, setToast] = useState("");
   const [connectedApps, setConnectedApps] = useState<string[]>(["Google Drive"]);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const [storedConversations, setStoredConversations] = useState<ClientConversation[]>([]);
+  const [_storedConversations, setStoredConversations] = useState<ClientConversation[]>([]);
 
   const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId) ?? chats[0], [activeChatId, chats]);
   const hasMessages = activeChat.messages.length > 0;
   useEffect(() => {
-    void listUserConversations().then((storedConversations) => { setStoredConversations(storedConversations); if (!storedConversations.length) return; const stored = storedConversations.map((chat) => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() })); setChats(stored); setActiveChatId(stored[0].id); }).catch(() => undefined);
+    void listUserConversations().then((stored) => {
+      setStoredConversations(stored);
+      if (!stored.length) return;
+      const formatted = stored.map((chat) => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() }));
+      setChats(formatted);
+      setActiveChatId(formatted[0].id);
+    }).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -183,6 +188,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     setPanel(null);
     setComposer("");
     showToast("New conversation ready");
+    if (window.innerWidth < 860) setSidebarOpen(false);
     window.setTimeout(() => composerRef.current?.focus(), 0);
   };
 
@@ -215,15 +221,21 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       });
 
       const responseText = await response.text();
-      let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string }; answer?: string; text?: string } } }> | null = null;
+      let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string }; answer?: string; text?: string } }; error?: { json?: { message?: string }; message?: string } }> | null = null;
       try {
         payload = JSON.parse(responseText);
       } catch {
-        throw new Error("Hanna encountered a server issue. Please check your API key in Settings and try again.");
+        throw new Error("Hanna is warming up or encountered a response issue. Please try again.");
+      }
+
+      if (Array.isArray(payload) && payload[0]?.error) {
+        const errObj = payload[0].error;
+        const msg = errObj?.json?.message || errObj?.message || "Hanna encountered an issue handling this request.";
+        throw new Error(msg);
       }
 
       if (!response.ok || !payload) {
-        throw new Error("Hanna encountered a server issue. Please check your API key in Settings and try again.");
+        throw new Error("Hanna is warming up or encountered a server response issue. Please try again.");
       }
 
       const data = payload[0]?.result?.data;
@@ -235,8 +247,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
       let errorContent = reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.";
-      if (errorContent.includes("Unexpected token") || errorContent.includes("is not valid JSON") || errorContent.includes("JSON")) {
-        errorContent = "Hanna encountered a server issue. Please check your API key in Settings and try again.";
+      if (errorContent.includes("Unexpected token") || errorContent.includes("is not valid JSON")) {
+        errorContent = "Hanna encountered a temporary server response issue. Please check your settings and try again.";
       }
       const errorMessage = { id: `${chatId}-error-${Date.now()}`, role: "assistant" as const, content: errorContent, tokenCount: estimateTokens(errorContent), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
       const failedChat = { ...chatWithUser, messages: [...chatWithUser.messages, errorMessage] };
@@ -263,11 +275,13 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const togglePanel = (nextPanel: Exclude<Panel, null>) => {
     setPanel((current) => (current === nextPanel ? null : nextPanel));
+    if (window.innerWidth < 860) setSidebarOpen(false);
   };
 
   const openProfile = () => {
     setPanel("settings");
     setSettingsSection("profile");
+    if (window.innerWidth < 860) setSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -321,7 +335,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           </Button>
 
           <div className="sidebar-section quick-links">
-            <button className="sidebar-link is-current" onClick={() => setPanel(null)}>
+            <button className="sidebar-link is-current" onClick={() => { setPanel(null); if (window.innerWidth < 860) setSidebarOpen(false); }}>
               <Layers3 size={16} />
               <span>All conversations</span>
               <span className="sidebar-count">{chats.length}</span>
@@ -379,11 +393,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         <header className="workspace-header">
           <div className="header-leading">
             <button className="icon-button" onClick={() => setSidebarOpen((current) => !current)} aria-label="Toggle sidebar">
-              <Menu size={19} />
+              <Menu size={18} />
             </button>
             <div className="workspace-breadcrumb">
               <span className="breadcrumb-quiet">Hanna</span>
-              <ChevronRight size={14} />
+              <ChevronRight size={13} />
               <span>{activeChat.title}</span>
             </div>
           </div>
@@ -392,7 +406,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <button className="model-button" onClick={() => setModelMenuOpen((current) => !current)} aria-expanded={modelMenuOpen}>
                 <span className="model-pulse" />
                 {model === "Custom" && customModel ? customModel : model}
-                <ChevronDown size={14} />
+                <ChevronDown size={13} />
               </button>
               {modelMenuOpen && (
                 <div className="model-menu">
@@ -409,12 +423,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       {model === option && <Check size={14} />}
                     </button>
                   ))}
-                  {model === "Custom" && <div className="custom-model-field"><input value={customModel} onChange={(event) => setCustomModel(event.target.value)} placeholder="gemini-2.5-flash" aria-label="Custom model name" /></div>}
+                  {model === "Custom" && <div className="custom-model-field"><input value={customModel} onChange={(event) => setCustomModel(event.target.value)} placeholder="gemini-3.7-flash" aria-label="Custom model name" /></div>}
                 </div>
               )}
             </div>
             <button className="header-settings-button" onClick={() => togglePanel("settings")} aria-label="Open settings">
-              <Settings size={17} />
+              <Settings size={16} />
             </button>
             <button className="header-avatar-button" onClick={openProfile} aria-label="Edit profile" title="Edit profile">
               <div className="header-avatar">
@@ -592,6 +606,7 @@ function AnalyticsPanel() {
     <p className="analytics-note">Usage is based on the content currently saved in Firestore. It is intended for workspace planning, not billing reconciliation.</p>
   </div>;
 }
+
 function SettingsHub({
   activeSection,
   onSectionChange,
@@ -609,6 +624,7 @@ function SettingsHub({
   onToggleApp: (name: string) => void;
   onToast: (message: string) => void;
 }) {
+  const [searchQuery, setSearchQuery] = useState("");
   const apps = [
     { name: "Shopify", description: "Manage products, catalog, and orders" },
     { name: "Google Gemini", description: "Gemini models for multimodal AI and reasoning" },
@@ -637,6 +653,27 @@ function SettingsHub({
     { name: "YouTube", description: "Upload videos and manage channel content" },
     { name: "Pinterest", description: "Publish visual pins and manage boards" },
   ];
+
+  const credentials = [
+    { name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected" },
+    { name: "Anthropic / Claude", model: "Claude family", status: "Not connected" },
+    { name: "Google Gemini", model: "Gemini family", status: "Not connected" },
+    { name: "Groq / Llama", model: "Llama 3.3 70B", status: "Not connected" },
+    { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible" },
+  ];
+
+  const filteredApps = useMemo(() => {
+    if (!searchQuery.trim()) return apps;
+    const q = searchQuery.toLowerCase();
+    return apps.filter((app) => app.name.toLowerCase().includes(q) || app.description.toLowerCase().includes(q));
+  }, [apps, searchQuery]);
+
+  const filteredCredentials = useMemo(() => {
+    if (!searchQuery.trim()) return credentials;
+    const q = searchQuery.toLowerCase();
+    return credentials.filter((cred) => cred.name.toLowerCase().includes(q) || cred.model.toLowerCase().includes(q));
+  }, [credentials, searchQuery]);
+
   const settingsNav: Array<{ id: SettingsSection; label: string; icon: typeof SlidersHorizontal }> = [
     { id: "overview", label: "Overview", icon: SlidersHorizontal },
     { id: "api-keys", label: "API keys", icon: KeyRound },
@@ -650,64 +687,179 @@ function SettingsHub({
   useEffect(() => { void getUserProfile().then(setProfile).catch(() => undefined); }, []);
   const updateProfileField = (field: keyof typeof profile, value: string) => setProfile((current) => ({ ...current, [field]: value }));
   const saveProfile = () => { setProfileSaving(true); void saveUserProfile(profile).then(() => onToast("Profile saved to your workspace")).finally(() => setProfileSaving(false)); };
+
   return (
     <div className="context-scroll custom-scroll settings-scroll">
-      <div className="settings-nav" role="tablist" aria-label="Settings sections">
-        {settingsNav.map(({ id, label, icon: Icon }) => <button key={id} className={activeSection === id ? "is-active" : ""} onClick={() => onSectionChange(id)} role="tab" aria-selected={activeSection === id}><Icon size={13} /><span>{label}</span></button>)}
+      <div className="settings-search-bar">
+        <Search size={14} className="settings-search-icon" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search connectors, API keys, MCPs..."
+          aria-label="Search settings"
+        />
+        {searchQuery && (
+          <button className="settings-search-clear" onClick={() => setSearchQuery("")} aria-label="Clear search">
+            <X size={13} />
+          </button>
+        )}
       </div>
-      {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section settings-overview-card">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Control center</span><h3>Everything in one place</h3></div><Webhook size={17} /></div>
-        <p className="settings-intro">Manage how Hanna connects to your models, apps, and tools. Secrets stay masked in the interface and are handled by your connected runtime.</p>
-        <div className="settings-category-list">
-          {[{ id: "api-keys" as const, icon: KeyRound, label: "Provider API keys", detail: "OpenAI, Anthropic, Gemini, Groq, custom" }, { id: "connectors" as const, icon: PlugZap, label: "Apps & connectors", detail: "Google Drive, Slack, Shopify, GitHub" }, { id: "mcps" as const, icon: Server, label: "MCP servers", detail: "Tools, endpoints, and permission scopes" }].map(({ id, icon: Icon, label, detail }) => <button key={id} className="settings-category" onClick={() => onSectionChange(id)}><span className="settings-category-icon"><Icon size={15} /></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={14} /></button>)}
-        </div>
-      </section>}
-      {activeSection === "profile" && <section className="settings-section profile-settings-section">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Your profile</span><h3>Make Hanna feel like yours</h3></div><CircleHelp size={17} /></div>
-        <p className="settings-intro">This profile is private to your workspace and helps Hanna understand how to speak to you.</p>
-        <div className="profile-form">
-          <label>Display name<input value={profile.displayName} onChange={(event) => updateProfileField("displayName", event.target.value)} placeholder="Your name" /></label>
-          <label>Job title<input value={profile.jobTitle} onChange={(event) => updateProfileField("jobTitle", event.target.value)} placeholder="What do you do?" /></label>
-          <label>Avatar URL<input value={profile.photoURL} onChange={(event) => updateProfileField("photoURL", event.target.value)} placeholder="https://…" type="url" /></label>
-          <label>About you<textarea value={profile.bio} onChange={(event) => updateProfileField("bio", event.target.value)} placeholder="A little context Hanna should keep in mind" maxLength={500} rows={4} /></label>
-          <button className="profile-save-button" onClick={saveProfile} disabled={profileSaving || !profile.displayName.trim()}>{profileSaving ? "Saving…" : "Save profile"}</button>
-        </div>
-      </section>}
-      {(activeSection === "overview" || activeSection === "api-keys") && <section className="settings-section">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Provider access</span><h3>API keys</h3></div><KeyRound size={17} /></div>
-        <p className="settings-intro">Use your own provider keys for model routing. Hanna only shows connection status here; raw credentials never appear in the UI.</p>
-        <div className="credential-list">{[
-          { name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected" },
-          { name: "Anthropic / Claude", model: "Claude family", status: "Not connected" },
-          { name: "Google Gemini", model: "Gemini family", status: "Not connected" },
-          { name: "Groq / Llama", model: "Llama 3.3 70B", status: "Not connected" },
-          { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible" },
-        ].map(({ name, model, status }) => <div className="credential-row" key={name}><div className="credential-icon">{renderBrandIcon(name, 18)}</div><div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div><button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button></div>)}</div>
-      </section>}
-      {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Appearance</span><h3>Make it yours</h3></div><SlidersHorizontal size={17} /></div>
-        <div className="theme-setting"><div><strong>Theme</strong><span>{theme === "light" ? "Paper white and graphite" : "Charcoal and soft white"}</span></div><button className="theme-switch" onClick={onThemeToggle} aria-label="Toggle theme"><span className={theme === "dark" ? "is-dark" : ""} /></button></div>
-        <div className="theme-options"><button className={theme === "light" ? "is-selected" : ""} onClick={() => theme === "dark" && onThemeToggle()}><Sun size={15} /> Light</button><button className={theme === "dark" ? "is-selected" : ""} onClick={() => theme === "light" && onThemeToggle()}><Moon size={15} /> Dark</button></div>
-      </section>}
-      {(activeSection === "overview" || activeSection === "connectors") && <section className="settings-section">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Apps & integrations</span><h3>Bring your work with you</h3></div><PanelRight size={17} /></div>
-        <p className="settings-intro">Connect the places where your work already lives. Hanna will keep each connection visible and under your control.</p>
-        <div className="integration-list">{apps.map(({ name, description }) => { const isConnected = connectedApps.includes(name); return <div className="integration-row" key={name}><div className="integration-icon">{renderBrandIcon(name, 18)}</div><div className="integration-copy"><strong>{name}</strong><span>{description}</span></div><button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>{isConnected ? <><Check size={13} /> Ready</> : "Connect"}</button></div>; })}</div>
-      </section>}
-      {(activeSection === "overview" || activeSection === "mcps") && <section className="settings-section">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Tool protocol</span><h3>MCP servers</h3></div><Server size={17} /></div>
-        <p className="settings-intro">Connect Model Context Protocol servers to give Hanna scoped tools. Each server remains visible with its endpoint and permission state.</p>
-        <div className="mcp-card"><div className="mcp-card-top"><div className="integration-icon"><Server size={15} /></div><div className="integration-copy"><strong>Custom MCP server</strong><span>Discover tools from a trusted endpoint</span></div><span className="mcp-status">Ready to connect</span></div><div className="mcp-endpoint"><Webhook size={13} /><span>https://your-server.example/mcp</span><button onClick={() => onToast("MCP endpoint setup is available in Settings")}>Configure</button></div></div>
-      </section>}
-      {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section compact-section">
-        <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> What's new</span><h3>Hanna, in focus</h3></div><CircleHelp size={17} /></div>
-        <div className="release-note"><div className="release-number">02</div><div><strong>Artifacts live beside the conversation.</strong><p>Keep a generated direction, code snippet, or research surface close without leaving the thread.</p><button onClick={() => onToast("You are already looking at the latest Hanna workspace")}>Read release notes <ChevronRight size={14} /></button></div></div>
-      </section>}
+
+      <div className="settings-nav" role="tablist" aria-label="Settings sections">
+        {settingsNav.map(({ id, label, icon: Icon }) => (
+          <button key={id} className={activeSection === id ? "is-active" : ""} onClick={() => onSectionChange(id)} role="tab" aria-selected={activeSection === id}>
+            <Icon size={13} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {(activeSection === "overview" || activeSection === "workspace") && !searchQuery && (
+        <section className="settings-section settings-overview-card">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> Control center</span><h3>Everything in one place</h3></div>
+            <Webhook size={17} />
+          </div>
+          <p className="settings-intro">Manage how Hanna connects to your models, apps, and tools. Secrets stay masked in the interface and are handled by your connected runtime.</p>
+          <div className="settings-category-list">
+            {[
+              { id: "api-keys" as const, icon: KeyRound, label: "Provider API keys", detail: "OpenAI, Anthropic, Gemini, Groq, custom" },
+              { id: "connectors" as const, icon: PlugZap, label: "Apps & connectors", detail: "Google Drive, Slack, Shopify, GitHub" },
+              { id: "mcps" as const, icon: Server, label: "MCP servers", detail: "Tools, endpoints, and permission scopes" }
+            ].map(({ id, icon: Icon, label, detail }) => (
+              <button key={id} className="settings-category" onClick={() => onSectionChange(id)}>
+                <span className="settings-category-icon"><Icon size={15} /></span>
+                <span><strong>{label}</strong><small>{detail}</small></span>
+                <ChevronRight size={14} />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeSection === "profile" && !searchQuery && (
+        <section className="settings-section profile-settings-section">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> Your profile</span><h3>Make Hanna feel like yours</h3></div>
+            <CircleHelp size={17} />
+          </div>
+          <p className="settings-intro">This profile is private to your workspace and helps Hanna understand how to speak to you.</p>
+          <div className="profile-form">
+            <label>Display name<input value={profile.displayName} onChange={(event) => updateProfileField("displayName", event.target.value)} placeholder="Your name" /></label>
+            <label>Job title<input value={profile.jobTitle} onChange={(event) => updateProfileField("jobTitle", event.target.value)} placeholder="What do you do?" /></label>
+            <label>Avatar URL<input value={profile.photoURL} onChange={(event) => updateProfileField("photoURL", event.target.value)} placeholder="https://…" type="url" /></label>
+            <label>About you<textarea value={profile.bio} onChange={(event) => updateProfileField("bio", event.target.value)} placeholder="A little context Hanna should keep in mind" maxLength={500} rows={4} /></label>
+            <button className="profile-save-button" onClick={saveProfile} disabled={profileSaving || !profile.displayName.trim()}>{profileSaving ? "Saving…" : "Save profile"}</button>
+          </div>
+        </section>
+      )}
+
+      {(activeSection === "overview" || activeSection === "api-keys" || searchQuery) && (
+        <section className="settings-section">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> Provider access</span><h3>API keys</h3></div>
+            <KeyRound size={17} />
+          </div>
+          <p className="settings-intro">Use your own provider keys for model routing. Hanna only shows connection status here; raw credentials never appear in the UI.</p>
+          <div className="credential-list">
+            {filteredCredentials.map(({ name, model, status }) => (
+              <div className="credential-row" key={name}>
+                <div className="credential-icon">{renderBrandIcon(name, 18)}</div>
+                <div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div>
+                <button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button>
+              </div>
+            ))}
+            {filteredCredentials.length === 0 && <div className="analytics-empty">No API keys matching "{searchQuery}"</div>}
+          </div>
+        </section>
+      )}
+
+      {(activeSection === "overview" || activeSection === "workspace") && !searchQuery && (
+        <section className="settings-section">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> Appearance</span><h3>Make it yours</h3></div>
+            <SlidersHorizontal size={17} />
+          </div>
+          <div className="theme-setting">
+            <div><strong>Theme</strong><span>{theme === "light" ? "Paper white and graphite" : "Charcoal and soft white"}</span></div>
+            <button className="theme-switch" onClick={onThemeToggle} aria-label="Toggle theme"><span className={theme === "dark" ? "is-dark" : ""} /></button>
+          </div>
+          <div className="theme-options">
+            <button className={theme === "light" ? "is-selected" : ""} onClick={() => theme === "dark" && onThemeToggle()}><Sun size={15} /> Light</button>
+            <button className={theme === "dark" ? "is-selected" : ""} onClick={() => theme === "light" && onThemeToggle()}><Moon size={15} /> Dark</button>
+          </div>
+        </section>
+      )}
+
+      {(activeSection === "overview" || activeSection === "connectors" || searchQuery) && (
+        <section className="settings-section">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> Apps & integrations</span><h3>Bring your work with you</h3></div>
+            <PanelRight size={17} />
+          </div>
+          <p className="settings-intro">Connect the places where your work already lives. Hanna will keep each connection visible and under your control.</p>
+          <div className="integration-list">
+            {filteredApps.map(({ name, description }) => {
+              const isConnected = connectedApps.includes(name);
+              return (
+                <div className="integration-row" key={name}>
+                  <div className="integration-icon">{renderBrandIcon(name, 18)}</div>
+                  <div className="integration-copy"><strong>{name}</strong><span>{description}</span></div>
+                  <button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>
+                    {isConnected ? <><Check size={13} /> Ready</> : "Connect"}
+                  </button>
+                </div>
+              );
+            })}
+            {filteredApps.length === 0 && <div className="analytics-empty">No connectors matching "{searchQuery}"</div>}
+          </div>
+        </section>
+      )}
+
+      {(activeSection === "overview" || activeSection === "mcps" || searchQuery) && (
+        <section className="settings-section">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> Tool protocol</span><h3>MCP servers</h3></div>
+            <Server size={17} />
+          </div>
+          <p className="settings-intro">Connect Model Context Protocol servers to give Hanna scoped tools. Each server remains visible with its endpoint and permission state.</p>
+          <div className="mcp-card">
+            <div className="mcp-card-top">
+              <div className="integration-icon"><Server size={15} /></div>
+              <div className="integration-copy"><strong>Custom MCP server</strong><span>Discover tools from a trusted endpoint</span></div>
+              <span className="mcp-status">Ready to connect</span>
+            </div>
+            <div className="mcp-endpoint">
+              <Webhook size={13} />
+              <span>https://your-server.example/mcp</span>
+              <button onClick={() => onToast("MCP endpoint setup is available in Settings")}>Configure</button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {(activeSection === "overview" || activeSection === "workspace") && !searchQuery && (
+        <section className="settings-section compact-section">
+          <div className="settings-section-heading">
+            <div><span className="eyebrow"><span className="eyebrow-line" /> What's new</span><h3>Hanna, in focus</h3></div>
+            <CircleHelp size={17} />
+          </div>
+          <div className="release-note">
+            <div className="release-number">02</div>
+            <div>
+              <strong>Artifacts live beside the conversation.</strong>
+              <p>Keep a generated direction, code snippet, or research surface close without leaving the thread.</p>
+              <button onClick={() => onToast("You are already looking at the latest Hanna workspace")}>Read release notes <ChevronRight size={14} /></button>
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="settings-footer">Hanna <span>•</span> Personal workspace <span>•</span> v0.2</div>
     </div>
   );
 }
-
 
 /**
  * Compatibility API retained for the repository’s existing composer tests and

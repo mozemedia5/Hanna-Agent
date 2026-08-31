@@ -12,17 +12,19 @@ import { consumeDailyTokens, type HannaTier } from "./usage";
 
 export async function executeHannaRequest(prompt: string, context?: string, userId?: number, requestedModel?: string) {
   try {
-  return await runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
-    const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt) : undefined;
-    const apiKey = personalProvider?.apiKey || process.env.GEMINI_API_KEY;
-    const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-    const quota = userId ? consumeDailyTokens(String(userId), Math.ceil(prompt.length / 4), tier) : { allowed: true as const, used: 0, limit: tier === "pro" ? 1500 : 300, remaining: tier === "pro" ? 1500 : 300, resetAt: "" };
-    if (!quota.allowed) throw new Error(`Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`);
-    if (!apiKey) throw new Error("Hanna’s default Gemini key is not configured yet.");
-    const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : process.env.GEMINI_MODEL || "gemini-3.7-flash", endpoint: "" };
-    const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n") }\n\n${prompt}`, context: requestContext });
-    return { text, model: `${provider.provider} · ${provider.model}` };
-  });
+    return await runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
+      const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt) : undefined;
+      const envKey = (process.env.GEMINI_API_KEY || "").trim();
+      const apiKey = personalProvider?.apiKey ? personalProvider.apiKey.trim() : envKey;
+      const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
+      const quota = userId ? consumeDailyTokens(String(userId), Math.ceil(prompt.length / 4), tier) : { allowed: true as const, used: 0, limit: tier === "pro" ? 1500 : 300, remaining: tier === "pro" ? 1500 : 300, resetAt: "" };
+      if (!quota.allowed) throw new Error(`Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`);
+      if (!apiKey) throw new Error("Hanna’s default Gemini API key (GEMINI_API_KEY) is not configured in Vercel or Settings.");
+      const envModel = (process.env.GEMINI_MODEL || "gemini-3.7-flash").trim();
+      const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : envModel, endpoint: "" };
+      const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n")}\n\n${prompt}`, context: requestContext });
+      return { text, model: `${provider.provider} · ${provider.model}` };
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Hanna encountered an unexpected error.";
     return { text: message, model: "hanna-fallback", capability: "Error recovery", plan: { intent: prompt, route: { model: "fallback", capability: "Error", reason: "error" }, tools: [], approvalRequired: false, steps: [] }, trace: [] };

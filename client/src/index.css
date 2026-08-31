@@ -141,7 +141,14 @@ kbd { font-family: "IBM Plex Mono", monospace; font-size: 9px; line-height: 1; c
 
 /* Main workspace */
 .main-workspace { flex: 1; min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; position: relative; }
-.workspace-header { height: 62px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; background: color-mix(in srgb, var(--bg) 94%, transparent); }
+.workspace-header { height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; flex-shrink: 0; background: color-mix(in srgb, var(--bg) 94%, transparent); }
+.settings-search-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 0 10px; height: 34px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text-primary); transition: border-color 150ms ease-out, box-shadow 150ms ease-out; }
+.settings-search-bar:focus-within { border-color: var(--border-strong); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 8%, transparent); }
+.settings-search-bar input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font-size: 11px; }
+.settings-search-bar input::placeholder { color: var(--text-tertiary); }
+.settings-search-icon { color: var(--text-tertiary); flex-shrink: 0; }
+.settings-search-clear { border: 0; background: transparent; color: var(--text-tertiary); cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.settings-search-clear:hover { color: var(--text-primary); }
 .header-leading, .header-actions { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .workspace-breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 11px; min-width: 0; }
 .workspace-breadcrumb span:last-child { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
