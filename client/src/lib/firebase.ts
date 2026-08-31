@@ -29,8 +29,28 @@ export function getFirebaseFirestore() {
   return firestoreInstance;
 }
 
+const isCompleteConfig = (config: Partial<FirebaseClientConfig>): config is FirebaseClientConfig => Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
+const browserConfig = (): Partial<FirebaseClientConfig> => ({
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim(),
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim(),
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim(),
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET?.trim(),
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID?.trim(),
+  appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim(),
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID?.trim(),
+});
+
 export async function loadFirebaseConfig(): Promise<FirebaseClientConfig> {
-  const response = await fetch("/api/config", { credentials: "same-origin" });
-  if (!response.ok) throw new Error("Firebase configuration is unavailable.");
-  return response.json() as Promise<FirebaseClientConfig>;
+  let endpointError = "";
+  try {
+    const response = await fetch("/api/config", { credentials: "same-origin", cache: "no-store" });
+    const payload = await response.json().catch(() => ({})) as Partial<FirebaseClientConfig> & { error?: string; missing?: string[] };
+    if (response.ok && isCompleteConfig(payload)) return payload;
+    endpointError = payload.error || `Config endpoint returned HTTP ${response.status}.`;
+  } catch (reason) {
+    endpointError = reason instanceof Error ? reason.message : "Config endpoint could not be reached.";
+  }
+  const fallback = browserConfig();
+  if (isCompleteConfig(fallback)) return fallback;
+  throw new Error(`Firebase configuration is unavailable. ${endpointError || "Set FIREBASE_* variables in Vercel."}`);
 }
