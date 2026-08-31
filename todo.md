@@ -144,3 +144,12 @@
 - [x] Preserve existing backend/server implementation and existing test contracts unless frontend wiring requires a compatible change.
 - [x] Run type checks, tests, and production build against Hanna-Agent.
 - [x] Commit and push the verified changes to the Hanna-Agent GitHub repository.
+
+# Production Build Repair
+
+- [x] Inspect the failed main-branch GitHub check and its exact production-build error (GitHub status APIs were unavailable to the current token).
+- [x] Reproduce the failure locally in the Hanna-Agent checkout (the local production build passes).
+- [x] Inspect and harden the repository-side deployment configuration and build entrypoints.
+- [x] Fix any reproducible deployment mismatch without unnecessary backend or database changes.
+- [x] Run TypeScript checks, tests, and production build after the repair.
+- [ ] Push the verified repair to the main branch.
