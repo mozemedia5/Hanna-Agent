@@ -8,6 +8,7 @@
     }
   },
   "rewrites": [
+    { "source": "/api/config", "destination": "/api/config.ts" },
     { "source": "/api/:path*", "destination": "/api/index.ts" },
     { "source": "/trpc/:path*", "destination": "/api/index.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
