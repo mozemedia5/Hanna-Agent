@@ -9,6 +9,7 @@ export type FirebaseClientConfig = {
   storageBucket?: string;
   messagingSenderId?: string;
   appId: string;
+  measurementId?: string;
 };
 
 let authInstance: Auth | null = null;
