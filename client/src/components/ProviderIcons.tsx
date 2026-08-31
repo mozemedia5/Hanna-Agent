@@ -45,6 +45,39 @@ export function AnthropicIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
+export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="#FFC107" d="M7.8 2h8.4l5.3 9.3H13.1L7.8 2Z" />
+      <path fill="#1976D2" d="M13.1 11.3H21.5L16.2 20.6H7.8l5.3-9.3Z" />
+      <path fill="#4CAF50" d="M7.8 20.6L2.5 11.3 7.8 2h5.3L7.8 20.6Z" />
+    </svg>
+  );
+}
+
+export function InVideoIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <defs>
+        <linearGradient id="invideo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7C3AED" />
+          <stop offset="100%" stopColor="#EC4899" />
+        </linearGradient>
+      </defs>
+      <rect width="20" height="20" x="2" y="2" rx="6" fill="url(#invideo-grad)" />
+      <polygon fill="#FFFFFF" points="9.5,7.5 16.5,12 9.5,16.5" />
+    </svg>
+  );
+}
+
+export function MetaAdsIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="#0081FB" d="M16.8 4c-2.3 0-4.2 1.5-5.3 3.3C10.4 5.5 8.5 4 6.2 4 2.8 4 0 7.2 0 11.2s2.8 7.2 6.2 7.2c2.3 0 4.2-1.5 5.3-3.3 1.1 1.8 3 3.3 5.3 3.3 3.4 0 6.2-3.2 6.2-7.2S20.2 4 16.8 4Zm-10.6 11c-1.8 0-3.2-1.7-3.2-3.8s1.4-3.8 3.2-3.8c1.7 0 3 1.6 3.9 3.8-.9 2.2-2.2 3.8-3.9 3.8Zm10.6 0c-1.7 0-3-1.6-3.9-3.8.9-2.2 2.2-3.8 3.9-3.8 1.8 0 3.2 1.7 3.2 3.8s-1.4 3.8-3.2 3.8Z" />
+    </svg>
+  );
+}
+
 export function ShopifyIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -131,30 +164,12 @@ export function TikTokIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-export function MetaAdsIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#0081FB" d="M16.8 4c-2.3 0-4.2 1.5-5.3 3.3C10.4 5.5 8.5 4 6.2 4 2.8 4 0 7.2 0 11.2s2.8 7.2 6.2 7.2c2.3 0 4.2-1.5 5.3-3.3 1.1 1.8 3 3.3 5.3 3.3 3.4 0 6.2-3.2 6.2-7.2S20.2 4 16.8 4Zm-10.6 11c-1.8 0-3.2-1.7-3.2-3.8s1.4-3.8 3.2-3.8c1.7 0 3 1.6 3.9 3.8-.9 2.2-2.2 3.8-3.9 3.8Zm10.6 0c-1.7 0-3-1.6-3.9-3.8.9-2.2 2.2-3.8 3.9-3.8 1.8 0 3.2 1.7 3.2 3.8s-1.4 3.8-3.2 3.8Z" />
-    </svg>
-  );
-}
-
 export function GoogleAdsIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
       <path fill="#FBC02D" d="M3.6 17.6 10 3.8a2.5 2.5 0 0 1 4.5 2.3L8.1 19.9a2.5 2.5 0 0 1-4.5-2.3Z" />
       <path fill="#4285F4" d="m20.4 17.6-6.4-13.8a2.5 2.5 0 0 0-4.5 2.3l6.4 13.8a2.5 2.5 0 0 0 4.5-2.3Z" />
       <circle fill="#34A853" cx="6.5" cy="18.5" r="2.5" />
-    </svg>
-  );
-}
-
-export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#FFC107" d="M7.8 2h8.4l5.3 9.3H13.1L7.8 2Z" />
-      <path fill="#1976D2" d="M13.1 11.3H21.5L16.2 20.6H7.8l5.3-9.3Z" />
-      <path fill="#4CAF50" d="M7.8 20.6L2.5 11.3 7.8 2h5.3L7.8 20.6Z" />
     </svg>
   );
 }
@@ -183,11 +198,36 @@ export function HeyGenIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-export function InVideoIcon({ size = 20, className = "" }: IconProps) {
+export function SynthesiaIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <circle fill="#EC4899" cx="12" cy="12" r="10" />
-      <polygon fill="#FFFFFF" points="10,8 16,12 10,16" />
+      <rect width="20" height="20" x="2" y="2" rx="6" fill="#5B21B6" />
+      <path fill="#FFFFFF" d="M7 8h10v2.5H7V8Zm0 5.5h10V16H7v-2.5Z" />
+    </svg>
+  );
+}
+
+export function ElevenLabsIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="currentColor" d="M7 4h3.5v16H7V4Zm6.5 0H17v16h-3.5V4Z" />
+    </svg>
+  );
+}
+
+export function TakeAppIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect width="20" height="20" x="2" y="2" rx="6" fill="#10B981" />
+      <path fill="#FFFFFF" d="M7 7h10v3H13.5v7H10.5V10H7V7Z" />
+    </svg>
+  );
+}
+
+export function LinktreeIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="#43E660" d="M13.51 7.15l2.45-2.45L18.4 7.14l-2.45 2.45h4.15v3.42h-3.51l3.51 3.51-2.44 2.44-3.52-3.51v4.95H9.86v-4.95l-3.51 3.51-2.45-2.44 3.51-3.51H3.9V9.59h4.15L5.6 7.14l2.44-2.44 2.45 2.45V2h3.02v5.15z" />
     </svg>
   );
 }
@@ -220,7 +260,7 @@ export function AutoDSIcon({ size = 20, className = "" }: IconProps) {
 export function CJDropshippingIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <rect width="20" height="20" x="2" y="2" fill="#F97316" rx="5" />
+      <rect width="20" height="20" x="2" y="2" fill="#FF6000" rx="5" />
       <text x="12" y="16" fill="#FFFFFF" fontFamily="sans-serif" fontSize="12" fontWeight="bold" textAnchor="middle">CJ</text>
     </svg>
   );
@@ -283,13 +323,17 @@ export function renderBrandIcon(name: string, size = 18, className = ""): React.
   if (lower.includes("whatsapp")) return <WhatsAppIcon size={size} className={className} />;
   if (lower.includes("instagram")) return <InstagramIcon size={size} className={className} />;
   if (lower.includes("tiktok")) return <TikTokIcon size={size} className={className} />;
-  if (lower.includes("meta ad")) return <MetaAdsIcon size={size} className={className} />;
+  if (lower.includes("meta")) return <MetaAdsIcon size={size} className={className} />;
   if (lower.includes("google ad")) return <GoogleAdsIcon size={size} className={className} />;
   if (lower.includes("google drive") || lower.includes("google workspace")) return <GoogleDriveIcon size={size} className={className} />;
   if (lower.includes("google trend")) return <GoogleTrendsIcon size={size} className={className} />;
   if (lower.includes("google")) return <GoogleIcon size={size} className={className} />;
   if (lower.includes("heygen")) return <HeyGenIcon size={size} className={className} />;
   if (lower.includes("invideo")) return <InVideoIcon size={size} className={className} />;
+  if (lower.includes("synthesia")) return <SynthesiaIcon size={size} className={className} />;
+  if (lower.includes("elevenlabs")) return <ElevenLabsIcon size={size} className={className} />;
+  if (lower.includes("take")) return <TakeAppIcon size={size} className={className} />;
+  if (lower.includes("linktree")) return <LinktreeIcon size={size} className={className} />;
   if (lower.includes("creatify")) return <CreatifyIcon size={size} className={className} />;
   if (lower.includes("zendrop")) return <ZendropIcon size={size} className={className} />;
   if (lower.includes("autods")) return <AutoDSIcon size={size} className={className} />;
