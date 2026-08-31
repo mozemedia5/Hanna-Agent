@@ -88,7 +88,7 @@ const seedChats: Chat[] = [{ id: 0, title: "New conversation", period: "Today", 
 function HannaMark({ small = false }: { small?: boolean }) {
   return (
     <span className={`hanna-mark ${small ? "hanna-mark-small" : ""}`} aria-hidden="true">
-      <img src="/manus-storage/hanna-mark_7f8ef04a.png" alt="" />
+      <img src="/hanna-icon-192.png" alt="" />
     </span>
   );
 }
