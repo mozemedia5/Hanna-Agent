@@ -23,6 +23,13 @@ export type ConnectorId =
   | "github"
   | "vercel"
   | "google-workspace"
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "google-trends"
+  | "meta-ads"
+  | "google-ads"
+  | "gmail"
   | "mcp-custom";
 
 export type ConnectorValues = Record<string, string>;

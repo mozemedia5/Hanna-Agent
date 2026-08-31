@@ -30,6 +30,13 @@ export type ConnectorId =
   | "github"
   | "vercel"
   | "google-workspace"
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "google-trends"
+  | "meta-ads"
+  | "google-ads"
+  | "gmail"
   | "mcp-custom";
 
 export type IntegrationDefinition = {
@@ -241,6 +248,75 @@ export const integrations: IntegrationDefinition[] = [
     capabilities: ["drive:read", "docs:read", "sheets:read", "calendar:read"],
     requiresApproval: true,
     description: "Access Google Docs, Sheets, Drive files, and Calendar schedule.",
+  },
+
+  // AI Model Providers
+  {
+    id: "openai",
+    name: "OpenAI",
+    category: "developer",
+    credentialFields: ["apiKey"],
+    capabilities: ["chat:completion", "image:generate", "audio:transcribe"],
+    requiresApproval: false,
+    description: "Access GPT-4o, DALL-E, Whisper, and the full OpenAI model suite.",
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    category: "developer",
+    credentialFields: ["apiKey"],
+    capabilities: ["chat:completion", "long-context", "code-analysis"],
+    requiresApproval: false,
+    description: "Access Claude models for advanced reasoning, coding, and long-context analysis.",
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    category: "developer",
+    credentialFields: ["apiKey"],
+    capabilities: ["chat:completion", "multimodal", "grounding"],
+    requiresApproval: false,
+    description: "Access Gemini models for multimodal AI, long-context, and Google integration.",
+  },
+
+  // Google Services
+  {
+    id: "google-trends",
+    name: "Google Trends",
+    category: "workspace",
+    credentialFields: ["apiKey"],
+    capabilities: ["trends:read", "explore:read", "suggestions:read"],
+    requiresApproval: false,
+    description: "Query Google Trends data for keyword research, market analysis, and content planning.",
+  },
+  {
+    id: "gmail",
+    name: "Gmail",
+    category: "communication",
+    credentialFields: ["oauthRefreshToken"],
+    capabilities: ["mail:read", "mail:send", "labels:read"],
+    requiresApproval: true,
+    description: "Read, send, and manage Gmail messages for automated outreach and support workflows.",
+  },
+
+  // Advertising
+  {
+    id: "meta-ads",
+    name: "Meta Ads Manager",
+    category: "social",
+    credentialFields: ["accessToken", "adAccountId"],
+    capabilities: ["campaigns:read", "campaigns:create", "insights:read"],
+    requiresApproval: true,
+    description: "Manage Facebook and Instagram ad campaigns, audiences, and performance reporting.",
+  },
+  {
+    id: "google-ads",
+    name: "Google Ads",
+    category: "social",
+    credentialFields: ["developerToken", "customerId"],
+    capabilities: ["campaigns:read", "campaigns:manage", "reports:read"],
+    requiresApproval: true,
+    description: "Manage Google Search and Display ad campaigns with performance reporting.",
   },
 
   // Custom MCP Server

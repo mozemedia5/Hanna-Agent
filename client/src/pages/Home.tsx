@@ -29,6 +29,7 @@ import {
   Mic,
   MoreHorizontal,
   Moon,
+  Mail,
   Paperclip,
   PanelRight,
   Plus,
@@ -203,6 +204,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     try {
       const token = await getFirebaseIdToken();
       const response = await fetch("/api/trpc/hanna.ask?batch=1", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ 0: { json: { prompt: text, model: model === "Custom" ? customModel.trim() : model } } }) });
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const textBody = await response.text();
+        console.error("Non-JSON response from server:", textBody.slice(0, 200));
+        if (textBody.includes("A server error") || !response.ok) {
+          throw new Error("Hanna encountered a server issue. Please check your API key in Settings and try again.");
+        }
+        throw new Error("Hanna received an unexpected response format. Please try again.");
+      }
       const payload = await response.json() as Array<{ result?: { data?: { json?: { answer?: string }; answer?: string } } }>;
       if (!response.ok) throw new Error("Hanna could not complete that request.");
       const data = payload[0]?.result?.data;
@@ -556,9 +566,23 @@ function SettingsHub({
   onToast: (message: string) => void;
 }) {
   const apps = [
-    { name: "Google Drive", description: "Bring documents into a conversation", icon: FileText },
-    { name: "Notion", description: "Search pages and save working notes", icon: BookOpen },
-    { name: "Slack", description: "Find context across your team", icon: Zap },
+    { name: "Shopify", description: "Manage products, catalog, and orders", icon: PlugZap },
+    { name: "GitHub", description: "Repositories, issues, and pull requests", icon: Code2 },
+    { name: "Slack", description: "Team notifications and channel messages", icon: Zap },
+    { name: "WhatsApp Business", description: "Automated order updates and broadcasts", icon: Globe2 },
+    { name: "Instagram", description: "Publish posts, reels, and view insights", icon: ImageIcon },
+    { name: "TikTok", description: "Short-form video publishing and analytics", icon: Sparkles },
+    { name: "Google Workspace", description: "Docs, Sheets, Drive, and Calendar", icon: FileText },
+    { name: "Gmail", description: "Read, send, and manage email messages", icon: Mail },
+    { name: "YouTube", description: "Upload videos and manage channel content", icon: BarChart3 },
+    { name: "Vercel", description: "Deploy and manage frontend applications", icon: Server },
+    { name: "HeyGen", description: "AI avatar video generation and translation", icon: Sparkles },
+    { name: "Meta Ads Manager", description: "Facebook and Instagram ad campaigns", icon: Globe2 },
+    { name: "Google Ads", description: "Search and Display ad campaign management", icon: Globe2 },
+    { name: "CJ Dropshipping", description: "Product sourcing and order fulfillment", icon: PlugZap },
+    { name: "AutoDS", description: "Dropshipping product imports and price updates", icon: PlugZap },
+    { name: "Zendrop", description: "US dropshipping fulfillment and branding", icon: PlugZap },
+    { name: "Pinterest", description: "Publish visual pins and manage boards", icon: ImageIcon },
   ];
   const settingsNav: Array<{ id: SettingsSection; label: string; icon: typeof SlidersHorizontal }> = [
     { id: "overview", label: "Overview", icon: SlidersHorizontal },
@@ -599,7 +623,13 @@ function SettingsHub({
       {(activeSection === "overview" || activeSection === "api-keys") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Provider access</span><h3>API keys</h3></div><KeyRound size={17} /></div>
         <p className="settings-intro">Use your own provider keys for model routing. Hanna only shows connection status here; raw credentials never appear in the UI.</p>
-        <div className="credential-list">{[{ name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected" }, { name: "Anthropic", model: "Claude family", status: "Not connected" }, { name: "Google Gemini", model: "Gemini family", status: "Not connected" }, { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible" }].map(({ name, model, status }) => <div className="credential-row" key={name}><div className="credential-icon"><KeyRound size={13} /></div><div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div><button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button></div>)}</div>
+        <div className="credential-list">{[
+          { name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected", color: "#10a37f" },
+          { name: "Anthropic", model: "Claude family", status: "Not connected", color: "#d4a574" },
+          { name: "Google Gemini", model: "Gemini family", status: "Not connected", color: "#4285F4" },
+          { name: "Groq / Llama", model: "Llama 3.3 70B", status: "Not connected", color: "#f55036" },
+          { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible", color: "#888" },
+        ].map(({ name, model, status, color }) => <div className="credential-row" key={name}><div className="credential-icon" style={{ borderColor: color, color }}><KeyRound size={13} /></div><div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div><button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button></div>)}</div>
       </section>}
       {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Appearance</span><h3>Make it yours</h3></div><SlidersHorizontal size={17} /></div>

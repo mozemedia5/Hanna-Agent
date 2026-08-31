@@ -11,7 +11,8 @@ import { deleteConversation, getAnalytics, getProfile, listConversations, saveCo
 import { consumeDailyTokens, type HannaTier } from "./usage";
 
 export async function executeHannaRequest(prompt: string, context?: string, userId?: number, requestedModel?: string) {
-  return runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
+  try {
+  return await runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
     const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt) : undefined;
     const apiKey = personalProvider?.apiKey || process.env.GEMINI_API_KEY;
     const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
@@ -22,6 +23,10 @@ export async function executeHannaRequest(prompt: string, context?: string, user
     const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n") }\n\n${prompt}`, context: requestContext });
     return { text, model: `${provider.provider} · ${provider.model}` };
   });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Hanna encountered an unexpected error.";
+    return { text: message, model: "hanna-fallback", capability: "Error recovery", plan: { intent: prompt, route: { model: "fallback", capability: "Error", reason: "error" }, tools: [], approvalRequired: false, steps: [] }, trace: [] };
+  }
 }
 
 export const appRouter = router({
