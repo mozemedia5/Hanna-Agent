@@ -46,6 +46,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
 import { calculateConversationAnalytics, getUserProfile, listUserConversations, saveUserConversation, saveUserProfile, type ClientConversation } from "@/lib/firestore";
+import { renderBrandIcon } from "@/components/ProviderIcons";
 
 type ToolKey =
   | "Web Search"
@@ -203,27 +204,40 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     setComposer(""); setIsThinking(true);
     try {
       const token = await getFirebaseIdToken();
-      const response = await fetch("/api/trpc/hanna.ask?batch=1", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ 0: { json: { prompt: text, model: model === "Custom" ? customModel.trim() : model } } }) });
-      const contentType = response.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) {
-        const textBody = await response.text();
-        console.error("Non-JSON response from server:", textBody.slice(0, 200));
-        if (textBody.includes("A server error") || !response.ok) {
-          throw new Error("Hanna encountered a server issue. Please check your API key in Settings and try again.");
-        }
-        throw new Error("Hanna received an unexpected response format. Please try again.");
+      const response = await fetch("/api/trpc/hanna.ask?batch=1", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ 0: { json: { prompt: text, model: model === "Custom" ? customModel.trim() : model } } })
+      });
+
+      const responseText = await response.text();
+      let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string }; answer?: string; text?: string } } }> | null = null;
+      try {
+        payload = JSON.parse(responseText);
+      } catch {
+        throw new Error("Hanna encountered a server issue. Please check your API key in Settings and try again.");
       }
-      const payload = await response.json() as Array<{ result?: { data?: { json?: { answer?: string }; answer?: string } } }>;
-      if (!response.ok) throw new Error("Hanna could not complete that request.");
+
+      if (!response.ok || !payload) {
+        throw new Error("Hanna encountered a server issue. Please check your API key in Settings and try again.");
+      }
+
       const data = payload[0]?.result?.data;
-      const reply = data && "json" in data ? (data.json?.answer || (data.json as unknown as { text?: string })?.text) : data?.answer || (data as unknown as { text?: string })?.text;
+      const reply = data && "json" in data ? (data.json?.answer || data.json?.text) : data?.answer || data?.text;
       if (!reply) throw new Error("Hanna returned an empty response.");
       const assistantMessage = { id: `${chatId}-assistant-${Date.now()}`, role: "assistant" as const, content: reply, tokenCount: estimateTokens(reply), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
       const completedChat = { ...chatWithUser, messages: [...chatWithUser.messages, assistantMessage] };
       setChats((current) => current.map((chat) => chat.id === chatId ? completedChat : chat));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
-      const errorContent = reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.";
+      let errorContent = reason instanceof Error ? reason.message : "Hanna is unavailable right now. Please try again.";
+      if (errorContent.includes("Unexpected token") || errorContent.includes("is not valid JSON") || errorContent.includes("JSON")) {
+        errorContent = "Hanna encountered a server issue. Please check your API key in Settings and try again.";
+      }
       const errorMessage = { id: `${chatId}-error-${Date.now()}`, role: "assistant" as const, content: errorContent, tokenCount: estimateTokens(errorContent), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
       const failedChat = { ...chatWithUser, messages: [...chatWithUser.messages, errorMessage] };
       setChats((current) => current.map((chat) => chat.id === chatId ? failedChat : chat));
@@ -250,6 +264,27 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const togglePanel = (nextPanel: Exclude<Panel, null>) => {
     setPanel((current) => (current === nextPanel ? null : nextPanel));
   };
+
+  const openProfile = () => {
+    setPanel("settings");
+    setSettingsSection("profile");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (modelMenuOpen && !target.closest(".model-picker")) {
+        setModelMenuOpen(false);
+      }
+    };
+    const handleOpenProfile = () => openProfile();
+    window.addEventListener("hanna:open-profile", handleOpenProfile);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("hanna:open-profile", handleOpenProfile);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [modelMenuOpen]);
 
   const copyArtifact = async () => {
     await navigator.clipboard?.writeText(artifactCode);
@@ -327,10 +362,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
             <span>{theme === "light" ? "Dark theme" : "Light theme"}</span>
           </button>
-          <div className="account-row">
-            <div className="avatar">{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</div>
-            <div className="account-copy"><span className="account-name">{user?.displayName || user?.email || "You"}</span><span className="account-plan">Personal workspace</span></div>
-            <button className="icon-button" onClick={() => onLogout?.()} aria-label="Sign out"><MoreHorizontal size={16} className="muted-icon" /></button>
+          <div className="account-row" onClick={openProfile} style={{ cursor: "pointer" }} title="Click to edit profile">
+            <div className="avatar">
+              {user?.photoURL ? <img src={user.photoURL} alt="" className="avatar-img" /> : (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="account-copy">
+              <span className="account-name">{user?.displayName || user?.email || "You"}</span>
+              <span className="account-plan">Click to edit profile</span>
+            </div>
+            <button className="icon-button" onClick={(e) => { e.stopPropagation(); onLogout?.(); }} aria-label="Sign out"><MoreHorizontal size={16} className="muted-icon" /></button>
           </div>
         </div>
       </aside>
@@ -376,7 +416,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <button className="header-settings-button" onClick={() => togglePanel("settings")} aria-label="Open settings">
               <Settings size={17} />
             </button>
-            <div className="header-avatar">{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</div>
+            <button className="header-avatar-button" onClick={openProfile} aria-label="Edit profile" title="Edit profile">
+              <div className="header-avatar">
+                {user?.photoURL ? <img src={user.photoURL} alt="" className="avatar-img" /> : (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}
+              </div>
+            </button>
           </div>
         </header>
 
@@ -566,23 +610,32 @@ function SettingsHub({
   onToast: (message: string) => void;
 }) {
   const apps = [
-    { name: "Shopify", description: "Manage products, catalog, and orders", icon: PlugZap },
-    { name: "GitHub", description: "Repositories, issues, and pull requests", icon: Code2 },
-    { name: "Slack", description: "Team notifications and channel messages", icon: Zap },
-    { name: "WhatsApp Business", description: "Automated order updates and broadcasts", icon: Globe2 },
-    { name: "Instagram", description: "Publish posts, reels, and view insights", icon: ImageIcon },
-    { name: "TikTok", description: "Short-form video publishing and analytics", icon: Sparkles },
-    { name: "Google Workspace", description: "Docs, Sheets, Drive, and Calendar", icon: FileText },
-    { name: "Gmail", description: "Read, send, and manage email messages", icon: Mail },
-    { name: "YouTube", description: "Upload videos and manage channel content", icon: BarChart3 },
-    { name: "Vercel", description: "Deploy and manage frontend applications", icon: Server },
-    { name: "HeyGen", description: "AI avatar video generation and translation", icon: Sparkles },
-    { name: "Meta Ads Manager", description: "Facebook and Instagram ad campaigns", icon: Globe2 },
-    { name: "Google Ads", description: "Search and Display ad campaign management", icon: Globe2 },
-    { name: "CJ Dropshipping", description: "Product sourcing and order fulfillment", icon: PlugZap },
-    { name: "AutoDS", description: "Dropshipping product imports and price updates", icon: PlugZap },
-    { name: "Zendrop", description: "US dropshipping fulfillment and branding", icon: PlugZap },
-    { name: "Pinterest", description: "Publish visual pins and manage boards", icon: ImageIcon },
+    { name: "Shopify", description: "Manage products, catalog, and orders" },
+    { name: "Google Gemini", description: "Gemini models for multimodal AI and reasoning" },
+    { name: "Google Workspace", description: "Docs, Sheets, Drive, and Calendar" },
+    { name: "Gmail", description: "Read, send, and manage email messages" },
+    { name: "Slack", description: "Team notifications and channel messages" },
+    { name: "WhatsApp Business", description: "Automated order updates and broadcasts" },
+    { name: "HeyGen", description: "AI avatar video generation and translation" },
+    { name: "InVideo", description: "AI script-to-video editing and rendering" },
+    { name: "Creatify", description: "AI marketing video and visual generator" },
+    { name: "Zendrop", description: "US dropshipping fulfillment and branding" },
+    { name: "AutoDS", description: "Dropshipping product imports and price updates" },
+    { name: "CJ Dropshipping", description: "Product sourcing and order fulfillment" },
+    { name: "OpenAI", description: "GPT-4o, DALL-E, and Whisper API access" },
+    { name: "Anthropic / Claude", description: "Claude Sonnet, Opus, and Haiku models" },
+    { name: "Jules AI", description: "Autonomous AI software engineering agent" },
+    { name: "Stitch AI", description: "AI UI/UX design generation and component stitching" },
+    { name: "GitHub", description: "Repositories, issues, and pull requests" },
+    { name: "v0 by Vercel", description: "Generative UI system for React & Tailwind" },
+    { name: "Vercel", description: "Deploy and manage frontend applications" },
+    { name: "Google Trends", description: "Keyword research, market analysis, and trends" },
+    { name: "Instagram", description: "Publish posts, reels, and view insights" },
+    { name: "Meta Ads Manager", description: "Facebook and Instagram ad campaigns" },
+    { name: "Google Ads", description: "Search and Display ad campaign management" },
+    { name: "TikTok", description: "Short-form video publishing and analytics" },
+    { name: "YouTube", description: "Upload videos and manage channel content" },
+    { name: "Pinterest", description: "Publish visual pins and manage boards" },
   ];
   const settingsNav: Array<{ id: SettingsSection; label: string; icon: typeof SlidersHorizontal }> = [
     { id: "overview", label: "Overview", icon: SlidersHorizontal },
@@ -624,12 +677,12 @@ function SettingsHub({
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Provider access</span><h3>API keys</h3></div><KeyRound size={17} /></div>
         <p className="settings-intro">Use your own provider keys for model routing. Hanna only shows connection status here; raw credentials never appear in the UI.</p>
         <div className="credential-list">{[
-          { name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected", color: "#10a37f" },
-          { name: "Anthropic", model: "Claude family", status: "Not connected", color: "#d4a574" },
-          { name: "Google Gemini", model: "Gemini family", status: "Not connected", color: "#4285F4" },
-          { name: "Groq / Llama", model: "Llama 3.3 70B", status: "Not connected", color: "#f55036" },
-          { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible", color: "#888" },
-        ].map(({ name, model, status, color }) => <div className="credential-row" key={name}><div className="credential-icon" style={{ borderColor: color, color }}><KeyRound size={13} /></div><div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div><button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button></div>)}</div>
+          { name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected" },
+          { name: "Anthropic / Claude", model: "Claude family", status: "Not connected" },
+          { name: "Google Gemini", model: "Gemini family", status: "Not connected" },
+          { name: "Groq / Llama", model: "Llama 3.3 70B", status: "Not connected" },
+          { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible" },
+        ].map(({ name, model, status }) => <div className="credential-row" key={name}><div className="credential-icon">{renderBrandIcon(name, 18)}</div><div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div><button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button></div>)}</div>
       </section>}
       {(activeSection === "overview" || activeSection === "workspace") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Appearance</span><h3>Make it yours</h3></div><SlidersHorizontal size={17} /></div>
@@ -639,7 +692,7 @@ function SettingsHub({
       {(activeSection === "overview" || activeSection === "connectors") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Apps & integrations</span><h3>Bring your work with you</h3></div><PanelRight size={17} /></div>
         <p className="settings-intro">Connect the places where your work already lives. Hanna will keep each connection visible and under your control.</p>
-        <div className="integration-list">{apps.map(({ name, description, icon: Icon }) => { const isConnected = connectedApps.includes(name); return <div className="integration-row" key={name}><div className="integration-icon"><Icon size={16} /></div><div className="integration-copy"><strong>{name}</strong><span>{description}</span></div><button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>{isConnected ? <><Check size={13} /> Ready</> : "Connect"}</button></div>; })}</div>
+        <div className="integration-list">{apps.map(({ name, description }) => { const isConnected = connectedApps.includes(name); return <div className="integration-row" key={name}><div className="integration-icon">{renderBrandIcon(name, 18)}</div><div className="integration-copy"><strong>{name}</strong><span>{description}</span></div><button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>{isConnected ? <><Check size={13} /> Ready</> : "Connect"}</button></div>; })}</div>
       </section>}
       {(activeSection === "overview" || activeSection === "mcps") && <section className="settings-section">
         <div className="settings-section-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> Tool protocol</span><h3>MCP servers</h3></div><Server size={17} /></div>
