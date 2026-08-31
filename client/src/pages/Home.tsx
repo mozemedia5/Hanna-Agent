@@ -210,6 +210,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     setComposer(""); setIsThinking(true);
     try {
       const token = await getFirebaseIdToken();
+      const isStudyMode = selectedTools.includes("Study");
+      const activeToolsContext = selectedTools.length ? `[Active Tools / Modes: ${selectedTools.join(", ")}]${isStudyMode ? "\n[STUDY MODE ACTIVATED: Act as an interactive step-by-step Socratic tutor. Perform deep analysis of any attached files and context.]" : ""}` : "";
+      const fullPrompt = activeToolsContext ? `${activeToolsContext}\n\n${text}` : text;
+
       const response = await fetch("/api/trpc/hanna.ask?batch=1", {
         method: "POST",
         credentials: "include",
@@ -217,7 +221,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           "content-type": "application/json",
           ...(token ? { authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ 0: { json: { prompt: text, model: model === "Custom" ? customModel.trim() : model } } })
+        body: JSON.stringify({ 0: { json: { prompt: fullPrompt, model: model === "Custom" ? customModel.trim() : model } } })
       });
 
       const responseText = await response.text();
@@ -423,7 +427,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       {model === option && <Check size={14} />}
                     </button>
                   ))}
-                  {model === "Custom" && <div className="custom-model-field"><input value={customModel} onChange={(event) => setCustomModel(event.target.value)} placeholder="gemini-3.7-flash" aria-label="Custom model name" /></div>}
+                  {model === "Custom" && <div className="custom-model-field"><input value={customModel} onChange={(event) => setCustomModel(event.target.value)} placeholder="gemini-3.6-flash" aria-label="Custom model name" /></div>}
                 </div>
               )}
             </div>
@@ -747,8 +751,6 @@ function SettingsHub({
           <p className="settings-intro">This profile is private to your workspace and helps Hanna understand how to speak to you.</p>
           <div className="profile-form">
             <label>Display name<input value={profile.displayName} onChange={(event) => updateProfileField("displayName", event.target.value)} placeholder="Your name" /></label>
-            <label>Job title<input value={profile.jobTitle} onChange={(event) => updateProfileField("jobTitle", event.target.value)} placeholder="What do you do?" /></label>
-            <label>Avatar URL<input value={profile.photoURL} onChange={(event) => updateProfileField("photoURL", event.target.value)} placeholder="https://…" type="url" /></label>
             <label>About you<textarea value={profile.bio} onChange={(event) => updateProfileField("bio", event.target.value)} placeholder="A little context Hanna should keep in mind" maxLength={500} rows={4} /></label>
             <button className="profile-save-button" onClick={saveProfile} disabled={profileSaving || !profile.displayName.trim()}>{profileSaving ? "Saving…" : "Save profile"}</button>
           </div>
@@ -798,22 +800,41 @@ function SettingsHub({
             <div><span className="eyebrow"><span className="eyebrow-line" /> Apps & integrations</span><h3>Bring your work with you</h3></div>
             <PanelRight size={17} />
           </div>
-          <p className="settings-intro">Connect the places where your work already lives. Hanna will keep each connection visible and under your control.</p>
-          <div className="integration-list">
-            {filteredApps.map(({ name, description }) => {
-              const isConnected = connectedApps.includes(name);
-              return (
-                <div className="integration-row" key={name}>
-                  <div className="integration-icon">{renderBrandIcon(name, 18)}</div>
-                  <div className="integration-copy"><strong>{name}</strong><span>{description}</span></div>
-                  <button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>
-                    {isConnected ? <><Check size={13} /> Ready</> : "Connect"}
-                  </button>
+          <p className="settings-intro">Connect the places where your work lives. Filter by category or search below.</p>
+
+          {[
+            { category: "E-Commerce & Dropshipping", items: ["Shopify", "CJ Dropshipping", "Zendrop", "AutoDS"] },
+            { category: "Social Media Management", items: ["Instagram", "TikTok", "YouTube", "Pinterest", "WhatsApp Business"] },
+            { category: "Video & Visual Generation", items: ["HeyGen", "InVideo", "Creatify"] },
+            { category: "Marketing & Research", items: ["Google Trends", "Meta Ads Manager", "Google Ads"] },
+            { category: "Productivity & Communication", items: ["Google Workspace", "Gmail", "Slack", "Google Drive"] },
+            { category: "Developer & AI Tools", items: ["Google Gemini", "OpenAI", "Anthropic / Claude", "GitHub", "Vercel", "v0 by Vercel", "Jules AI", "Stitch AI"] },
+          ].map((cat) => {
+            const catApps = filteredApps.filter((app) => cat.items.includes(app.name));
+            if (!catApps.length) return null;
+            return (
+              <div key={cat.category} style={{ marginBottom: "20px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--text-tertiary)", marginBottom: "8px", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {cat.category}
                 </div>
-              );
-            })}
-            {filteredApps.length === 0 && <div className="analytics-empty">No connectors matching "{searchQuery}"</div>}
-          </div>
+                <div className="integration-list">
+                  {catApps.map(({ name, description }) => {
+                    const isConnected = connectedApps.includes(name);
+                    return (
+                      <div className="integration-row" key={name}>
+                        <div className="integration-icon">{renderBrandIcon(name, 18)}</div>
+                        <div className="integration-copy"><strong>{name}</strong><span>{description}</span></div>
+                        <button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>
+                          {isConnected ? <><Check size={13} /> Ready</> : "Connect"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {filteredApps.length === 0 && <div className="analytics-empty">No connectors matching "{searchQuery}"</div>}
         </section>
       )}
 

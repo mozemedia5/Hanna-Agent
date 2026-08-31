@@ -12,11 +12,11 @@ vi.mock("wouter", () => ({
 }));
 
 describe("LandingPage Component", () => {
-  it("renders main hero heading and Gemini badge", () => {
+  it("renders main hero heading and Workspace badge", () => {
     render(<LandingPage />);
-    expect(screen.getByText("Gemini Powered")).toBeInTheDocument();
-    expect(screen.getByText(/Build next-generation AI experiences/i)).toBeInTheDocument();
-    expect(screen.getByText("unmatched speed & precision.")).toBeInTheDocument();
+    expect(screen.getByText("Workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Your personal assistant for study/i)).toBeInTheDocument();
+    expect(screen.getByText("everyday productivity.")).toBeInTheDocument();
   });
 
   it("switches hero media tabs between video walkthrough and interactive preview", () => {

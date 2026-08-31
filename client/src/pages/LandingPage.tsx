@@ -40,7 +40,7 @@ const codeSnippets = {
 
 const hanna = new HannaClient({
   apiKey: process.env.HANNA_API_KEY,
-  model: "gemini-3.7-flash",
+  model: "gemini-3.6-flash",
 });
 
 // Stream intelligent multimodal reasoning
@@ -57,7 +57,7 @@ for await (const chunk of response) {
 
 client = HannaClient(
     api_key="hn_live_9f82d1c7a304e2",
-    model="gemini-3.7-flash"
+    model="gemini-3.6-flash"
 )
 
 # Execute structured agent workflow with native tools
@@ -72,7 +72,7 @@ print(f"Status: {response.status} | Output: {response.text}")`,
   -H "Authorization: Bearer $HANNA_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gemini-3.7-flash",
+    "model": "gemini-3.6-flash",
     "messages": [{"role": "user", "content": "Explain agentic routing"}],
     "temperature": 0.3
   }'`,
@@ -92,7 +92,7 @@ export default function LandingPage() {
   const [isMuted, setIsMuted] = useState(true);
   const [activeCodeLang, setActiveCodeLang] = useState<"typescript" | "python" | "curl">("typescript");
   const [copiedCode, setCopiedCode] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<"gemini-3.7" | "gemini-2.5">("gemini-3.7");
+  const [selectedModel, setSelectedModel] = useState<"gemini-3.6" | "gemini-2.5">("gemini-3.6");
   const [multimodalTab, setMultimodalTab] = useState<"code" | "web" | "db">("code");
   const [simulatedTerminalStep, setSimulatedTerminalStep] = useState(0);
 
@@ -154,7 +154,7 @@ export default function LandingPage() {
             aria-label="Hanna Home"
           >
             <HannaLogo />
-            <span className="landing-brand-badge">Gemini Powered</span>
+            <span className="landing-brand-badge">Workspace</span>
           </button>
 
           <nav className="landing-nav-links" aria-label="Main Navigation">
@@ -193,17 +193,16 @@ export default function LandingPage() {
             <Sparkles size={14} className="sparkle-icon" />
             <span>Next-Generation Intelligence</span>
             <span className="badge-dot" />
-            <span className="badge-text-dim">Gemini 3.7 Flash</span>
+            <span className="badge-text-dim">Gemini 3.6 Flash</span>
           </div>
         </div>
 
         <h1 className="hero-title">
-          Build next-generation AI experiences with{" "}
-          <span className="gemini-gradient-text">unmatched speed &amp; precision.</span>
+          Your personal assistant for study, store management, and <span className="gemini-gradient-text">everyday productivity.</span>
         </h1>
 
         <p className="hero-description">
-          Hanna combines multimodal Gemini reasoning, sub-second tool execution, and context-rich workspaces into a unified platform engineered for developer velocity and creative focus.
+          Hanna helps you learn step by step with interactive tutoring, manage Shopify store operations, run market research, produce videos, publish social media content, and automate daily tasks.
         </p>
 
         <div className="hero-cta-group">
@@ -265,7 +264,7 @@ export default function LandingPage() {
 
               <div className="media-quality-tag">
                 <span className="live-status-dot" />
-                <span>Gemini 3.7 Engine</span>
+                <span>Gemini 3.6 Engine</span>
               </div>
             </div>
 
@@ -300,7 +299,7 @@ export default function LandingPage() {
                         </div>
 
                         <div className="mock-response-stream">
-                          <div className="stream-badge"><Zap size={12} /> Gemini 3.7 Flash · 84ms latency</div>
+                          <div className="stream-badge"><Zap size={12} /> Gemini 3.6 Flash · 84ms latency</div>
                           <div className="stream-code-preview">
                             <span className="code-line"><span className="c-kw">export async function</span> <span className="c-fn">streamPipeline</span>(data) &#123;</span>
                             <span className="code-line">&nbsp;&nbsp;<span className="c-kw">const</span> engine = <span className="c-kw">new</span> <span className="c-cls">HannaEngine</span>(&#123; mode: <span className="c-str">"ultra-fast"</span> &#125;);</span>
@@ -330,7 +329,7 @@ export default function LandingPage() {
                   <div className="interactive-demo-card">
                     <div className="demo-input-header">
                       <span className="demo-label">LIVE PROMPT PLAYGROUND</span>
-                      <span className="demo-model-badge">Gemini 3.7 Flash</span>
+                      <span className="demo-model-badge">Gemini 3.6 Flash</span>
                     </div>
 
                     <div className="demo-input-box">
@@ -406,19 +405,19 @@ export default function LandingPage() {
                   className={`preview-chip ${multimodalTab === "code" ? "is-active" : ""}`}
                   onClick={() => setMultimodalTab("code")}
                 >
-                  <Code2 size={13} /> Code Analysis
+                  <Code2 size={13} /> Study & Tutor
                 </button>
                 <button
                   className={`preview-chip ${multimodalTab === "web" ? "is-active" : ""}`}
                   onClick={() => setMultimodalTab("web")}
                 >
-                  <Globe size={13} /> Web Screenshots
+                  <Globe size={13} /> Store & Shopify
                 </button>
                 <button
                   className={`preview-chip ${multimodalTab === "db" ? "is-active" : ""}`}
                   onClick={() => setMultimodalTab("db")}
                 >
-                  <Database size={13} /> DB Schemas
+                  <Database size={13} /> Video & Social
                 </button>
               </div>
 
@@ -426,11 +425,11 @@ export default function LandingPage() {
                 <div className="display-code-block">
                   <code>
                     {multimodalTab === "code" &&
-                      "// Gemini Multimodal Code Inspection\nconst analysis = await hanna.vision.inspect({\n  file: \"src/core/router.ts\",\n  prompt: \"Extract bugs and suggest sub-100ms refactor\"\n});"}
+                      "// Interactive Study Mode\nHanna analyzes your uploaded PDF/notes step by step:\n1. Explains key concepts Socratically\n2. Quizzes you on core definitions\n3. Summarizes complex formulas and case studies"}
                     {multimodalTab === "web" &&
-                      "// Gemini Multimodal Web Visual Processing\nconst uiReport = await hanna.vision.analyzeScreenshot({\n  url: \"https://app.hanna.ai/dashboard\",\n  checkAccessibility: true\n});"}
+                      "// Shopify & Store Management\nHanna syncs inventory, audits store listings, creates product descriptions, and prepares order fulfillment workflows across Shopify and CJ Dropshipping."}
                     {multimodalTab === "db" &&
-                      "// Gemini Schema Reasoning & Optimization\nconst dbPlan = await hanna.reasoning.optimizeSchema({\n  dialect: \"postgresql\",\n  schema: drizzleSchema\n});"}
+                      "// Video Generation & Social Media\nHanna drafts short-form video scripts, renders promo clips with HeyGen/InVideo, and schedules posts across TikTok, Instagram, and YouTube."}
                   </code>
                 </div>
               </div>
@@ -513,11 +512,11 @@ export default function LandingPage() {
 
             <div className="model-selector-widget">
               <button
-                className={`model-card-option ${selectedModel === "gemini-3.7" ? "is-selected" : ""}`}
-                onClick={() => setSelectedModel("gemini-3.7")}
+                className={`model-card-option ${selectedModel === "gemini-3.6" ? "is-selected" : ""}`}
+                onClick={() => setSelectedModel("gemini-3.6")}
               >
                 <div>
-                  <strong>Gemini 3.7 Flash</strong>
+                  <strong>Gemini 3.6 Flash</strong>
                   <span>Next-gen speed &amp; reasoning</span>
                 </div>
                 <span className="latency-tag">&lt; 90ms</span>
@@ -599,26 +598,44 @@ export default function LandingPage() {
         <div className="principles-grid-v2">
           <div className="principle-card">
             <span className="principle-num">01</span>
-            <h3>Unified Workspace</h3>
+            <h3>Study & Learning Companion</h3>
             <p>
-              Keep chats, code snippets, research notes, and agent runs organized in a clean, uncluttered interface.
+              Upload lecture notes, textbooks, and research PDFs. Hanna acts as a step-by-step tutor that explains complex concepts clearly.
             </p>
           </div>
 
           <div className="principle-card">
             <span className="principle-num">02</span>
-            <h3>Extensible Connectors</h3>
+            <h3>Shopify Store & Commerce Hub</h3>
             <p>
-              Connect your tools seamlessly with standard MCP (Model Context Protocol) and custom HTTP providers.
+              Manage products, analyze sales trends, draft marketing materials, and coordinate dropshipping fulfillment seamlessly.
             </p>
           </div>
 
           <div className="principle-card">
             <span className="principle-num">03</span>
-            <h3>Deterministic Tooling</h3>
+            <h3>Video & Social Media Growth</h3>
             <p>
-              Rely on predictable schema generation, structured JSON outputs, and built-in error handling.
+              Generate AI videos, conduct market research, and manage your social content strategy with Liverton and connected platforms.
             </p>
+          </div>
+        </div>
+
+        {/* User Testimonials & Recommendations */}
+        <div style={{ marginTop: "48px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+          <div className="principle-card" style={{ background: "var(--surface-raised)" }}>
+            <p style={{ fontStyle: "italic", marginBottom: "12px", color: "var(--text-primary)" }}>
+              "Hanna transformed how our team manages Shopify stores and creates promotional videos. Having market research and social scheduling in one clean workspace saved us hours every week."
+            </p>
+            <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>— Liverton & Co.</strong>
+            <span style={{ display: "block", fontSize: "11px", color: "var(--text-tertiary)" }}>E-Commerce Strategy & Marketing</span>
+          </div>
+          <div className="principle-card" style={{ background: "var(--surface-raised)" }}>
+            <p style={{ fontStyle: "italic", marginBottom: "12px", color: "var(--text-primary)" }}>
+              "The Study mode is incredible. I uploaded my exam revision materials and Hanna explained every complex diagram and formula step-by-step like a personal tutor."
+            </p>
+            <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>— Maya S.</strong>
+            <span style={{ display: "block", fontSize: "11px", color: "var(--text-tertiary)" }}>Graduate Student & Researcher</span>
           </div>
         </div>
       </section>
@@ -652,7 +669,7 @@ export default function LandingPage() {
           <div className="footer-brand">
             <HannaLogo />
             <p>
-              Quiet, high-performance AI workspace powered by Google Gemini intelligence.
+              Quiet, high-performance AI workspace for study, store management, video generation, and productivity.
             </p>
           </div>
 
