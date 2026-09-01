@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   deleteProviderCredential,
   getProviderCredentialById,
+  getProviderCredentialForRequest,
   listProviderCredentials,
   upsertProviderCredential,
 } from "./providerDb";
@@ -60,5 +61,18 @@ describe("providerDb Firebase-ready runtime store", () => {
     await expect(
       getProviderCredentialById(7005, "openai")
     ).resolves.toMatchObject({ apiKey: "sk-keep-me-1234" });
+  });
+
+  it("falls back to process.env.GEMINI_API_KEY when user has no custom provider key", async () => {
+    const origKey = process.env.GEMINI_API_KEY;
+    try {
+      process.env.GEMINI_API_KEY = "AIzaSyServerEnvTestKey";
+      const credential = await getProviderCredentialForRequest(7099, "Hello world");
+      expect(credential).toBeDefined();
+      expect(credential?.provider).toBe("gemini");
+      expect(credential?.apiKey).toBe("AIzaSyServerEnvTestKey");
+    } finally {
+      process.env.GEMINI_API_KEY = origKey;
+    }
   });
 });

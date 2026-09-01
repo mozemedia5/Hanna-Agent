@@ -301,6 +301,21 @@ export async function getProviderCredentialForRequest(
     const credential = await getProviderCredentialById(userId, provider);
     if (credential) return { ...credential, model: route.model };
   }
+
+  const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
+  if (defaultGeminiKey) {
+    const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
+    return {
+      provider: "gemini",
+      apiKey: defaultGeminiKey,
+      model:
+        requestedProviderOrModel && !requestedProviderOrModel.startsWith("Hanna ")
+          ? requestedProviderOrModel
+          : envModel,
+      endpoint: "",
+    };
+  }
+
   return undefined;
 }
 

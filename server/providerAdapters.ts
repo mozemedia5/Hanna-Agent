@@ -25,6 +25,11 @@ function userMessage(request: ProviderRequest) {
 export async function invokeUserProvider(
   request: ProviderRequest
 ): Promise<string> {
+  if (!request.apiKey || !request.apiKey.trim()) {
+    throw new Error(
+      `${request.provider || "Provider"} API key is missing or not configured.`
+    );
+  }
   const message = userMessage(request);
   if (request.provider === "anthropic") {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
