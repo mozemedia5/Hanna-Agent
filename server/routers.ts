@@ -13,7 +13,7 @@ import { consumeDailyTokens, getDailyQuota, type HannaTier } from "./usage";
 export async function executeHannaRequest(prompt: string, context?: string, userId?: number, requestedModel?: string) {
   try {
     return await runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
-      const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt) : undefined;
+      const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt, requestedModel) : undefined;
       const envKey = (process.env.GEMINI_API_KEY || "").trim();
       const apiKey = personalProvider?.apiKey ? personalProvider.apiKey.trim() : envKey;
       const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
@@ -22,7 +22,21 @@ export async function executeHannaRequest(prompt: string, context?: string, user
       if (!apiKey) throw new Error("Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables.");
       const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
       const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : envModel, endpoint: "" };
-      const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n")}\n\n${prompt}`, context: requestContext });
+
+      // Enrich context with list of connected API keys and connectors
+      let enrichedContext = requestContext || "";
+      if (userId) {
+        const connectedProviders = await listProviderCredentials(userId);
+        const connectedConnectors = await listConnectorCredentials(userId);
+        const providerNames = connectedProviders.map(p => p.displayName || p.provider);
+        const connectorNames = connectedConnectors.map(c => c.connector);
+        if (providerNames.length > 0 || connectorNames.length > 0) {
+          const capSummary = `[Active Capabilities & Connected Services:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Connected Connectors/Tools: ${connectorNames.length > 0 ? connectorNames.join(", ") : "None"}]`;
+          enrichedContext = enrichedContext ? `${enrichedContext}\n\n${capSummary}` : capSummary;
+        }
+      }
+
+      const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n")}\n\n${prompt}`, context: enrichedContext });
       return { text, model: `${provider.provider} · ${provider.model}` };
     });
   } catch (error) {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Archive,
   ArrowUp,
+  ExternalLink,
   BarChart3,
   BookOpen,
   Check,
@@ -48,6 +49,7 @@ import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
 import { calculateConversationAnalytics, getUserProfile, listUserConversations, saveUserConversation, saveUserProfile, type ClientConversation } from "@/lib/firestore";
 import { renderBrandIcon } from "@/components/ProviderIcons";
+import { integrations, type IntegrationDefinition } from "@shared/integrations";
 
 type ToolKey =
   | "Web Search"
@@ -841,12 +843,111 @@ function SettingsHub({
   ];
 
   const credentials = [
-    { name: "OpenAI", model: "GPT-4o / o-series", status: "Not connected" },
-    { name: "Anthropic / Claude", model: "Claude family", status: "Not connected" },
-    { name: "Google Gemini", model: "Gemini family", status: "Not connected" },
-    { name: "Groq / Llama", model: "Llama 3.3 70B", status: "Not connected" },
-    { name: "Custom provider", model: "OpenAI-compatible endpoint", status: "Extensible" },
+    { id: "gemini", name: "Google Gemini", model: "Gemini 3.6 Flash / 1.5 Pro", docUrl: "https://ai.google.dev/gemini-api/docs/api-key", instructions: ["Go to Google AI Studio (aistudio.google.com).", "Click 'Get API Key' -> 'Create API Key'.", "Copy your key starting with 'AIzaSy...'.", "Paste your key below."] },
+    { id: "openai", name: "OpenAI", model: "GPT-4o / o-series", docUrl: "https://platform.openai.com/api-keys", instructions: ["Log into platform.openai.com.", "Navigate to API Keys.", "Click 'Create new secret key'.", "Copy key starting with 'sk-' and paste below."] },
+    { id: "anthropic", name: "Anthropic", model: "Claude 3.5 Sonnet / Opus", docUrl: "https://docs.anthropic.com/en/api/getting-started", instructions: ["Log into console.anthropic.com.", "Go to Settings -> API Keys.", "Create a key starting with 'sk-ant-'.", "Paste your key below."] },
+    { id: "llama", name: "Groq / Llama", model: "Llama 3.3 70B / Mixtral", docUrl: "https://console.groq.com/keys", instructions: ["Log into console.groq.com.", "Navigate to API Keys.", "Click 'Create API Key'.", "Paste your Groq key starting with 'gsk_' below."] },
+    { id: "jules", name: "Jules AI Agent", model: "Google Jules Autonomous SE", docUrl: "https://jules.google/docs", instructions: ["Access Google Jules Developer Console.", "Go to API & Auth Settings.", "Generate a Jules Agent Token.", "Paste key below."] },
+    { id: "stitch", name: "Stitch UI", model: "Google Stitch UI Generator", docUrl: "https://stitch.google/docs", instructions: ["Access Google Stitch UI Console.", "Go to API Keys section.", "Generate an API Token.", "Paste key below."] },
+    { id: "v0", name: "v0 by Vercel", model: "v0 Generative UI System", docUrl: "https://v0.dev/docs/api", instructions: ["Log into v0.dev.", "Go to Account Settings -> API Keys.", "Create a secret token.", "Paste key below."] },
+    { id: "custom", name: "Custom provider", model: "OpenAI-compatible endpoint", docUrl: "https://platform.openai.com/docs/api-reference", instructions: ["Enter any OpenAI-compatible API key.", "Provide custom base endpoint URL if needed.", "Save below."] },
   ];
+
+  const [activeItemModal, setActiveItemModal] = useState<{
+    type: "connector" | "provider";
+    item: {
+      id: string;
+      name: string;
+      category?: string;
+      description?: string;
+      docUrl?: string;
+      instructions?: string[];
+      credentialFields?: string[];
+    };
+  } | null>(null);
+
+  const [formInputs, setFormInputs] = useState<Record<string, string>>({});
+  const [isSavingKey, setIsSavingKey] = useState(false);
+
+  const openConnectorModal = (integrationId: string) => {
+    const found = integrations.find(i => i.id === integrationId || i.name === integrationId);
+    if (found) {
+      setActiveItemModal({
+        type: "connector",
+        item: {
+          id: found.id,
+          name: found.name,
+          category: found.category,
+          description: found.description,
+          docUrl: found.docUrl,
+          instructions: found.instructions,
+          credentialFields: found.credentialFields,
+        }
+      });
+      setFormInputs({});
+    } else {
+      onToggleApp(integrationId);
+    }
+  };
+
+  const openProviderModal = (providerId: string) => {
+    const found = credentials.find(c => c.id === providerId || c.name === providerId);
+    if (found) {
+      setActiveItemModal({
+        type: "provider",
+        item: {
+          id: found.id,
+          name: found.name,
+          description: found.model,
+          docUrl: found.docUrl,
+          instructions: found.instructions,
+          credentialFields: ["apiKey"],
+        }
+      });
+      setFormInputs({});
+    }
+  };
+
+  const handleSaveModal = async () => {
+    if (!activeItemModal) return;
+    setIsSavingKey(true);
+    try {
+      const token = await getFirebaseIdToken();
+      if (activeItemModal.type === "provider") {
+        const apiKey = formInputs["apiKey"] || formInputs["key"] || "";
+        if (!apiKey.trim()) throw new Error("API Key cannot be empty.");
+
+        await fetch("/api/trpc/providers.save?batch=1", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(token ? { authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ 0: { json: { provider: activeItemModal.item.id, displayName: activeItemModal.item.name, apiKey: apiKey.trim() } } })
+        });
+        onToast(`${activeItemModal.item.name} API key connected securely`);
+      } else {
+        await fetch("/api/trpc/integrations.saveCredential?batch=1", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(token ? { authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ 0: { json: { connector: activeItemModal.item.id, values: formInputs } } })
+        });
+        if (!connectedApps.includes(activeItemModal.item.name)) {
+          onToggleApp(activeItemModal.item.name);
+        } else {
+          onToast(`${activeItemModal.item.name} credentials updated`);
+        }
+      }
+      setActiveItemModal(null);
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : "Failed to save credentials");
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
 
   const filteredApps = useMemo(() => {
     if (!searchQuery.trim()) return apps;
@@ -945,13 +1046,13 @@ function SettingsHub({
             <div><span className="eyebrow"><span className="eyebrow-line" /> Provider access</span><h3>API keys</h3></div>
             <KeyRound size={17} />
           </div>
-          <p className="settings-intro">Use your own provider keys for model routing. Hanna only shows connection status here; raw credentials never appear in the UI.</p>
+          <p className="settings-intro">Use your own provider keys for model routing. Keys are encrypted server-side and used when you select or request specific AI models.</p>
           <div className="credential-list">
-            {filteredCredentials.map(({ name, model, status }) => (
-              <div className="credential-row" key={name}>
+            {filteredCredentials.map(({ id, name, model }) => (
+              <div className="credential-row" key={id}>
                 <div className="credential-icon">{renderBrandIcon(name, 18)}</div>
-                <div className="integration-copy"><strong>{name}</strong><span>{model} · {status}</span></div>
-                <button className="integration-toggle" onClick={() => onToast(`${name} API key setup is available in the secure Settings flow`)}>Add key</button>
+                <div className="integration-copy"><strong>{name}</strong><span>{model}</span></div>
+                <button className="integration-toggle" onClick={() => openProviderModal(id)}>Connect key</button>
               </div>
             ))}
             {filteredCredentials.length === 0 && <div className="analytics-empty">No API keys matching "{searchQuery}"</div>}
@@ -1006,8 +1107,8 @@ function SettingsHub({
                       <div className="integration-row" key={name}>
                         <div className="integration-icon">{renderBrandIcon(name, 18)}</div>
                         <div className="integration-copy"><strong>{name}</strong><span>{description}</span></div>
-                        <button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => onToggleApp(name)}>
-                          {isConnected ? <><Check size={13} /> Ready</> : "Connect"}
+                        <button className={`integration-toggle ${isConnected ? "is-connected" : ""}`} onClick={() => openConnectorModal(name)}>
+                          {isConnected ? <><Check size={13} /> Connected</> : "Add / Setup"}
                         </button>
                       </div>
                     );
@@ -1060,6 +1161,75 @@ function SettingsHub({
       )}
 
       <div className="settings-footer">Hanna <span>•</span> Personal workspace <span>•</span> v0.2</div>
+
+      {activeItemModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "24px", maxWidth: "520px", width: "100%", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.3)", position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "var(--surface-raised)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {renderBrandIcon(activeItemModal.item.name, 22)}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "var(--text-primary)" }}>{activeItemModal.item.name} Setup</h3>
+                  <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{activeItemModal.type === "provider" ? "AI Model API Key" : activeItemModal.item.category || "Connector"}</span>
+                </div>
+              </div>
+              <button type="button" onClick={() => setActiveItemModal(null)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--text-tertiary)", padding: "4px" }} aria-label="Close modal"><X size={18} /></button>
+            </div>
+
+            {activeItemModal.item.description && (
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px", lineHeight: "1.5" }}>{activeItemModal.item.description}</p>
+            )}
+
+            {activeItemModal.item.instructions && activeItemModal.item.instructions.length > 0 && (
+              <div style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--text-tertiary)", marginBottom: "8px", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  Connection Instructions
+                </div>
+                <ol style={{ margin: 0, paddingLeft: "18px", fontSize: "12px", color: "var(--text-secondary)", display: "grid", gap: "6px" }}>
+                  {activeItemModal.item.instructions.map((step, idx) => (
+                    <li key={idx}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {activeItemModal.item.docUrl && (
+              <div style={{ marginBottom: "16px" }}>
+                <a href={activeItemModal.item.docUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--gemini-accent)", textDecoration: "none", fontWeight: "600" }}>
+                  Official Documentation Page <ExternalLink size={13} />
+                </a>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gap: "12px", marginBottom: "20px" }}>
+              {(activeItemModal.item.credentialFields || ["apiKey"]).map((field) => (
+                <div key={field} style={{ display: "grid", gap: "6px" }}>
+                  <label htmlFor={`field_${field}`} style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)", textTransform: "capitalize" }}>
+                    {field.replace(/([A-Z])/g, ' $1')}
+                  </label>
+                  <input
+                    id={`field_${field}`}
+                    type={field.toLowerCase().includes("key") || field.toLowerCase().includes("token") || field.toLowerCase().includes("secret") ? "password" : "text"}
+                    value={formInputs[field] || ""}
+                    onChange={(e) => setFormInputs(prev => ({ ...prev, [field]: e.target.value }))}
+                    placeholder={`Enter your ${field}...`}
+                    style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", fontSize: "13px", color: "var(--text-primary)", width: "100%" }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <Button variant="outline" onClick={() => setActiveItemModal(null)}>Cancel</Button>
+              <Button onClick={handleSaveModal} disabled={isSavingKey}>
+                {isSavingKey ? "Saving & Encrypting…" : "Save Credentials"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
