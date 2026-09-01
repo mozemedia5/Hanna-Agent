@@ -23,7 +23,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
 const menuItems = [
@@ -52,7 +52,7 @@ export default function DashboardLayout({
   }, [sidebarWidth]);
 
   if (loading) {
-    return <DashboardLayoutSkeleton />
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!user) {
@@ -64,11 +64,14 @@ export default function DashboardLayout({
               Sign in to continue
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Authentication is provided by your configured Firebase backend. Connect it to unlock this workspace.
+              Authentication is provided by your configured Firebase backend.
+              Connect it to unlock this workspace.
             </p>
           </div>
           <Button
-            onClick={() => window.dispatchEvent(new CustomEvent("hanna:auth-configure"))}
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("hanna:auth-configure"))
+            }
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
@@ -204,10 +207,16 @@ function DashboardLayoutContent({
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-9 w-9 border shrink-0">
                     {user?.photoURL ? (
-                      <img src={user.photoURL} alt="" className="h-full w-full object-cover rounded-full" />
+                      <img
+                        src={user.photoURL}
+                        alt=""
+                        className="h-full w-full object-cover rounded-full"
+                      />
                     ) : (
                       <AvatarFallback className="text-xs font-medium">
-                        {(user?.displayName || user?.email || "U").charAt(0).toUpperCase()}
+                        {(user?.displayName || user?.email || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
@@ -223,7 +232,9 @@ function DashboardLayoutContent({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem
-                  onClick={() => window.dispatchEvent(new CustomEvent("hanna:open-profile"))}
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent("hanna:open-profile"))
+                  }
                   className="cursor-pointer"
                 >
                   <Users className="mr-2 h-4 w-4" />

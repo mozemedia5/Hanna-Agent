@@ -29,7 +29,12 @@ export function getFirebaseFirestore() {
   return firestoreInstance;
 }
 
-const isCompleteConfig = (config: Partial<FirebaseClientConfig>): config is FirebaseClientConfig => Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
+const isCompleteConfig = (
+  config: Partial<FirebaseClientConfig>
+): config is FirebaseClientConfig =>
+  Boolean(
+    config.apiKey && config.authDomain && config.projectId && config.appId
+  );
 const browserConfig = (): Partial<FirebaseClientConfig> => ({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim(),
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim(),
@@ -43,14 +48,28 @@ const browserConfig = (): Partial<FirebaseClientConfig> => ({
 export async function loadFirebaseConfig(): Promise<FirebaseClientConfig> {
   let endpointError = "";
   try {
-    const response = await fetch("/api/config", { credentials: "same-origin", cache: "no-store" });
-    const payload = await response.json().catch(() => ({})) as Partial<FirebaseClientConfig> & { error?: string; missing?: string[] };
+    const response = await fetch("/api/config", {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    const payload = (await response
+      .json()
+      .catch(() => ({}))) as Partial<FirebaseClientConfig> & {
+      error?: string;
+      missing?: string[];
+    };
     if (response.ok && isCompleteConfig(payload)) return payload;
-    endpointError = payload.error || `Config endpoint returned HTTP ${response.status}.`;
+    endpointError =
+      payload.error || `Config endpoint returned HTTP ${response.status}.`;
   } catch (reason) {
-    endpointError = reason instanceof Error ? reason.message : "Config endpoint could not be reached.";
+    endpointError =
+      reason instanceof Error
+        ? reason.message
+        : "Config endpoint could not be reached.";
   }
   const fallback = browserConfig();
   if (isCompleteConfig(fallback)) return fallback;
-  throw new Error(`Firebase configuration is unavailable. ${endpointError || "Set FIREBASE_* variables in Vercel."}`);
+  throw new Error(
+    `Firebase configuration is unavailable. ${endpointError || "Set FIREBASE_* variables in Vercel."}`
+  );
 }

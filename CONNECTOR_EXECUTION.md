@@ -4,12 +4,12 @@ Hanna now supports authenticated Shopify and Slack actions through protected ser
 
 ## Supported actions
 
-| Connector | Action | API | Required scope or permission | Approval |
-| --- | --- | --- | --- | --- |
-| Shopify | List products | Admin GraphQL `products` query | `read_products` | Required |
-| Shopify | Update product title | Admin GraphQL `productUpdate` mutation | `write_products` | Required |
-| Slack | List channels | Web API `conversations.list` | `channels:read` and relevant private/DM read scopes | Required |
-| Slack | Send message | Web API `chat.postMessage` | `chat:write` | Required |
+| Connector | Action               | API                                    | Required scope or permission                        | Approval |
+| --------- | -------------------- | -------------------------------------- | --------------------------------------------------- | -------- |
+| Shopify   | List products        | Admin GraphQL `products` query         | `read_products`                                     | Required |
+| Shopify   | Update product title | Admin GraphQL `productUpdate` mutation | `write_products`                                    | Required |
+| Slack     | List channels        | Web API `conversations.list`           | `channels:read` and relevant private/DM read scopes | Required |
+| Slack     | Send message         | Web API `chat.postMessage`             | `chat:write`                                        | Required |
 
 Shopify uses the user’s store domain and Admin API access token. The backend sends the token in the `X-Shopify-Access-Token` header to the versioned Admin GraphQL endpoint. Slack uses a bot token and sends it only in the backend `Authorization: Bearer` header. Hanna does not accept tokens in URLs or expose them to the browser after saving.
 

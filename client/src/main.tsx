@@ -15,7 +15,14 @@ const trpcClient = trpc.createClient({
       transformer: superjson,
       async fetch(input, init) {
         const token = await getFirebaseIdToken();
-        return globalThis.fetch(input, { ...(init ?? {}), credentials: "include", headers: { ...(init?.headers ?? {}), ...(token ? { authorization: `Bearer ${token}` } : {}) } });
+        return globalThis.fetch(input, {
+          ...(init ?? {}),
+          credentials: "include",
+          headers: {
+            ...(init?.headers ?? {}),
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+          },
+        });
       },
     }),
   ],

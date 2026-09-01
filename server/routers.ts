@@ -1,47 +1,140 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { deleteProviderCredential, getProviderCredentialById, getProviderCredentialForRequest, listProviderCredentials, providerCatalog, upsertProviderCredential } from "./providerDb";
+import {
+  deleteProviderCredential,
+  getProviderCredentialById,
+  getProviderCredentialForRequest,
+  listProviderCredentials,
+  providerCatalog,
+  upsertProviderCredential,
+} from "./providerDb";
 import { invokeUserProvider } from "./providerAdapters";
 import { getWorkspaceSettings, updateWorkspaceSettings } from "./settingsDb";
 import { runAgentCore } from "./agentCore";
 import { integrations } from "@shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
-import { approveRequest, completeRequest, createApprovalRequest, deleteConnectorCredential, getApprovalRequest, getConnectorCredential, listConnectorCredentials, saveConnectorCredential, type ConnectorAction, type ConnectorId } from "./connectorDb";
-import { deleteConversation, getAnalytics, getProfile, listConversations, saveConversation, saveProfile } from "./firestore";
+import {
+  approveRequest,
+  completeRequest,
+  createApprovalRequest,
+  deleteConnectorCredential,
+  getApprovalRequest,
+  getConnectorCredential,
+  listConnectorCredentials,
+  saveConnectorCredential,
+  type ConnectorAction,
+  type ConnectorId,
+} from "./connectorDb";
+import {
+  deleteConversation,
+  getAnalytics,
+  getProfile,
+  listConversations,
+  saveConversation,
+  saveProfile,
+} from "./firestore";
 import { consumeDailyTokens, getDailyQuota, type HannaTier } from "./usage";
 
-export async function executeHannaRequest(prompt: string, context?: string, userId?: number, requestedModel?: string) {
+export async function executeHannaRequest(
+  prompt: string,
+  context?: string,
+  userId?: number,
+  requestedModel?: string
+) {
   try {
-    return await runAgentCore(prompt, context, async ({ context: requestContext, plan }) => {
-      const personalProvider = userId ? await getProviderCredentialForRequest(userId, prompt, requestedModel) : undefined;
-      const envKey = (process.env.GEMINI_API_KEY || "").trim();
-      const apiKey = personalProvider?.apiKey ? personalProvider.apiKey.trim() : envKey;
-      const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-      const quota = userId ? consumeDailyTokens(String(userId), Math.ceil(prompt.length / 4), tier) : { allowed: true as const, used: 0, limit: tier === "pro" ? 1500 : 300, remaining: tier === "pro" ? 1500 : 300, resetAt: "" };
-      if (!quota.allowed) throw new Error(`Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`);
-      if (!apiKey) throw new Error("Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables.");
-      const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
-      const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : envModel, endpoint: "" };
+    return await runAgentCore(
+      prompt,
+      context,
+      async ({ context: requestContext, plan }) => {
+        const personalProvider = userId
+          ? await getProviderCredentialForRequest(
+              userId,
+              prompt,
+              requestedModel
+            )
+          : undefined;
+        const envKey = (process.env.GEMINI_API_KEY || "").trim();
+        const apiKey = personalProvider?.apiKey
+          ? personalProvider.apiKey.trim()
+          : envKey;
+        const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
+        const quota = userId
+          ? consumeDailyTokens(
+              String(userId),
+              Math.ceil(prompt.length / 4),
+              tier
+            )
+          : {
+              allowed: true as const,
+              used: 0,
+              limit: tier === "pro" ? 1500 : 300,
+              remaining: tier === "pro" ? 1500 : 300,
+              resetAt: "",
+            };
+        if (!quota.allowed)
+          throw new Error(
+            `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
+          );
+        if (!apiKey)
+          throw new Error(
+            "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
+          );
+        const envModel = (
+          process.env.GEMINI_MODEL || "gemini-3.6-flash"
+        ).trim();
+        const provider = personalProvider ?? {
+          provider: "gemini",
+          apiKey,
+          model:
+            requestedModel && !requestedModel.startsWith("Hanna ")
+              ? requestedModel
+              : envModel,
+          endpoint: "",
+        };
 
-      // Enrich context with list of connected API keys and connectors
-      let enrichedContext = requestContext || "";
-      if (userId) {
-        const connectedProviders = await listProviderCredentials(userId);
-        const connectedConnectors = await listConnectorCredentials(userId);
-        const providerNames = connectedProviders.map(p => p.displayName || p.provider);
-        const connectorNames = connectedConnectors.map(c => c.connector);
-        if (providerNames.length > 0 || connectorNames.length > 0) {
-          const capSummary = `[Active Capabilities & Connected Services:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Connected Connectors/Tools: ${connectorNames.length > 0 ? connectorNames.join(", ") : "None"}]`;
-          enrichedContext = enrichedContext ? `${enrichedContext}\n\n${capSummary}` : capSummary;
+        // Enrich context with list of connected API keys and connectors
+        let enrichedContext = requestContext || "";
+        if (userId) {
+          const connectedProviders = await listProviderCredentials(userId);
+          const connectedConnectors = await listConnectorCredentials(userId);
+          const providerNames = connectedProviders.map(
+            p => p.displayName || p.provider
+          );
+          const connectorNames = connectedConnectors.map(c => c.connector);
+          if (providerNames.length > 0 || connectorNames.length > 0) {
+            const capSummary = `[Active Capabilities & Connected Services:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Connected Connectors/Tools: ${connectorNames.length > 0 ? connectorNames.join(", ") : "None"}]`;
+            enrichedContext = enrichedContext
+              ? `${enrichedContext}\n\n${capSummary}`
+              : capSummary;
+          }
         }
-      }
 
-      const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n")}\n\n${prompt}`, context: enrichedContext });
-      return { text, model: `${provider.provider} · ${provider.model}` };
-    });
+        const text = await invokeUserProvider({
+          ...provider,
+          prompt: `${plan.steps.join("\n")}\n\n${prompt}`,
+          context: enrichedContext,
+        });
+        return { text, model: `${provider.provider} · ${provider.model}` };
+      }
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Hanna encountered an unexpected error.";
-    return { text: message, model: "hanna-fallback", capability: "Error recovery", plan: { intent: prompt, route: { model: "fallback", capability: "Error", reason: "error" }, tools: [], approvalRequired: false, steps: [] }, trace: [] };
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Hanna encountered an unexpected error.";
+    return {
+      text: message,
+      model: "hanna-fallback",
+      capability: "Error recovery",
+      plan: {
+        intent: prompt,
+        route: { model: "fallback", capability: "Error", reason: "error" },
+        tools: [],
+        approvalRequired: false,
+        steps: [],
+      },
+      trace: [],
+    };
   }
 }
 
@@ -51,64 +144,218 @@ export const appRouter = router({
   }),
   providers: router({
     catalog: publicProcedure.query(() => providerCatalog),
-    list: protectedProcedure.query(({ ctx }) => listProviderCredentials(ctx.user.id)),
-    save: protectedProcedure.input(z.object({ provider: z.string().min(1), displayName: z.string().min(1).max(120), apiKey: z.string().min(1).max(4000), endpoint: z.string().url().max(255).optional() })).mutation(({ ctx, input }) => upsertProviderCredential(ctx.user.id, input.provider, input.displayName, input.apiKey, input.endpoint)),
-    remove: protectedProcedure.input(z.object({ provider: z.string().min(1) })).mutation(({ ctx, input }) => deleteProviderCredential(ctx.user.id, input.provider)),
-    testConnection: protectedProcedure.input(z.object({ provider: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-      const credential = await getProviderCredentialById(ctx.user.id, input.provider);
-      if (!credential) return { success: false, message: "Connect this provider first." };
-      try {
-        await invokeUserProvider({ ...credential, prompt: "Reply with the single word OK." });
-        return { success: true, message: "Provider responded successfully." };
-      } catch {
-        return { success: false, message: "The provider rejected the key or endpoint." };
-      }
-    }),
+    list: protectedProcedure.query(({ ctx }) =>
+      listProviderCredentials(ctx.user.id)
+    ),
+    save: protectedProcedure
+      .input(
+        z.object({
+          provider: z.string().min(1),
+          displayName: z.string().min(1).max(120),
+          apiKey: z.string().min(1).max(4000),
+          endpoint: z.string().url().max(255).optional(),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        upsertProviderCredential(
+          ctx.user.id,
+          input.provider,
+          input.displayName,
+          input.apiKey,
+          input.endpoint
+        )
+      ),
+    remove: protectedProcedure
+      .input(z.object({ provider: z.string().min(1) }))
+      .mutation(({ ctx, input }) =>
+        deleteProviderCredential(ctx.user.id, input.provider)
+      ),
+    testConnection: protectedProcedure
+      .input(z.object({ provider: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const credential = await getProviderCredentialById(
+          ctx.user.id,
+          input.provider
+        );
+        if (!credential)
+          return { success: false, message: "Connect this provider first." };
+        try {
+          await invokeUserProvider({
+            ...credential,
+            prompt: "Reply with the single word OK.",
+          });
+          return { success: true, message: "Provider responded successfully." };
+        } catch {
+          return {
+            success: false,
+            message: "The provider rejected the key or endpoint.",
+          };
+        }
+      }),
   }),
   integrations: router({
     catalog: publicProcedure.query(() => integrations),
-    listCredentials: protectedProcedure.query(({ ctx }) => listConnectorCredentials(ctx.user.id)),
-    saveCredential: protectedProcedure.input(z.object({ connector: z.string().min(1), values: z.record(z.string(), z.string().min(1).max(4000)) })).mutation(({ ctx, input }) => saveConnectorCredential(ctx.user.id, input.connector as ConnectorId, input.values)),
-    removeCredential: protectedProcedure.input(z.object({ connector: z.string().min(1) })).mutation(({ ctx, input }) => deleteConnectorCredential(ctx.user.id, input.connector as ConnectorId)),
-    previewAction: protectedProcedure.input(z.object({ connector: z.string().min(1), action: z.string().min(1), parameters: z.record(z.string(), z.unknown()) })).mutation(({ ctx, input }) => createApprovalRequest(ctx.user.id, input as unknown as ConnectorAction)),
-    approveAction: protectedProcedure.input(z.object({ approvalId: z.string().min(1) })).mutation(({ ctx, input }) => {
-      const request = approveRequest(ctx.user.id, input.approvalId);
-      if (!request) throw new Error("Approval request is missing, expired, or belongs to another user.");
-      return { approvalId: request.id, status: request.status, connector: request.action.connector, action: request.action.action };
-    }),
-    executeApproved: protectedProcedure.input(z.object({ approvalId: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-      const request = getApprovalRequest(ctx.user.id, input.approvalId);
-      if (!request || request.status !== "approved") throw new Error("This action must be explicitly approved before execution.");
-      const credential = await getConnectorCredential(ctx.user.id, request.action.connector);
-      if (!credential) throw new Error(`Connect ${request.action.connector} in Settings before executing this action.`);
-      const result = await executeConnectorAction(credential, request.action);
-      completeRequest(ctx.user.id, request.id);
-      return { ...result, approvalId: request.id, status: "completed" as const };
-    }),
+    listCredentials: protectedProcedure.query(({ ctx }) =>
+      listConnectorCredentials(ctx.user.id)
+    ),
+    saveCredential: protectedProcedure
+      .input(
+        z.object({
+          connector: z.string().min(1),
+          values: z.record(z.string(), z.string().min(1).max(4000)),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        saveConnectorCredential(
+          ctx.user.id,
+          input.connector as ConnectorId,
+          input.values
+        )
+      ),
+    removeCredential: protectedProcedure
+      .input(z.object({ connector: z.string().min(1) }))
+      .mutation(({ ctx, input }) =>
+        deleteConnectorCredential(ctx.user.id, input.connector as ConnectorId)
+      ),
+    previewAction: protectedProcedure
+      .input(
+        z.object({
+          connector: z.string().min(1),
+          action: z.string().min(1),
+          parameters: z.record(z.string(), z.unknown()),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        createApprovalRequest(ctx.user.id, input as unknown as ConnectorAction)
+      ),
+    approveAction: protectedProcedure
+      .input(z.object({ approvalId: z.string().min(1) }))
+      .mutation(({ ctx, input }) => {
+        const request = approveRequest(ctx.user.id, input.approvalId);
+        if (!request)
+          throw new Error(
+            "Approval request is missing, expired, or belongs to another user."
+          );
+        return {
+          approvalId: request.id,
+          status: request.status,
+          connector: request.action.connector,
+          action: request.action.action,
+        };
+      }),
+    executeApproved: protectedProcedure
+      .input(z.object({ approvalId: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const request = getApprovalRequest(ctx.user.id, input.approvalId);
+        if (!request || request.status !== "approved")
+          throw new Error(
+            "This action must be explicitly approved before execution."
+          );
+        const credential = await getConnectorCredential(
+          ctx.user.id,
+          request.action.connector
+        );
+        if (!credential)
+          throw new Error(
+            `Connect ${request.action.connector} in Settings before executing this action.`
+          );
+        const result = await executeConnectorAction(credential, request.action);
+        completeRequest(ctx.user.id, request.id);
+        return {
+          ...result,
+          approvalId: request.id,
+          status: "completed" as const,
+        };
+      }),
   }),
   conversations: router({
-    list: protectedProcedure.query(({ ctx }) => listConversations(ctx.user.openId)),
-    save: protectedProcedure.input(z.object({ id: z.string().min(1).max(100), title: z.string().min(1).max(200), period: z.string().max(64), messages: z.array(z.object({ id: z.string(), role: z.enum(["user", "assistant"]), content: z.string().max(20000), time: z.string().optional(), tokenCount: z.number().int().nonnegative().optional() })).max(200) })).mutation(({ ctx, input }) => saveConversation(ctx.user.openId, input)),
-    remove: protectedProcedure.input(z.object({ id: z.string().min(1).max(100) })).mutation(({ ctx, input }) => deleteConversation(ctx.user.openId, input.id)),
+    list: protectedProcedure.query(({ ctx }) =>
+      listConversations(ctx.user.openId)
+    ),
+    save: protectedProcedure
+      .input(
+        z.object({
+          id: z.string().min(1).max(100),
+          title: z.string().min(1).max(200),
+          period: z.string().max(64),
+          messages: z
+            .array(
+              z.object({
+                id: z.string(),
+                role: z.enum(["user", "assistant"]),
+                content: z.string().max(20000),
+                time: z.string().optional(),
+                tokenCount: z.number().int().nonnegative().optional(),
+              })
+            )
+            .max(200),
+        })
+      )
+      .mutation(({ ctx, input }) => saveConversation(ctx.user.openId, input)),
+    remove: protectedProcedure
+      .input(z.object({ id: z.string().min(1).max(100) }))
+      .mutation(({ ctx, input }) =>
+        deleteConversation(ctx.user.openId, input.id)
+      ),
   }),
   analytics: router({
-    summary: protectedProcedure.query(({ ctx }) => getAnalytics(ctx.user.openId)),
-    quota: publicProcedure.input(z.object({ model: z.string().optional() }).optional()).query(({ ctx, input }) => {
-      const tier: HannaTier = input?.model === "Hanna Pro" ? "pro" : "lite";
-      const uid = ctx.user?.id ? String(ctx.user.id) : "guest";
-      return getDailyQuota(uid, tier);
-    }),
+    summary: protectedProcedure.query(({ ctx }) =>
+      getAnalytics(ctx.user.openId)
+    ),
+    quota: publicProcedure
+      .input(z.object({ model: z.string().optional() }).optional())
+      .query(({ ctx, input }) => {
+        const tier: HannaTier = input?.model === "Hanna Pro" ? "pro" : "lite";
+        const uid = ctx.user?.id ? String(ctx.user.id) : "guest";
+        return getDailyQuota(uid, tier);
+      }),
   }),
   profile: router({
     get: protectedProcedure.query(({ ctx }) => getProfile(ctx.user.openId)),
-    save: protectedProcedure.input(z.object({ displayName: z.string().trim().min(1).max(120), photoURL: z.string().url().or(z.literal("")), bio: z.string().max(500), jobTitle: z.string().max(120) })).mutation(({ ctx, input }) => saveProfile(ctx.user.openId, input)),
+    save: protectedProcedure
+      .input(
+        z.object({
+          displayName: z.string().trim().min(1).max(120),
+          photoURL: z.string().url().or(z.literal("")),
+          bio: z.string().max(500),
+          jobTitle: z.string().max(120),
+        })
+      )
+      .mutation(({ ctx, input }) => saveProfile(ctx.user.openId, input)),
   }),
   settings: router({
-    get: protectedProcedure.query(({ ctx }) => getWorkspaceSettings(ctx.user.id)),
-    update: protectedProcedure.input(z.object({ theme: z.enum(["light", "dark"]).optional(), defaultProvider: z.string().max(64).optional(), autoRouting: z.boolean().optional() })).mutation(({ ctx, input }) => updateWorkspaceSettings(ctx.user.id, input)),
+    get: protectedProcedure.query(({ ctx }) =>
+      getWorkspaceSettings(ctx.user.id)
+    ),
+    update: protectedProcedure
+      .input(
+        z.object({
+          theme: z.enum(["light", "dark"]).optional(),
+          defaultProvider: z.string().max(64).optional(),
+          autoRouting: z.boolean().optional(),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        updateWorkspaceSettings(ctx.user.id, input)
+      ),
   }),
   hanna: router({
-    ask: publicProcedure.input(z.object({ prompt: z.string().min(1).max(6000), context: z.string().optional(), model: z.string().max(120).optional() })).mutation(({ ctx, input }) => executeHannaRequest(input.prompt, input.context, ctx.user?.id, input.model)),
+    ask: publicProcedure
+      .input(
+        z.object({
+          prompt: z.string().min(1).max(6000),
+          context: z.string().optional(),
+          model: z.string().max(120).optional(),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        executeHannaRequest(
+          input.prompt,
+          input.context,
+          ctx.user?.id,
+          input.model
+        )
+      ),
   }),
 });
 

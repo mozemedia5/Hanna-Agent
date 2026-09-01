@@ -82,18 +82,29 @@ export default function LandingPage() {
   const [, navigate] = useLocation();
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark") || !document.documentElement.classList.contains("light");
+      return (
+        document.documentElement.classList.contains("dark") ||
+        !document.documentElement.classList.contains("light")
+      );
     }
     return true;
   });
 
-  const [activeMediaTab, setActiveMediaTab] = useState<"video" | "interactive">("video");
+  const [activeMediaTab, setActiveMediaTab] = useState<"video" | "interactive">(
+    "video"
+  );
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
-  const [activeCodeLang, setActiveCodeLang] = useState<"typescript" | "python" | "curl">("typescript");
+  const [activeCodeLang, setActiveCodeLang] = useState<
+    "typescript" | "python" | "curl"
+  >("typescript");
   const [copiedCode, setCopiedCode] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<"gemini-3.6" | "gemini-2.5">("gemini-3.6");
-  const [multimodalTab, setMultimodalTab] = useState<"code" | "web" | "db">("code");
+  const [selectedModel, setSelectedModel] = useState<
+    "gemini-3.6" | "gemini-2.5"
+  >("gemini-3.6");
+  const [multimodalTab, setMultimodalTab] = useState<"code" | "web" | "db">(
+    "code"
+  );
   const [simulatedTerminalStep, setSimulatedTerminalStep] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -110,13 +121,13 @@ export default function LandingPage() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setSimulatedTerminalStep((prev) => (prev + 1) % 4);
+      setSimulatedTerminalStep(prev => (prev + 1) % 4);
     }, 2800);
     return () => clearInterval(timer);
   }, []);
 
   const toggleTheme = () => {
-    setIsDark((prev) => !prev);
+    setIsDark(prev => !prev);
   };
 
   const handleCopyCode = () => {
@@ -168,17 +179,25 @@ export default function LandingPage() {
             <button
               className="theme-toggle-button"
               onClick={toggleTheme}
-              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={
+                isDark ? "Switch to light mode" : "Switch to dark mode"
+              }
               title={isDark ? "Light mode" : "Dark mode"}
             >
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
 
-            <button className="landing-nav-login" onClick={() => navigate("/login")}>
+            <button
+              className="landing-nav-login"
+              onClick={() => navigate("/login")}
+            >
               Sign in
             </button>
 
-            <button className="landing-nav-cta" onClick={() => navigate("/create-account")}>
+            <button
+              className="landing-nav-cta"
+              onClick={() => navigate("/create-account")}
+            >
               <span>Get started free</span>
               <ArrowRight size={15} />
             </button>
@@ -198,15 +217,21 @@ export default function LandingPage() {
         </div>
 
         <h1 className="hero-title">
-          Your personal assistant for study, store management, and <span className="gemini-gradient-text">everyday productivity.</span>
+          Your personal assistant for study, store management, and{" "}
+          <span className="gemini-gradient-text">everyday productivity.</span>
         </h1>
 
         <p className="hero-description">
-          Hanna helps you learn step by step with interactive tutoring, manage Shopify store operations, run market research, produce videos, publish social media content, and automate daily tasks.
+          Hanna helps you learn step by step with interactive tutoring, manage
+          Shopify store operations, run market research, produce videos, publish
+          social media content, and automate daily tasks.
         </p>
 
         <div className="hero-cta-group">
-          <button className="hero-primary-btn" onClick={() => navigate("/create-account")}>
+          <button
+            className="hero-primary-btn"
+            onClick={() => navigate("/create-account")}
+          >
             <span>Start building for free</span>
             <ArrowRight size={18} />
           </button>
@@ -284,26 +309,52 @@ export default function LandingPage() {
                           <HannaLogo withWordmark={false} />
                           <span>Hanna Studio</span>
                         </div>
-                        <div className="mock-nav-item is-active"><Cpu size={14} /> Models</div>
-                        <div className="mock-nav-item"><Terminal size={14} /> Agent Runs</div>
-                        <div className="mock-nav-item"><Database size={14} /> Connectors</div>
+                        <div className="mock-nav-item is-active">
+                          <Cpu size={14} /> Models
+                        </div>
+                        <div className="mock-nav-item">
+                          <Terminal size={14} /> Agent Runs
+                        </div>
+                        <div className="mock-nav-item">
+                          <Database size={14} /> Connectors
+                        </div>
                       </div>
 
                       <div className="mock-main">
                         <div className="mock-prompt-bar">
                           <Sparkles size={15} className="mock-sparkle" />
                           <span className="typing-effect">
-                            Generate high-throughput data processing pipeline with Gemini fallback...
+                            Generate high-throughput data processing pipeline
+                            with Gemini fallback...
                           </span>
                           <span className="mock-kbd">⌘ Enter</span>
                         </div>
 
                         <div className="mock-response-stream">
-                          <div className="stream-badge"><Zap size={12} /> Gemini 3.6 Flash · 84ms latency</div>
+                          <div className="stream-badge">
+                            <Zap size={12} /> Gemini 3.6 Flash · 84ms latency
+                          </div>
                           <div className="stream-code-preview">
-                            <span className="code-line"><span className="c-kw">export async function</span> <span className="c-fn">streamPipeline</span>(data) &#123;</span>
-                            <span className="code-line">&nbsp;&nbsp;<span className="c-kw">const</span> engine = <span className="c-kw">new</span> <span className="c-cls">HannaEngine</span>(&#123; mode: <span className="c-str">"ultra-fast"</span> &#125;);</span>
-                            <span className="code-line">&nbsp;&nbsp;<span className="c-kw">return await</span> engine.<span className="c-fn">executeWorkflow</span>(data);</span>
+                            <span className="code-line">
+                              <span className="c-kw">
+                                export async function
+                              </span>{" "}
+                              <span className="c-fn">streamPipeline</span>(data)
+                              &#123;
+                            </span>
+                            <span className="code-line">
+                              &nbsp;&nbsp;<span className="c-kw">const</span>{" "}
+                              engine = <span className="c-kw">new</span>{" "}
+                              <span className="c-cls">HannaEngine</span>(&#123;
+                              mode: <span className="c-str">"ultra-fast"</span>{" "}
+                              &#125;);
+                            </span>
+                            <span className="code-line">
+                              &nbsp;&nbsp;
+                              <span className="c-kw">return await</span> engine.
+                              <span className="c-fn">executeWorkflow</span>
+                              (data);
+                            </span>
                             <span className="code-line">&#125;</span>
                           </div>
                         </div>
@@ -313,13 +364,24 @@ export default function LandingPage() {
 
                   {/* Video Controls Overlay */}
                   <div className="video-controls-overlay">
-                    <button className="control-btn" onClick={togglePlay} aria-label="Toggle Play">
+                    <button
+                      className="control-btn"
+                      onClick={togglePlay}
+                      aria-label="Toggle Play"
+                    >
                       {isPlaying ? <Pause size={15} /> : <Play size={15} />}
                     </button>
                     <div className="timeline-bar">
-                      <div className="timeline-progress" style={{ width: "68%" }} />
+                      <div
+                        className="timeline-progress"
+                        style={{ width: "68%" }}
+                      />
                     </div>
-                    <button className="control-btn" onClick={toggleMute} aria-label="Toggle Sound">
+                    <button
+                      className="control-btn"
+                      onClick={toggleMute}
+                      aria-label="Toggle Sound"
+                    >
                       {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
                     </button>
                   </div>
@@ -337,7 +399,12 @@ export default function LandingPage() {
                         readOnly
                         value="Analyze this user feedback dataset and create an automated action plan with connector dispatch."
                       />
-                      <button className="demo-send-btn" onClick={() => setSimulatedTerminalStep((s) => (s + 1) % 4)}>
+                      <button
+                        className="demo-send-btn"
+                        onClick={() =>
+                          setSimulatedTerminalStep(s => (s + 1) % 4)
+                        }
+                      >
                         <span>Execute Prompt</span>
                         <Zap size={14} />
                       </button>
@@ -348,7 +415,10 @@ export default function LandingPage() {
                         <span className="step-num">01</span>
                         <div className="step-content">
                           <strong>Multimodal Context Analysis</strong>
-                          <p>Parsed 1,420 user entries across text, images, and telemetry in 42ms.</p>
+                          <p>
+                            Parsed 1,420 user entries across text, images, and
+                            telemetry in 42ms.
+                          </p>
                         </div>
                         <Check size={16} className="step-check" />
                       </div>
@@ -357,7 +427,10 @@ export default function LandingPage() {
                         <span className="step-num">02</span>
                         <div className="step-content">
                           <strong>Agentic Tool Invocation</strong>
-                          <p>Dispatched 3 parallel connector tools to Jira, Slack, and Firestore.</p>
+                          <p>
+                            Dispatched 3 parallel connector tools to Jira,
+                            Slack, and Firestore.
+                          </p>
                         </div>
                         <Check size={16} className="step-check" />
                       </div>
@@ -378,10 +451,12 @@ export default function LandingPage() {
             <span>Platform Capabilities</span>
           </div>
           <h2>
-            Engineered for developers who demand <span className="gemini-gradient-text">speed and elegance.</span>
+            Engineered for developers who demand{" "}
+            <span className="gemini-gradient-text">speed and elegance.</span>
           </h2>
           <p className="section-subtext">
-            Everything you need to construct, test, and deploy intelligent agents with complete reliability.
+            Everything you need to construct, test, and deploy intelligent
+            agents with complete reliability.
           </p>
         </div>
 
@@ -392,11 +467,14 @@ export default function LandingPage() {
               <div className="card-icon-badge">
                 <Eye size={20} />
               </div>
-              <span className="card-kicker">MULTIMODAL VISION &amp; CONTEXT</span>
+              <span className="card-kicker">
+                MULTIMODAL VISION &amp; CONTEXT
+              </span>
             </div>
             <h3>See, reason, and act across media formats seamlessly.</h3>
             <p>
-              Process high-resolution screenshots, code files, architecture diagrams, and raw text in a single unified prompt window.
+              Process high-resolution screenshots, code files, architecture
+              diagrams, and raw text in a single unified prompt window.
             </p>
 
             <div className="multimodal-preview-widget">
@@ -446,7 +524,8 @@ export default function LandingPage() {
             </div>
             <h3>Sub-second autonomous tool loops.</h3>
             <p>
-              Invoke search, execute python code, run queries, and update external databases without manual intervention.
+              Invoke search, execute python code, run queries, and update
+              external databases without manual intervention.
             </p>
 
             <div className="terminal-simulator">
@@ -458,16 +537,20 @@ export default function LandingPage() {
               </div>
               <div className="terminal-body">
                 <p className="term-line">
-                  <span className="term-prompt">&gt;</span> hanna run --tool google_search
+                  <span className="term-prompt">&gt;</span> hanna run --tool
+                  google_search
                 </p>
                 <p className="term-response">
-                  {simulatedTerminalStep >= 0 && "✓ Fetching live documentation..."}
+                  {simulatedTerminalStep >= 0 &&
+                    "✓ Fetching live documentation..."}
                 </p>
                 <p className="term-response">
-                  {simulatedTerminalStep >= 1 && "✓ Parsed 12 search result objects"}
+                  {simulatedTerminalStep >= 1 &&
+                    "✓ Parsed 12 search result objects"}
                 </p>
                 <p className="term-response highlighted">
-                  {simulatedTerminalStep >= 2 && "⚡ Response synthesized in 64ms"}
+                  {simulatedTerminalStep >= 2 &&
+                    "⚡ Response synthesized in 64ms"}
                 </p>
               </div>
             </div>
@@ -483,7 +566,8 @@ export default function LandingPage() {
             </div>
             <h3>Private by default with AES-256 encryption.</h3>
             <p>
-              Your code, credentials, and conversation data remain encrypted at rest and in transit. No zero-day retention.
+              Your code, credentials, and conversation data remain encrypted at
+              rest and in transit. No zero-day retention.
             </p>
 
             <div className="security-badge-card">
@@ -507,7 +591,8 @@ export default function LandingPage() {
             </div>
             <h3>Adaptive routing across Gemini model tiers.</h3>
             <p>
-              Switch dynamically between ultra-fast Flash and deep reasoning models based on task complexity.
+              Switch dynamically between ultra-fast Flash and deep reasoning
+              models based on task complexity.
             </p>
 
             <div className="model-selector-widget">
@@ -545,7 +630,8 @@ export default function LandingPage() {
             </div>
             <h3>Build with clean, intuitive APIs in minutes.</h3>
             <p>
-              Integrate Hanna into your TypeScript, Python, or standard HTTP workflows with minimal boilerplate.
+              Integrate Hanna into your TypeScript, Python, or standard HTTP
+              workflows with minimal boilerplate.
             </p>
 
             <div className="code-playground-box">
@@ -569,7 +655,11 @@ export default function LandingPage() {
                   cURL
                 </button>
 
-                <button className="copy-code-btn" onClick={handleCopyCode} title="Copy snippet">
+                <button
+                  className="copy-code-btn"
+                  onClick={handleCopyCode}
+                  title="Copy snippet"
+                >
                   {copiedCode ? <Check size={14} /> : <Copy size={14} />}
                   <span>{copiedCode ? "Copied" : "Copy"}</span>
                 </button>
@@ -584,14 +674,18 @@ export default function LandingPage() {
       </section>
 
       {/* Developer Solutions & Principles Section */}
-      <section id="solutions" className="landing-section solutions-section container">
+      <section
+        id="solutions"
+        className="landing-section solutions-section container"
+      >
         <div className="section-header-centered">
           <div className="eyebrow-pill">
             <Wand2 size={13} />
             <span>Developer Experience</span>
           </div>
           <h2>
-            Designed for clarity, focus, and <span className="gemini-gradient-text">considered work.</span>
+            Designed for clarity, focus, and{" "}
+            <span className="gemini-gradient-text">considered work.</span>
           </h2>
         </div>
 
@@ -600,7 +694,8 @@ export default function LandingPage() {
             <span className="principle-num">01</span>
             <h3>Study & Learning Companion</h3>
             <p>
-              Upload lecture notes, textbooks, and research PDFs. Hanna acts as a step-by-step tutor that explains complex concepts clearly.
+              Upload lecture notes, textbooks, and research PDFs. Hanna acts as
+              a step-by-step tutor that explains complex concepts clearly.
             </p>
           </div>
 
@@ -608,7 +703,8 @@ export default function LandingPage() {
             <span className="principle-num">02</span>
             <h3>Shopify Store & Commerce Hub</h3>
             <p>
-              Manage products, analyze sales trends, draft marketing materials, and coordinate dropshipping fulfillment seamlessly.
+              Manage products, analyze sales trends, draft marketing materials,
+              and coordinate dropshipping fulfillment seamlessly.
             </p>
           </div>
 
@@ -616,26 +712,76 @@ export default function LandingPage() {
             <span className="principle-num">03</span>
             <h3>Video & Social Media Growth</h3>
             <p>
-              Generate AI videos, conduct market research, and manage your social content strategy with Liverton and connected platforms.
+              Generate AI videos, conduct market research, and manage your
+              social content strategy with Liverton and connected platforms.
             </p>
           </div>
         </div>
 
         {/* User Testimonials & Recommendations */}
-        <div style={{ marginTop: "48px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
-          <div className="principle-card" style={{ background: "var(--surface-raised)" }}>
-            <p style={{ fontStyle: "italic", marginBottom: "12px", color: "var(--text-primary)" }}>
-              "Hanna transformed how our team manages Shopify stores and creates promotional videos. Having market research and social scheduling in one clean workspace saved us hours every week."
+        <div
+          style={{
+            marginTop: "48px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "20px",
+          }}
+        >
+          <div
+            className="principle-card"
+            style={{ background: "var(--surface-raised)" }}
+          >
+            <p
+              style={{
+                fontStyle: "italic",
+                marginBottom: "12px",
+                color: "var(--text-primary)",
+              }}
+            >
+              "Hanna transformed how our team manages Shopify stores and creates
+              promotional videos. Having market research and social scheduling
+              in one clean workspace saved us hours every week."
             </p>
-            <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>— Liverton & Co.</strong>
-            <span style={{ display: "block", fontSize: "11px", color: "var(--text-tertiary)" }}>E-Commerce Strategy & Marketing</span>
+            <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>
+              — Liverton & Co.
+            </strong>
+            <span
+              style={{
+                display: "block",
+                fontSize: "11px",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              E-Commerce Strategy & Marketing
+            </span>
           </div>
-          <div className="principle-card" style={{ background: "var(--surface-raised)" }}>
-            <p style={{ fontStyle: "italic", marginBottom: "12px", color: "var(--text-primary)" }}>
-              "The Study mode is incredible. I uploaded my exam revision materials and Hanna explained every complex diagram and formula step-by-step like a personal tutor."
+          <div
+            className="principle-card"
+            style={{ background: "var(--surface-raised)" }}
+          >
+            <p
+              style={{
+                fontStyle: "italic",
+                marginBottom: "12px",
+                color: "var(--text-primary)",
+              }}
+            >
+              "The Study mode is incredible. I uploaded my exam revision
+              materials and Hanna explained every complex diagram and formula
+              step-by-step like a personal tutor."
             </p>
-            <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>— Maya S.</strong>
-            <span style={{ display: "block", fontSize: "11px", color: "var(--text-tertiary)" }}>Graduate Student & Researcher</span>
+            <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>
+              — Maya S.
+            </strong>
+            <span
+              style={{
+                display: "block",
+                fontSize: "11px",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              Graduate Student & Researcher
+            </span>
           </div>
         </div>
       </section>
@@ -645,17 +791,25 @@ export default function LandingPage() {
         <div className="cta-box-glow">
           <div className="cta-content">
             <h2>
-              Ready to elevate your <span className="gemini-gradient-text">AI agent workflow?</span>
+              Ready to elevate your{" "}
+              <span className="gemini-gradient-text">AI agent workflow?</span>
             </h2>
             <p>
-              Get started with Hanna today. Free tier included with full access to Gemini models and developer tools.
+              Get started with Hanna today. Free tier included with full access
+              to Gemini models and developer tools.
             </p>
             <div className="cta-actions">
-              <button className="cta-primary-btn" onClick={() => navigate("/create-account")}>
+              <button
+                className="cta-primary-btn"
+                onClick={() => navigate("/create-account")}
+              >
                 <span>Create free account</span>
                 <ArrowRight size={17} />
               </button>
-              <button className="cta-secondary-btn" onClick={() => navigate("/login")}>
+              <button
+                className="cta-secondary-btn"
+                onClick={() => navigate("/login")}
+              >
                 <span>Sign in to existing workspace</span>
               </button>
             </div>
@@ -669,7 +823,8 @@ export default function LandingPage() {
           <div className="footer-brand">
             <HannaLogo />
             <p>
-              Quiet, high-performance AI workspace for study, store management, video generation, and productivity.
+              Quiet, high-performance AI workspace for study, store management,
+              video generation, and productivity.
             </p>
           </div>
 
@@ -699,7 +854,9 @@ export default function LandingPage() {
 
         <div className="footer-bottom">
           <span>© 2026 Hanna Agent Inc. All rights reserved.</span>
-          <span className="footer-tagline">Built for considered work · Google Gemini Aesthetic</span>
+          <span className="footer-tagline">
+            Built for considered work · Google Gemini Aesthetic
+          </span>
         </div>
       </footer>
     </main>

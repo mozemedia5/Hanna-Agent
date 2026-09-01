@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { credentialHint, decryptCredential, encryptCredential, maskCredential } from "./credentialCrypto";
+import {
+  credentialHint,
+  decryptCredential,
+  encryptCredential,
+  maskCredential,
+} from "./credentialCrypto";
 
 describe("credentialCrypto", () => {
   it("round-trips credentials through authenticated encryption", () => {

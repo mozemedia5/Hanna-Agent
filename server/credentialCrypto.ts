@@ -1,24 +1,38 @@
 import crypto from "node:crypto";
 
 function secretKey() {
-  const secret = process.env.HANNA_ENCRYPTION_KEY ?? process.env.JWT_SECRET ?? "hanna-fallback-secret-key-32-chars!!";
+  const secret =
+    process.env.HANNA_ENCRYPTION_KEY ??
+    process.env.JWT_SECRET ??
+    "hanna-fallback-secret-key-32-chars!!";
   return crypto.createHash("sha256").update(secret).digest();
 }
 
 export function encryptCredential(value: string) {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", secretKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(value, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return `${iv.toString("base64url")}.${tag.toString("base64url")}.${encrypted.toString("base64url")}`;
 }
 
 export function decryptCredential(payload: string) {
   const [ivText, tagText, encryptedText] = payload.split(".");
-  if (!ivText || !tagText || !encryptedText) throw new Error("Invalid encrypted credential");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", secretKey(), Buffer.from(ivText, "base64url"));
+  if (!ivText || !tagText || !encryptedText)
+    throw new Error("Invalid encrypted credential");
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    secretKey(),
+    Buffer.from(ivText, "base64url")
+  );
   decipher.setAuthTag(Buffer.from(tagText, "base64url"));
-  return Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8");
+  return Buffer.concat([
+    decipher.update(Buffer.from(encryptedText, "base64url")),
+    decipher.final(),
+  ]).toString("utf8");
 }
 
 export function maskCredential(value: string) {

@@ -3,11 +3,31 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const firebaseEnvKeys = ["API_KEY", "AUTH_DOMAIN", "PROJECT_ID", "STORAGE_BUCKET", "MESSAGING_SENDER_ID", "APP_ID", "MEASUREMENT_ID"] as const;
-const firebaseBuildEnv = (env: Record<string, string | undefined>) => Object.fromEntries(firebaseEnvKeys.map((key) => [`VITE_FIREBASE_${key}`, env[`VITE_FIREBASE_${key}`] || env[`FIREBASE_${key}`] || env[`NEXT_PUBLIC_FIREBASE_${key}`] || ""]));
+const firebaseEnvKeys = [
+  "API_KEY",
+  "AUTH_DOMAIN",
+  "PROJECT_ID",
+  "STORAGE_BUCKET",
+  "MESSAGING_SENDER_ID",
+  "APP_ID",
+  "MEASUREMENT_ID",
+] as const;
+const firebaseBuildEnv = (env: Record<string, string | undefined>) =>
+  Object.fromEntries(
+    firebaseEnvKeys.map(key => [
+      `VITE_FIREBASE_${key}`,
+      env[`VITE_FIREBASE_${key}`] ||
+        env[`FIREBASE_${key}`] ||
+        env[`NEXT_PUBLIC_FIREBASE_${key}`] ||
+        "",
+    ])
+  );
 
 export default defineConfig(({ mode }) => {
-  const env = { ...process.env, ...loadEnv(mode, path.resolve(import.meta.dirname), "") };
+  const env = {
+    ...process.env,
+    ...loadEnv(mode, path.resolve(import.meta.dirname), ""),
+  };
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -24,7 +44,12 @@ export default defineConfig(({ mode }) => {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
     },
-    define: Object.fromEntries(Object.entries(firebaseBuildEnv(env)).map(([key, value]) => [`import.meta.env.${key}`, JSON.stringify(value)])),
+    define: Object.fromEntries(
+      Object.entries(firebaseBuildEnv(env)).map(([key, value]) => [
+        `import.meta.env.${key}`,
+        JSON.stringify(value),
+      ])
+    ),
     server: {
       host: true,
       allowedHosts: ["localhost", "127.0.0.1"],

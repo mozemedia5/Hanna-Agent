@@ -13,13 +13,13 @@ The production host target domain for Hanna is set to `https://hanna-agent.verce
 
 ## Evidence and request path
 
-| Layer | Expected behavior | Observed behavior | Finding |
-|---|---|---|---|
-| Browser client | Fetch `/api/config` before initializing Firebase | The client calls `fetch("/api/config")` | Correct endpoint contract |
-| Vercel route | Rewrite `/api/:path*` to `api/index.ts` | `vercel.json` declares this rewrite | Correct for a valid deployment; rewrites only matter after a deployment is serving traffic. Vercel describes rewrites as routing requests to another destination without changing the browser URL.[4] |
-| Server Function | Return Firebase public config from `process.env` | Original code returned empty strings when variables were missing | Failure was silently masked as a generic client error |
-| Production host | Serve the app and `/api/config` | Both return `DEPLOYMENT_NOT_FOUND` | The current alias is not attached to a live deployment |
-| Firebase SDK | Receive `apiKey`, `authDomain`, `projectId`, and `appId` | Never reached in production because config fetch fails | Firebase is downstream of the Vercel failure |
+| Layer           | Expected behavior                                        | Observed behavior                                                | Finding                                                                                                                                                                                               |
+| --------------- | -------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser client  | Fetch `/api/config` before initializing Firebase         | The client calls `fetch("/api/config")`                          | Correct endpoint contract                                                                                                                                                                             |
+| Vercel route    | Rewrite `/api/:path*` to `api/index.ts`                  | `vercel.json` declares this rewrite                              | Correct for a valid deployment; rewrites only matter after a deployment is serving traffic. Vercel describes rewrites as routing requests to another destination without changing the browser URL.[4] |
+| Server Function | Return Firebase public config from `process.env`         | Original code returned empty strings when variables were missing | Failure was silently masked as a generic client error                                                                                                                                                 |
+| Production host | Serve the app and `/api/config`                          | Both return `DEPLOYMENT_NOT_FOUND`                               | The current alias is not attached to a live deployment                                                                                                                                                |
+| Firebase SDK    | Receive `apiKey`, `authDomain`, `projectId`, and `appId` | Never reached in production because config fetch fails           | Firebase is downstream of the Vercel failure                                                                                                                                                          |
 
 Firebase’s web setup requires a registered web app configuration object to initialize the JavaScript SDK.[5] The values are browser configuration values, not Firebase Admin secrets, so exposing the public config through a controlled endpoint is appropriate; the important requirement is that the endpoint is served by the intended deployment.
 

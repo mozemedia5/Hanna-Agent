@@ -78,10 +78,7 @@
       "indexes": {
         "providerCredentials_user_provider_idx": {
           "name": "providerCredentials_user_provider_idx",
-          "columns": [
-            "userId",
-            "provider"
-          ],
+          "columns": ["userId", "provider"],
           "isUnique": true
         }
       },
@@ -90,12 +87,8 @@
           "name": "providerCredentials_userId_users_id_fk",
           "tableFrom": "providerCredentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -103,9 +96,7 @@
       "compositePrimaryKeys": {
         "providerCredentials_id": {
           "name": "providerCredentials_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -188,17 +179,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}
@@ -268,12 +255,8 @@
           "name": "workspaceSettings_userId_users_id_fk",
           "tableFrom": "workspaceSettings",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -281,17 +264,13 @@
       "compositePrimaryKeys": {
         "workspaceSettings_id": {
           "name": "workspaceSettings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "workspaceSettings_userId_unique": {
           "name": "workspaceSettings_userId_unique",
-          "columns": [
-            "userId"
-          ]
+          "columns": ["userId"]
         }
       },
       "checkConstraint": {}
