@@ -19,17 +19,57 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
     }
   }
 
-  const highlighted = language && hljs.getLanguage(language) ? hljs.highlight(code, { language }).value : hljs.highlightAuto(code).value;
-  return <div className="code-block-shell"><div className="code-block-toolbar"><span>{language || "code"}</span><button type="button" onClick={copyCode} aria-label="Copy code">{copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}</button></div><pre><code className={language ? `language-${language}` : undefined} dangerouslySetInnerHTML={{ __html: highlighted }} /></pre></div>;
+  const highlighted =
+    language && hljs.getLanguage(language)
+      ? hljs.highlight(code, { language }).value
+      : hljs.highlightAuto(code).value;
+  return (
+    <div className="code-block-shell">
+      <div className="code-block-toolbar">
+        <span>{language || "code"}</span>
+        <button type="button" onClick={copyCode} aria-label="Copy code">
+          {copied ? (
+            <>
+              <Check size={13} /> Copied
+            </>
+          ) : (
+            <>
+              <Copy size={13} /> Copy
+            </>
+          )}
+        </button>
+      </div>
+      <pre>
+        <code
+          className={language ? `language-${language}` : undefined}
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+        />
+      </pre>
+    </div>
+  );
 }
 
 export default function MarkdownMessage({ content }: MarkdownMessageProps) {
-  return <div className="markdown-message"><ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-    code({ className, children, ...props }) {
-      const match = /language-([\w-]+)/.exec(className || "");
-      const code = String(children).replace(/\n$/, "");
-      if (!match) return <code className="inline-code" {...props}>{children}</code>;
-      return <CodeBlock language={match[1] || "code"} code={code} />;
-    },
-  }}>{content}</ReactMarkdown></div>;
+  return (
+    <div className="markdown-message">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ className, children, ...props }) {
+            const match = /language-([\w-]+)/.exec(className || "");
+            const code = String(children).replace(/\n$/, "");
+            if (!match)
+              return (
+                <code className="inline-code" {...props}>
+                  {children}
+                </code>
+              );
+            return <CodeBlock language={match[1] || "code"} code={code} />;
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 }

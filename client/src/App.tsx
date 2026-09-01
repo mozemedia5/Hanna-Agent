@@ -15,10 +15,18 @@ function App() {
         <Home user={auth.user} onLogout={auth.logout} />
       ) : (
         <Switch>
-          <Route path="/login"><LoginPage auth={auth} mode="login" /></Route>
-          <Route path="/create-account"><LoginPage auth={auth} mode="signup" /></Route>
-          <Route path="/"><LandingPage /></Route>
-          <Route><LandingPage /></Route>
+          <Route path="/login">
+            <LoginPage auth={auth} mode="login" />
+          </Route>
+          <Route path="/create-account">
+            <LoginPage auth={auth} mode="signup" />
+          </Route>
+          <Route path="/">
+            <LandingPage />
+          </Route>
+          <Route>
+            <LandingPage />
+          </Route>
         </Switch>
       )}
     </ErrorBoundary>

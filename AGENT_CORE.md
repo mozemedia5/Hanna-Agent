@@ -37,7 +37,8 @@ registry.register({
   scopes: ["products:read"],
   riskLevel: "low",
   readOnly: true,
-  execute: async (arguments_, context) => adapter.searchProducts(arguments_, context),
+  execute: async (arguments_, context) =>
+    adapter.searchProducts(arguments_, context),
 });
 ```
 

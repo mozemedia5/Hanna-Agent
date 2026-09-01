@@ -15,7 +15,9 @@ describe("LandingPage Component", () => {
   it("renders main hero heading and Workspace badge", () => {
     render(<LandingPage />);
     expect(screen.getByText("Workspace")).toBeInTheDocument();
-    expect(screen.getByText(/Your personal assistant for study/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your personal assistant for study/i)
+    ).toBeInTheDocument();
     expect(screen.getByText("everyday productivity.")).toBeInTheDocument();
   });
 
@@ -41,18 +43,24 @@ describe("LandingPage Component", () => {
     const pythonTab = screen.getAllByRole("button", { name: "Python" })[0];
     fireEvent.click(pythonTab);
 
-    expect(screen.getByText(/from hanna import HannaClient/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/from hanna import HannaClient/i)
+    ).toBeInTheDocument();
 
     const curlTab = screen.getAllByRole("button", { name: "cURL" })[0];
     fireEvent.click(curlTab);
 
-    expect(screen.getByText(/curl https:\/\/api.hanna.ai\/v1\/chat\/completions/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/curl https:\/\/api.hanna.ai\/v1\/chat\/completions/i)
+    ).toBeInTheDocument();
   });
 
   it("toggles dark and light mode theme class", () => {
     render(<LandingPage />);
 
-    const themeToggle = screen.getAllByRole("button", { name: /Switch to light mode|Switch to dark mode/i })[0];
+    const themeToggle = screen.getAllByRole("button", {
+      name: /Switch to light mode|Switch to dark mode/i,
+    })[0];
     expect(themeToggle).toBeInTheDocument();
 
     fireEvent.click(themeToggle);
@@ -65,7 +73,9 @@ describe("LandingPage Component", () => {
   it("navigates to create-account when primary hero button is clicked", () => {
     render(<LandingPage />);
 
-    const ctaButton = screen.getAllByText("Start building for free")[0].closest("button");
+    const ctaButton = screen
+      .getAllByText("Start building for free")[0]
+      .closest("button");
     expect(ctaButton).not.toBeNull();
     if (ctaButton) {
       fireEvent.click(ctaButton);

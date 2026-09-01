@@ -1,4 +1,9 @@
-import { credentialHint, decryptCredential, encryptCredential, maskCredential } from "./credentialCrypto";
+import {
+  credentialHint,
+  decryptCredential,
+  encryptCredential,
+  maskCredential,
+} from "./credentialCrypto";
 import { routeHannaRequest } from "./hannaRouting";
 
 export const providerCatalog = [
@@ -12,8 +17,8 @@ export const providerCatalog = [
       "Navigate to Google AI Studio (aistudio.google.com).",
       "Click 'Get API key' -> 'Create API key in new project'.",
       "Copy your key starting with 'AIzaSy...'.",
-      "Paste your Google Gemini API key below."
-    ]
+      "Paste your Google Gemini API key below.",
+    ],
   },
   {
     id: "openai",
@@ -25,8 +30,8 @@ export const providerCatalog = [
       "Log into platform.openai.com.",
       "Navigate to API Keys in the left side menu.",
       "Click 'Create new secret key'.",
-      "Copy your key starting with 'sk-' and paste below."
-    ]
+      "Copy your key starting with 'sk-' and paste below.",
+    ],
   },
   {
     id: "anthropic",
@@ -38,8 +43,8 @@ export const providerCatalog = [
       "Log into console.anthropic.com.",
       "Go to Settings -> API Keys.",
       "Create a key starting with 'sk-ant-'.",
-      "Paste your Anthropic API Key below."
-    ]
+      "Paste your Anthropic API Key below.",
+    ],
   },
   {
     id: "llama",
@@ -51,8 +56,8 @@ export const providerCatalog = [
       "Log into console.groq.com.",
       "Navigate to API Keys under Developer settings.",
       "Click 'Create API Key'.",
-      "Copy your Groq key starting with 'gsk_' and paste below."
-    ]
+      "Copy your Groq key starting with 'gsk_' and paste below.",
+    ],
   },
   {
     id: "mistral",
@@ -64,8 +69,8 @@ export const providerCatalog = [
       "Log into console.mistral.ai.",
       "Navigate to API Keys in the user menu.",
       "Generate a new API Secret Key.",
-      "Paste the key below."
-    ]
+      "Paste the key below.",
+    ],
   },
   {
     id: "openrouter",
@@ -77,8 +82,8 @@ export const providerCatalog = [
       "Log into openrouter.ai.",
       "Go to Account -> API Keys.",
       "Create a new Secret Key.",
-      "Copy and paste your key below."
-    ]
+      "Copy and paste your key below.",
+    ],
   },
   {
     id: "heygen",
@@ -90,8 +95,8 @@ export const providerCatalog = [
       "Log into HeyGen Space Settings.",
       "Go to Space -> API Keys.",
       "Generate an API token.",
-      "Paste your key below."
-    ]
+      "Paste your key below.",
+    ],
   },
   {
     id: "lovable",
@@ -103,8 +108,8 @@ export const providerCatalog = [
       "Log into lovable.dev.",
       "Go to Account Settings -> API Keys.",
       "Generate an API key.",
-      "Paste your key below."
-    ]
+      "Paste your key below.",
+    ],
   },
   {
     id: "synthesia",
@@ -116,8 +121,8 @@ export const providerCatalog = [
       "Log into your Synthesia account.",
       "Go to Settings -> API Keys.",
       "Generate a new key.",
-      "Paste your key below."
-    ]
+      "Paste your key below.",
+    ],
   },
   {
     id: "elevenlabs",
@@ -129,8 +134,8 @@ export const providerCatalog = [
       "Log into ElevenLabs.",
       "Click Profile icon -> Profile & API Keys.",
       "Copy your API key.",
-      "Paste below."
-    ]
+      "Paste below.",
+    ],
   },
   {
     id: "cloudinary",
@@ -142,8 +147,8 @@ export const providerCatalog = [
       "Log into Cloudinary Console.",
       "Go to Dashboard -> Product Environment Credentials.",
       "Copy your API Environment variable / key.",
-      "Paste below."
-    ]
+      "Paste below.",
+    ],
   },
   {
     id: "jules",
@@ -155,8 +160,8 @@ export const providerCatalog = [
       "Access Google Jules Developer Portal.",
       "Go to API Settings.",
       "Generate a Jules Agent Token.",
-      "Paste your API key below."
-    ]
+      "Paste your API key below.",
+    ],
   },
   {
     id: "stitch",
@@ -168,8 +173,8 @@ export const providerCatalog = [
       "Access Google Stitch UI Console.",
       "Navigate to API Keys.",
       "Generate a new API Token.",
-      "Paste your key below."
-    ]
+      "Paste your key below.",
+    ],
   },
   {
     id: "v0",
@@ -181,8 +186,8 @@ export const providerCatalog = [
       "Log into v0.dev.",
       "Go to Account Settings -> API Keys.",
       "Create a secret token.",
-      "Paste your key below."
-    ]
+      "Paste your key below.",
+    ],
   },
   {
     id: "custom",
@@ -193,12 +198,20 @@ export const providerCatalog = [
     instructions: [
       "Enter any OpenAI-compatible API key.",
       "Provide custom base endpoint if needed (e.g. https://my-custom-llm.com/v1).",
-      "Save key below."
-    ]
+      "Save key below.",
+    ],
   },
 ] as const;
 
-type CredentialRecord = { provider: string; displayName: string; endpoint: string; encryptedKey: string; keyHint: string; isEnabled: boolean; updatedAt: Date };
+type CredentialRecord = {
+  provider: string;
+  displayName: string;
+  endpoint: string;
+  encryptedKey: string;
+  keyHint: string;
+  isEnabled: boolean;
+  updatedAt: Date;
+};
 const runtimeCredentials = new Map<string, CredentialRecord>();
 const keyFor = (userId: number, provider: string) => `${userId}:${provider}`;
 
@@ -206,27 +219,53 @@ const keyFor = (userId: number, provider: string) => `${userId}:${provider}`;
 export async function listProviderCredentials(userId: number) {
   return Array.from(runtimeCredentials.entries())
     .filter(([key]) => key.startsWith(`${userId}:`))
-    .map(([, row]) => ({ id: keyFor(userId, row.provider), provider: row.provider, displayName: row.displayName, keyHint: row.keyHint, maskedKey: row.keyHint, isEnabled: row.isEnabled, updatedAt: row.updatedAt }));
+    .map(([, row]) => ({
+      id: keyFor(userId, row.provider),
+      provider: row.provider,
+      displayName: row.displayName,
+      keyHint: row.keyHint,
+      maskedKey: row.keyHint,
+      isEnabled: row.isEnabled,
+      updatedAt: row.updatedAt,
+    }));
 }
 
-export async function getProviderCredentialById(userId: number, provider: string) {
+export async function getProviderCredentialById(
+  userId: number,
+  provider: string
+) {
   const row = runtimeCredentials.get(keyFor(userId, provider));
   if (!row || !row.isEnabled) return undefined;
-  return { provider: row.provider, apiKey: decryptCredential(row.encryptedKey), endpoint: row.endpoint, model: "gpt-4o-mini" };
+  return {
+    provider: row.provider,
+    apiKey: decryptCredential(row.encryptedKey),
+    endpoint: row.endpoint,
+    model: "gpt-4o-mini",
+  };
 }
 
-export async function getProviderCredentialForRequest(userId: number, prompt: string, requestedProviderOrModel?: string) {
+export async function getProviderCredentialForRequest(
+  userId: number,
+  prompt: string,
+  requestedProviderOrModel?: string
+) {
   const route = routeHannaRequest(prompt);
 
-  if (requestedProviderOrModel && !requestedProviderOrModel.startsWith("Hanna ")) {
+  if (
+    requestedProviderOrModel &&
+    !requestedProviderOrModel.startsWith("Hanna ")
+  ) {
     const reqLower = requestedProviderOrModel.toLowerCase();
     let preferredProvider = "";
     if (reqLower.includes("gemini")) preferredProvider = "gemini";
-    else if (reqLower.includes("anthropic") || reqLower.includes("claude")) preferredProvider = "anthropic";
-    else if (reqLower.includes("llama") || reqLower.includes("groq")) preferredProvider = "llama";
+    else if (reqLower.includes("anthropic") || reqLower.includes("claude"))
+      preferredProvider = "anthropic";
+    else if (reqLower.includes("llama") || reqLower.includes("groq"))
+      preferredProvider = "llama";
     else if (reqLower.includes("mistral")) preferredProvider = "mistral";
     else if (reqLower.includes("openrouter")) preferredProvider = "openrouter";
-    else if (reqLower.includes("openai") || reqLower.includes("gpt")) preferredProvider = "openai";
+    else if (reqLower.includes("openai") || reqLower.includes("gpt"))
+      preferredProvider = "openai";
     else if (reqLower.includes("jules")) preferredProvider = "jules";
     else if (reqLower.includes("stitch")) preferredProvider = "stitch";
     else if (reqLower.includes("v0")) preferredProvider = "v0";
@@ -239,7 +278,25 @@ export async function getProviderCredentialForRequest(userId: number, prompt: st
     }
   }
 
-  const providerOrder = route.model.startsWith("gemini") ? ["gemini", "openai", "anthropic", "llama", "mistral", "openrouter", "custom"] : ["openai", "gemini", "anthropic", "llama", "mistral", "openrouter", "custom"];
+  const providerOrder = route.model.startsWith("gemini")
+    ? [
+        "gemini",
+        "openai",
+        "anthropic",
+        "llama",
+        "mistral",
+        "openrouter",
+        "custom",
+      ]
+    : [
+        "openai",
+        "gemini",
+        "anthropic",
+        "llama",
+        "mistral",
+        "openrouter",
+        "custom",
+      ];
   for (const provider of providerOrder) {
     const credential = await getProviderCredentialById(userId, provider);
     if (credential) return { ...credential, model: route.model };
@@ -247,13 +304,35 @@ export async function getProviderCredentialForRequest(userId: number, prompt: st
   return undefined;
 }
 
-export async function upsertProviderCredential(userId: number, provider: string, displayName: string, apiKey: string, endpoint = "") {
-  const record: CredentialRecord = { provider, displayName, endpoint, encryptedKey: encryptCredential(apiKey), keyHint: credentialHint(apiKey), isEnabled: true, updatedAt: new Date() };
+export async function upsertProviderCredential(
+  userId: number,
+  provider: string,
+  displayName: string,
+  apiKey: string,
+  endpoint = ""
+) {
+  const record: CredentialRecord = {
+    provider,
+    displayName,
+    endpoint,
+    encryptedKey: encryptCredential(apiKey),
+    keyHint: credentialHint(apiKey),
+    isEnabled: true,
+    updatedAt: new Date(),
+  };
   runtimeCredentials.set(keyFor(userId, provider), record);
-  return { provider, displayName, maskedKey: maskCredential(apiKey), isEnabled: true };
+  return {
+    provider,
+    displayName,
+    maskedKey: maskCredential(apiKey),
+    isEnabled: true,
+  };
 }
 
-export async function deleteProviderCredential(userId: number, provider: string) {
+export async function deleteProviderCredential(
+  userId: number,
+  provider: string
+) {
   runtimeCredentials.delete(keyFor(userId, provider));
   return { success: true } as const;
 }

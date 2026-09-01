@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getFirebasePublicConfig, missingFirebaseConfigFields } from "./firebaseConfig";
+import {
+  getFirebasePublicConfig,
+  missingFirebaseConfigFields,
+} from "./firebaseConfig";
 
 const originalEnv = { ...process.env };
 afterEach(() => {
-  for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
-  for (const [key, value] of Object.entries(originalEnv)) process.env[key] = value;
+  for (const key of Object.keys(process.env))
+    if (!(key in originalEnv)) delete process.env[key];
+  for (const [key, value] of Object.entries(originalEnv))
+    process.env[key] = value;
 });
 
 describe("Firebase public configuration", () => {
@@ -29,11 +34,17 @@ describe("Firebase public configuration", () => {
     process.env.VITE_FIREBASE_AUTH_DOMAIN = "vite.firebaseapp.com";
     process.env.VITE_FIREBASE_PROJECT_ID = "vite-project";
     process.env.VITE_FIREBASE_APP_ID = "vite-app";
-    expect(getFirebasePublicConfig()).toMatchObject({ apiKey: "vite-key", projectId: "vite-project", appId: "vite-app" });
+    expect(getFirebasePublicConfig()).toMatchObject({
+      apiKey: "vite-key",
+      projectId: "vite-project",
+      appId: "vite-app",
+    });
   });
 
   it("reports the required fields that are missing", () => {
     const config = getFirebasePublicConfig();
-    expect(missingFirebaseConfigFields(config)).toEqual(expect.arrayContaining(["apiKey", "authDomain", "projectId", "appId"]));
+    expect(missingFirebaseConfigFields(config)).toEqual(
+      expect.arrayContaining(["apiKey", "authDomain", "projectId", "appId"])
+    );
   });
 });
