@@ -8,7 +8,7 @@ import { integrations } from "@shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import { approveRequest, completeRequest, createApprovalRequest, deleteConnectorCredential, getApprovalRequest, getConnectorCredential, listConnectorCredentials, saveConnectorCredential, type ConnectorAction, type ConnectorId } from "./connectorDb";
 import { deleteConversation, getAnalytics, getProfile, listConversations, saveConversation, saveProfile } from "./firestore";
-import { consumeDailyTokens, type HannaTier } from "./usage";
+import { consumeDailyTokens, getDailyQuota, type HannaTier } from "./usage";
 
 export async function executeHannaRequest(prompt: string, context?: string, userId?: number, requestedModel?: string) {
   try {
@@ -19,7 +19,7 @@ export async function executeHannaRequest(prompt: string, context?: string, user
       const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
       const quota = userId ? consumeDailyTokens(String(userId), Math.ceil(prompt.length / 4), tier) : { allowed: true as const, used: 0, limit: tier === "pro" ? 1500 : 300, remaining: tier === "pro" ? 1500 : 300, resetAt: "" };
       if (!quota.allowed) throw new Error(`Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`);
-      if (!apiKey) throw new Error("Hanna’s default Gemini API key (GEMINI_API_KEY) is not configured in Vercel or Settings.");
+      if (!apiKey) throw new Error("Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables.");
       const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
       const provider = personalProvider ?? { provider: "gemini", apiKey, model: requestedModel && !requestedModel.startsWith("Hanna ") ? requestedModel : envModel, endpoint: "" };
       const text = await invokeUserProvider({ ...provider, prompt: `${plan.steps.join("\n")}\n\n${prompt}`, context: requestContext });
@@ -79,6 +79,11 @@ export const appRouter = router({
   }),
   analytics: router({
     summary: protectedProcedure.query(({ ctx }) => getAnalytics(ctx.user.openId)),
+    quota: publicProcedure.input(z.object({ model: z.string().optional() }).optional()).query(({ ctx, input }) => {
+      const tier: HannaTier = input?.model === "Hanna Pro" ? "pro" : "lite";
+      const uid = ctx.user?.id ? String(ctx.user.id) : "guest";
+      return getDailyQuota(uid, tier);
+    }),
   }),
   profile: router({
     get: protectedProcedure.query(({ ctx }) => getProfile(ctx.user.openId)),

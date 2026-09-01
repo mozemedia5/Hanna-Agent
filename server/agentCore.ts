@@ -394,7 +394,9 @@ export async function runAgentCore(prompt: string, context: string | undefined, 
   try {
     const response = await generateText({ prompt, context, plan });
     return { ...response, capability: plan.route.capability, plan, trace: buildAgentTrace(plan) };
-  } catch {
-    return { text: "Your selected provider could not complete this request. Check its API key in Settings and try again.", model: plan.route.model, capability: plan.route.capability, plan, trace: buildAgentTrace(plan, true), providerError: true };
+  } catch (error) {
+    const defaultMsg = "Your selected provider could not complete this request. Check its API key in Settings and try again.";
+    const errText = error instanceof Error && error.message ? `${error.message}. Check its API key in Settings and try again.` : defaultMsg;
+    return { text: errText, model: plan.route.model, capability: plan.route.capability, plan, trace: buildAgentTrace(plan, true), providerError: true };
   }
 }
