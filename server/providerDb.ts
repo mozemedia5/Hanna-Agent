@@ -94,6 +94,19 @@ export const providerCatalog = [
     ]
   },
   {
+    id: "lovable",
+    name: "Lovable AI",
+    category: "Developer",
+    placeholder: "lovable_...",
+    docUrl: "https://docs.lovable.dev",
+    instructions: [
+      "Log into lovable.dev.",
+      "Go to Account Settings -> API Keys.",
+      "Generate an API key.",
+      "Paste your key below."
+    ]
+  },
+  {
     id: "synthesia",
     name: "Synthesia AI",
     category: "Content Creation",
@@ -217,6 +230,7 @@ export async function getProviderCredentialForRequest(userId: number, prompt: st
     else if (reqLower.includes("jules")) preferredProvider = "jules";
     else if (reqLower.includes("stitch")) preferredProvider = "stitch";
     else if (reqLower.includes("v0")) preferredProvider = "v0";
+    else if (reqLower.includes("lovable")) preferredProvider = "lovable";
     else preferredProvider = "custom";
 
     const cred = await getProviderCredentialById(userId, preferredProvider);

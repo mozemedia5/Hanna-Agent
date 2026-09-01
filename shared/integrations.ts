@@ -20,6 +20,7 @@ export type ConnectorId =
   | "jules"
   | "stitch"
   | "v0"
+  | "lovable"
   | "tiktok"
   | "instagram"
   | "youtube"
@@ -33,7 +34,6 @@ export type ConnectorId =
   | "openai"
   | "anthropic"
   | "gemini"
-  | "google-trends"
   | "meta-ads"
   | "google-ads"
   | "gmail"
@@ -231,6 +231,22 @@ export const integrations: IntegrationDefinition[] = [
       "Go to Settings -> API Keys.",
       "Create a new v0 API Secret Token.",
       "Paste the key below."
+    ],
+  },
+  {
+    id: "lovable",
+    name: "Lovable",
+    category: "developer",
+    credentialFields: ["apiKey"],
+    capabilities: ["generate_web_app", "refactor_code", "deploy_project"],
+    requiresApproval: false,
+    description: "AI web application builder API for full-stack web software generation.",
+    docUrl: "https://docs.lovable.dev",
+    instructions: [
+      "Log into your Lovable account at lovable.dev.",
+      "Navigate to Account Settings -> API Keys.",
+      "Generate a new API Key for Lovable.",
+      "Paste your Lovable API key below."
     ],
   },
 
@@ -448,22 +464,6 @@ export const integrations: IntegrationDefinition[] = [
     ],
   },
 
-  // Google Services
-  {
-    id: "google-trends",
-    name: "Google Trends",
-    category: "workspace",
-    credentialFields: ["apiKey"],
-    capabilities: ["trends:read", "explore:read", "suggestions:read"],
-    requiresApproval: false,
-    description: "Query Google Trends data for keyword research, market analysis, and content planning.",
-    docUrl: "https://serpapi.com/google-trends-api",
-    instructions: [
-      "Get a SerpApi or Google Trends Proxy API Key.",
-      "Copy your API Key.",
-      "Paste it below."
-    ],
-  },
   {
     id: "gmail",
     name: "Gmail",

@@ -832,8 +832,8 @@ function SettingsHub({
     { name: "Stitch AI", description: "AI UI/UX design generation and component stitching" },
     { name: "GitHub", description: "Repositories, issues, and pull requests" },
     { name: "v0 by Vercel", description: "Generative UI system for React & Tailwind" },
+    { name: "Lovable", description: "AI web application builder for full-stack software generation" },
     { name: "Vercel", description: "Deploy and manage frontend applications" },
-    { name: "Google Trends", description: "Keyword research, market analysis, and trends" },
     { name: "Instagram", description: "Publish posts, reels, and view insights" },
     { name: "Meta Ads Manager", description: "Facebook and Instagram ad campaigns" },
     { name: "Google Ads", description: "Search and Display ad campaign management" },
@@ -1089,9 +1089,9 @@ function SettingsHub({
             { category: "E-Commerce & Dropshipping", items: ["Shopify", "CJ Dropshipping", "Zendrop", "AutoDS"] },
             { category: "Social Media Management", items: ["Instagram", "TikTok", "YouTube", "Pinterest", "WhatsApp Business"] },
             { category: "Video & Visual Generation", items: ["HeyGen", "InVideo", "Creatify"] },
-            { category: "Marketing & Research", items: ["Google Trends", "Meta Ads Manager", "Google Ads"] },
+            { category: "Marketing & Research", items: ["Meta Ads Manager", "Google Ads"] },
             { category: "Productivity & Communication", items: ["Google Workspace", "Gmail", "Slack", "Google Drive"] },
-            { category: "Developer & AI Tools", items: ["Google Gemini", "OpenAI", "Anthropic / Claude", "GitHub", "Vercel", "v0 by Vercel", "Jules AI", "Stitch AI"] },
+            { category: "Developer & AI Tools", items: ["Google Gemini", "OpenAI", "Anthropic / Claude", "GitHub", "Vercel", "v0 by Vercel", "Lovable", "Jules AI", "Stitch AI"] },
           ].map((cat) => {
             const catApps = filteredApps.filter((app) => cat.items.includes(app.name));
             if (!catApps.length) return null;
