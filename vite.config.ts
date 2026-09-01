@@ -44,12 +44,20 @@ export default defineConfig(({ mode }) => {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
     },
-    define: Object.fromEntries(
-      Object.entries(firebaseBuildEnv(env)).map(([key, value]) => [
-        `import.meta.env.${key}`,
-        JSON.stringify(value),
-      ])
-    ),
+    define: {
+      ...Object.fromEntries(
+        Object.entries(firebaseBuildEnv(env)).map(([key, value]) => [
+          `import.meta.env.${key}`,
+          JSON.stringify(value),
+        ])
+      ),
+      "import.meta.env.VITE_ANALYTICS_ENDPOINT": JSON.stringify(
+        env.VITE_ANALYTICS_ENDPOINT || ""
+      ),
+      "import.meta.env.VITE_ANALYTICS_WEBSITE_ID": JSON.stringify(
+        env.VITE_ANALYTICS_WEBSITE_ID || ""
+      ),
+    },
     server: {
       host: true,
       allowedHosts: ["localhost", "127.0.0.1"],
