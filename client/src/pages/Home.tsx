@@ -39,6 +39,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Sun,
+  Video,
   X,
   Zap,
 } from "lucide-react";
@@ -83,6 +84,15 @@ const toolConfigs: Array<{ label: ToolKey; icon: typeof Globe2; hint: string }> 
   { label: "Deep Research", icon: Search, hint: "Build a sourced brief" },
   { label: "Image Gen", icon: Sparkles, hint: "Create a visual" },
 ];
+
+export type UploadedFile = {
+  id: string;
+  name: string;
+  type: "image" | "pdf" | "video" | "other";
+  url: string;
+  dataUrl?: string;
+  size: number;
+};
 
 const seedChats: Chat[] = [{ id: 0, title: "New conversation", period: "Today", messages: [] }];
 
@@ -137,6 +147,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [isThinking, setIsThinking] = useState(false);
   const [toast, setToast] = useState("");
   const [connectedApps, setConnectedApps] = useState<string[]>(["Google Drive"]);
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+  const [uploadedArtifacts, setUploadedArtifacts] = useState<UploadedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [_storedConversations, setStoredConversations] = useState<ClientConversation[]>([]);
 
@@ -198,21 +211,84 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     if (window.innerWidth < 860) setSidebarOpen(false);
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    const newFiles: UploadedFile[] = [];
+    Array.from(files).forEach((file) => {
+      const isImg = file.type.startsWith("image/");
+      const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+      const isVideo = file.type.startsWith("video/");
+      const kind: UploadedFile["type"] = isImg ? "image" : isPdf ? "pdf" : isVideo ? "video" : "other";
+      const objectUrl = URL.createObjectURL(file);
+
+      const uploadedItem: UploadedFile = {
+        id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name,
+        type: kind,
+        url: objectUrl,
+        size: file.size,
+      };
+
+      if (isImg || file.size < 3 * 1024 * 1024) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadedItem.dataUrl = e.target?.result as string;
+          setAttachments((prev) => [...prev]);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      newFiles.push(uploadedItem);
+    });
+
+    setAttachments((prev) => [...prev, ...newFiles]);
+    setUploadedArtifacts((prev) => [...prev, ...newFiles]);
+    showToast(`Attached ${newFiles.length} file(s)`);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const submitMessage = async () => {
     const text = composer.trim();
-    if (!text || isThinking) return;
+    if ((!text && attachments.length === 0) || isThinking) return;
     const chatId = activeChatId;
-    const userMessage: Message = { id: `${chatId}-${Date.now()}`, role: "user", content: text, tokenCount: estimateTokens(text), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+
+    let contentWithAttachments = text;
+    if (attachments.length > 0) {
+      const attachSummary = attachments.map((a) => `[Attachment: ${a.name} (${a.type.toUpperCase()})]`).join("\n");
+      contentWithAttachments = text ? `${text}\n\n${attachSummary}` : attachSummary;
+    }
+
+    const userMessage: Message = {
+      id: `${chatId}-${Date.now()}`,
+      role: "user",
+      content: contentWithAttachments,
+      tokenCount: estimateTokens(contentWithAttachments),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
     const currentChat = chats.find((chat) => chat.id === chatId) ?? activeChat;
-    const chatWithUser = { ...currentChat, title: currentChat.messages.length === 0 ? text.slice(0, 32) : currentChat.title, messages: [...currentChat.messages, userMessage] };
+    const chatWithUser = { ...currentChat, title: currentChat.messages.length === 0 ? (text || attachments[0]?.name || "Attachment").slice(0, 32) : currentChat.title, messages: [...currentChat.messages, userMessage] };
     setChats((current) => current.map((chat) => chat.id === chatId ? chatWithUser : chat));
     void saveUserConversation({ ...chatWithUser, id: String(chatWithUser.id) }).catch(() => undefined);
-    setComposer(""); setIsThinking(true);
+
+    const sentAttachments = [...attachments];
+    setComposer("");
+    setAttachments([]);
+    setIsThinking(true);
+
     try {
       const token = await getFirebaseIdToken();
       const isStudyMode = selectedTools.includes("Study");
+      const attachmentContext = sentAttachments.length
+        ? `\n[Attached Artifacts/Files:\n${sentAttachments.map((a) => `- Name: ${a.name}, Type: ${a.type}${a.dataUrl ? `, DataPreview: ${a.dataUrl.slice(0, 150)}...` : ""}`).join("\n")}]`
+        : "";
       const activeToolsContext = selectedTools.length ? `[Active Tools / Modes: ${selectedTools.join(", ")}]${isStudyMode ? "\n[STUDY MODE ACTIVATED: Act as an interactive step-by-step Socratic tutor. Perform deep analysis of any attached files and context.]" : ""}` : "";
-      const fullPrompt = activeToolsContext ? `${activeToolsContext}\n\n${text}` : text;
+      const fullPrompt = `${activeToolsContext}${attachmentContext}\n\n${contentWithAttachments}`;
 
       const response = await fetch("/api/trpc/hanna.ask?batch=1", {
         method: "POST",
@@ -465,10 +541,31 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     ))}
                   </div>
                 </section>
-                <aside className="welcome-art" aria-label="Hanna visual study">
-                  <div className="welcome-art-frame">
-                    <img src="/manus-storage/hanna-ink-field_8c79b00b.png" alt="Abstract graphite curve on a paper field" />
-                    <div className="welcome-art-caption"><span>H / 001</span><span>Quietly in motion</span></div>
+                <aside className="welcome-art" aria-label="Hanna capability showcase">
+                  <div className="welcome-art-frame" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "20px", borderRadius: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                      <span className="hanna-brand-icon" style={{ width: "32px", height: "32px", display: "inline-flex", borderRadius: "8px" }}><img src="/hanna-icon-192.png" alt="Hanna" /></span>
+                      <div>
+                        <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)" }}>Hanna AI Workspace</strong>
+                        <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>Multi-modal & Connected Tools</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      {[
+                        { icon: BookOpen, label: "Socratic Study & Tutoring", desc: "Step-by-step learning with uploaded PDFs & materials" },
+                        { icon: ImageIcon, label: "Image & Video Analysis", desc: "Upload and analyze visual artifacts directly" },
+                        { icon: PlugZap, label: "25+ App Integrations", desc: "Shopify, Slack, Google Drive, HeyGen & social channels" },
+                      ].map((feature) => (
+                        <div key={feature.label} style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "10px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                          <feature.icon size={16} style={{ color: "var(--gemini-accent)", marginTop: "2px" }} />
+                          <div>
+                            <strong style={{ display: "block", fontSize: "12px", color: "var(--text-primary)" }}>{feature.label}</strong>
+                            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{feature.desc}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="welcome-art-caption" style={{ marginTop: "14px" }}><span>H / 002</span><span>Connected & ready</span></div>
                   </div>
                   <div className="welcome-note"><span className="note-marker" /> Designed for considered work.</div>
                 </aside>
@@ -509,11 +606,32 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
 
         <div className="composer-region">
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={handleFileUpload}
+            multiple
+            accept="image/*,application/pdf,video/*"
+          />
           <div className="composer-shell">
             <div className="composer-topline">
-              <span className="composer-context"><span className="status-dot" /> {selectedTools.length ? `${selectedTools.length} tools ready` : "Ask Hanna anything"}</span>
+              <span className="composer-context"><span className="status-dot" /> {selectedTools.length ? `${selectedTools.length} tools ready` : attachments.length ? `${attachments.length} attachment(s) ready` : "Ask Hanna anything"}</span>
               <span className="composer-hint"><kbd>Enter</kbd> to send <span className="hint-divider" /> <kbd>Shift</kbd> <span className="hint-plus">+</span> <kbd>Enter</kbd> for a new line</span>
             </div>
+
+            {attachments.length > 0 && (
+              <div className="composer-attachments-preview" style={{ display: "flex", gap: "8px", padding: "8px 12px", flexWrap: "wrap", borderBottom: "1px solid var(--border)" }}>
+                {attachments.map((file) => (
+                  <div key={file.id} style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: "9999px", fontSize: "12px" }}>
+                    {file.type === "image" ? <ImageIcon size={13} /> : file.type === "pdf" ? <FileText size={13} /> : file.type === "video" ? <Video size={13} /> : <Paperclip size={13} />}
+                    <span style={{ maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+                    <button type="button" onClick={() => removeAttachment(file.id)} style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer", color: "var(--text-tertiary)" }} aria-label="Remove attachment"><X size={13} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <textarea
               ref={composerRef}
               value={composer}
@@ -525,10 +643,23 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             />
             <div className="composer-footer">
               <div className="composer-tools">
-                <button className="attach-button" onClick={() => showToast("File attachments are ready for connection")} aria-label="Attach a file"><Paperclip size={16} /></button>
-                {toolConfigs.map((tool) => <ToolChip key={tool.label} {...tool} active={selectedTools.includes(tool.label)} onClick={() => toggleTool(tool.label)} />)}
+                <button className="attach-button" onClick={() => fileInputRef.current?.click()} aria-label="Attach images, PDFs, or videos" title="Upload images, PDFs, or videos"><Paperclip size={16} /></button>
+                {toolConfigs.map((tool) => (
+                  <ToolChip
+                    key={tool.label}
+                    {...tool}
+                    active={selectedTools.includes(tool.label)}
+                    onClick={() => {
+                      if (tool.label === "Image Input") {
+                        fileInputRef.current?.click();
+                      } else {
+                        toggleTool(tool.label);
+                      }
+                    }}
+                  />
+                ))}
               </div>
-              <Button className="send-button" onClick={submitMessage} disabled={!composer.trim() || isThinking} aria-label="Send message">
+              <Button className="send-button" onClick={submitMessage} disabled={(!composer.trim() && attachments.length === 0) || isThinking} aria-label="Send message">
                 <Send size={16} />
               </Button>
             </div>
@@ -542,11 +673,23 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <div className="dock-topline"><span className="eyebrow"><span className="eyebrow-line" /> Context</span><button className="icon-button" onClick={() => togglePanel("settings")} aria-label="Open workspace settings"><Settings size={16} /></button></div>
           <div className="dock-identity"><HannaMark /><div><span className="dock-code">HANNA / 02</span><strong>Keep the signal.</strong></div></div>
           <div className="dock-rule" />
-          <div className="dock-section-label">Working set</div>
-          <div className="dock-visual"><img src="/manus-storage/hanna-research-study_3af4f707.png" alt="Layered paper study with measurement marks" /><span>01 / live surface</span></div>
+          <div className="dock-section-label">Daily Allowance & Credits</div>
+          <div className="dock-card" style={{ marginTop: 0, padding: "12px", background: "var(--surface-raised)", borderRadius: "12px", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "6px" }}>
+              <span style={{ color: "var(--text-secondary)" }}>Daily Allowance</span>
+              <strong style={{ color: "var(--text-primary)" }}>{model === "Hanna Pro" ? "1,500 credits" : "300 credits"}</strong>
+            </div>
+            <div style={{ height: "6px", width: "100%", background: "var(--border)", borderRadius: "9999px", overflow: "hidden", marginBottom: "8px" }}>
+              <div style={{ width: "100%", height: "100%", background: "var(--gemini-accent)", borderRadius: "9999px" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "var(--text-tertiary)" }}>
+              <span>Refreshes daily at 00:00 UTC</span>
+              <span style={{ color: "#34a853", fontWeight: "600" }}>Active</span>
+            </div>
+          </div>
           <div className="dock-card"><div className="dock-card-heading"><span>Tools in reach</span><span className="dock-card-count">{selectedTools.length.toString().padStart(2, "0")}</span></div><div className="dock-tool-list">{toolConfigs.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={selectedTools.includes(label) ? "is-on" : ""} onClick={() => toggleTool(label)}><Icon size={13} /><span>{label}</span><span className="dock-tool-state" /></button>)}</div></div>
           <button className="dock-artifact-link" onClick={() => togglePanel("artifacts")}><span><PanelRight size={14} /> Open artifact space</span><ArrowUp size={14} /></button>
-          <div className="dock-footer"><span className="status-dot" /> All systems quiet <span className="dock-footer-code">local</span></div>
+          <div className="dock-footer"><span className="status-dot" /> Daily credits active <span className="dock-footer-code">refreshing daily</span></div>
         </aside>
       )}
 
@@ -556,7 +699,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div className="context-title"><span className="context-kicker">Workspace</span><h2>{panel === "artifacts" ? "Artifacts" : panel === "analytics" ? "Activity" : "Settings"}</h2></div>
             <button className="icon-button" onClick={() => setPanel(null)} aria-label="Close panel"><X size={17} /></button>
           </div>
-          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} /> : panel === "analytics" ? <AnalyticsPanel /> : <SettingsHub activeSection={settingsSection} onSectionChange={setSettingsSection} theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
+          {panel === "artifacts" ? <ArtifactsPanel onCopy={copyArtifact} uploadedArtifacts={uploadedArtifacts} /> : panel === "analytics" ? <AnalyticsPanel /> : <SettingsHub activeSection={settingsSection} onSectionChange={setSettingsSection} theme={theme} onThemeToggle={toggleTheme} connectedApps={connectedApps} onToggleApp={toggleApp} onToast={showToast} />}
         </aside>
       )}
 
@@ -578,9 +721,48 @@ export default function FocusCard() {
   );
 }`;
 
-function ArtifactsPanel({ onCopy }: { onCopy: () => void }) {
+function ArtifactsPanel({ onCopy, uploadedArtifacts = [] }: { onCopy: () => void; uploadedArtifacts?: UploadedFile[] }) {
   return (
     <div className="context-scroll custom-scroll">
+      {uploadedArtifacts.length > 0 && (
+        <div className="uploaded-artifacts-section" style={{ marginBottom: "24px" }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--text-tertiary)", marginBottom: "12px", fontFamily: "'IBM Plex Mono', monospace" }}>
+            Uploaded Artifacts ({uploadedArtifacts.length})
+          </div>
+          <div style={{ display: "grid", gap: "12px" }}>
+            {uploadedArtifacts.map((file) => (
+              <div key={file.id} className="artifact-preview" style={{ marginTop: 0 }}>
+                <div className="artifact-preview-media" style={{ padding: "12px 12px 0" }}>
+                  {file.type === "image" ? (
+                    <img src={file.dataUrl || file.url} alt={file.name} style={{ display: "block", width: "100%", maxHeight: "200px", objectFit: "cover", borderRadius: "10px" }} />
+                  ) : file.type === "video" ? (
+                    <video controls src={file.url} style={{ display: "block", width: "100%", maxHeight: "200px", borderRadius: "10px", background: "#000" }} />
+                  ) : file.type === "pdf" ? (
+                    <div style={{ padding: "24px", background: "var(--surface)", borderRadius: "10px", textAlign: "center" }}>
+                      <FileText size={32} style={{ color: "var(--gemini-accent)", margin: "0 auto 8px" }} />
+                      <strong style={{ display: "block", fontSize: "13px", color: "var(--text-primary)" }}>{file.name}</strong>
+                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>PDF Document · {(file.size / 1024).toFixed(1)} KB</span>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "20px", background: "var(--surface)", borderRadius: "10px", textAlign: "center" }}>
+                      <Paperclip size={28} style={{ color: "var(--text-tertiary)", margin: "0 auto 6px" }} />
+                      <strong style={{ display: "block", fontSize: "13px" }}>{file.name}</strong>
+                    </div>
+                  )}
+                  <span className="preview-tag">{file.type.toUpperCase()}</span>
+                </div>
+                <div className="preview-copy" style={{ padding: "14px 16px" }}>
+                  <h3 style={{ margin: "4px 0", fontSize: "14px" }}>{file.name}</h3>
+                  <a href={file.url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--gemini-accent)", fontSize: "12px", fontWeight: "600", textDecoration: "none", marginTop: "8px" }}>
+                    Open media <ArrowUp size={13} />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="artifact-file-row"><div className="file-kind"><Code2 size={15} /> JSX</div><span>focus-card.jsx</span><button onClick={onCopy} aria-label="Copy artifact"><Copy size={15} /></button></div>
       <div className="artifact-preview">
         <div className="artifact-preview-media"><img src="/manus-storage/hanna-artifact-grid_d66bb62d.png" alt="Abstract technical grid" /><span className="preview-tag">Preview</span></div>
