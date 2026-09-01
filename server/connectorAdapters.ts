@@ -46,10 +46,17 @@ async function shopifyGraphql(
       body: JSON.stringify({ query, variables }),
     }
   );
-  if (!response.ok) throw new Error(safeError(response.status, "Shopify"));
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Shopify API rate limit exceeded. Please try again in a moment.");
+    }
+    throw new Error(safeError(response.status, "Shopify"));
+  }
   const body = (await response.json()) as ServiceResponse;
-  if (body.errors?.length)
-    throw new Error("Shopify rejected the GraphQL request.");
+  if (body.errors?.length) {
+    const msg = body.errors[0]?.message || "Shopify rejected the GraphQL request.";
+    throw new Error(`Shopify error: ${msg}`);
+  }
   return body;
 }
 
@@ -193,21 +200,7 @@ export async function executeConnectorAction(
     };
   }
 
-  // General safe fallback for other integrations (CJ Dropshipping, AutoDS, Take.app, HeyGen, TikTok, GitHub, MCP Custom, etc.)
-  const actionName = action.action.replaceAll("_", " ");
-  return {
-    connector: action.connector,
-    action: action.action,
-    summary: `Executed ${actionName} on ${action.connector}.`,
-    verification: {
-      status: "verified",
-      detail: `${action.connector} API connection and payload verified successfully.`,
-    },
-    data: {
-      connector: action.connector,
-      action: action.action,
-      parameters: action.parameters,
-      timestamp: new Date().toISOString(),
-    },
-  };
+  throw new Error(
+    `Integration action '${action.action}' on connector '${action.connector}' is not implemented yet. Connect and configure this integration when available.`
+  );
 }

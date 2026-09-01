@@ -135,9 +135,16 @@ export class TaskSchedulerManager {
     return all;
   }
 
-  cancelTask(taskId: string): boolean {
+  cancelTask(taskId: string, userId?: number): boolean {
     const existing = this.tasks.get(taskId);
     if (!existing) return false;
+    if (
+      userId !== undefined &&
+      existing.userId !== undefined &&
+      existing.userId !== userId
+    ) {
+      return false;
+    }
     existing.status = "cancelled";
     this.tasks.set(taskId, existing);
     return true;
@@ -248,9 +255,9 @@ const defaultTools: AgentTool[] = [
     requiresApproval: false,
     scopes: ["task:write"],
     riskLevel: "medium",
-    execute: async args => {
+    execute: async (args, context) => {
       const taskId = String(args.taskId || args.id || "");
-      const cancelled = taskScheduler.cancelTask(taskId);
+      const cancelled = taskScheduler.cancelTask(taskId, context.userId);
       return { taskId, cancelled };
     },
   },

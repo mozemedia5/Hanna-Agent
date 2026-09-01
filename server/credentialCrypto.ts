@@ -4,7 +4,15 @@ function secretKey() {
   const secret =
     process.env.HANNA_ENCRYPTION_KEY ??
     process.env.JWT_SECRET ??
-    "hanna-fallback-secret-key-32-chars!!";
+    (process.env.NODE_ENV === "test"
+      ? "hanna-test-secret-key-32-chars!!"
+      : undefined);
+
+  if (!secret) {
+    throw new Error(
+      "Server encryption key is missing. HANNA_ENCRYPTION_KEY must be configured in environment variables."
+    );
+  }
   return crypto.createHash("sha256").update(secret).digest();
 }
 
