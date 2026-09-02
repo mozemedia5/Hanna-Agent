@@ -50,13 +50,33 @@ export type ConnectorSummary = {
 export type ConnectorAction =
   | {
       connector: "shopify";
-      action: "list_products";
-      parameters: { first?: number; query?: string };
+      action:
+        | "list_products"
+        | "search_products"
+        | "get_product"
+        | "list_orders"
+        | "get_order"
+        | "list_customers"
+        | "get_customer"
+        | "list_collections"
+        | "best_sellers"
+        | "low_inventory";
+      parameters: { first?: number; query?: string; id?: string; inventoryThreshold?: number };
     }
   | {
       connector: "shopify";
       action: "update_product_title";
       parameters: { productId: string; title: string };
+    }
+  | {
+      connector: "shopify";
+      action:
+        | "create_product"
+        | "update_product_description"
+        | "update_seo"
+        | "update_price"
+        | "update_inventory";
+      parameters: Record<string, unknown>;
     }
   | {
       connector: "cjdropshipping";

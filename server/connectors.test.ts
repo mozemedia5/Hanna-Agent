@@ -62,6 +62,19 @@ describe("authenticated Shopify and Slack connectors", () => {
     expect(result.summary).toContain("1 Shopify products");
   });
 
+  it("executes Shopify order retrieval with a verified response", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ data: { orders: { nodes: [{ id: "gid://shopify/Order/1", name: "#1001" }] } } }), { status: 200 })
+    );
+    const result = await executeConnectorAction(
+      { connector: "shopify", values: { storeDomain: "example.myshopify.com", accessToken: "shpat-secret" } },
+      { connector: "shopify", action: "list_orders", parameters: { first: 5 } },
+      fetcher as typeof fetch
+    );
+    expect(result.data).toEqual([{ id: "gid://shopify/Order/1", name: "#1001" }]);
+    expect(result.verification.status).toBe("verified");
+  });
+
   it("executes Slack message posting and verifies Slack's timestamp", async () => {
     const fetcher = vi.fn(async (_url: string, init?: RequestInit) => {
       expect((init?.headers as Record<string, string>).authorization).toBe(

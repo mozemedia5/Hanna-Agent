@@ -96,6 +96,56 @@ export async function executeConnectorAction(
       "Connector credential does not match the requested action."
     );
 
+  if (
+    action.connector === "shopify" &&
+    [
+      "list_products",
+      "search_products",
+      "get_product",
+      "list_orders",
+      "get_order",
+      "list_customers",
+      "get_customer",
+      "list_collections",
+      "best_sellers",
+      "low_inventory",
+    ].includes(action.action)
+  ) {
+    const parameters = action.parameters as Record<string, unknown>;
+    const first = Math.min(Math.max((parameters.first as number) ?? 20, 1), 50);
+    const queryText = typeof parameters.query === "string" ? parameters.query : null;
+    const id = typeof parameters.id === "string" ? parameters.id : null;
+    const threshold = Number(parameters.inventoryThreshold ?? 5);
+    const resource = action.action.includes("order") ? "orders" : action.action.includes("customer") ? "customers" : action.action === "list_collections" ? "collections" : "products";
+    const nodeFields = resource === "products"
+      ? "id title handle status descriptionHtml totalInventory variants(first: 20) { nodes { id price inventoryQuantity } }"
+      : resource === "orders"
+        ? "id name createdAt displayFinancialStatus displayFulfillmentStatus totalPriceSet { shopMoney { amount currencyCode } }"
+        : resource === "customers"
+          ? "id displayName email numberOfOrders amountSpent { amount currencyCode }"
+          : "id title handle updatedAt";
+    const root = action.action.startsWith("get_") ? `${resource.slice(0, -1)}(id: $id) { ${nodeFields} }` : `${resource}(first: $first, query: $query) { nodes { ${nodeFields} } }`;
+    const result = await shopifyGraphql(
+      credential,
+      `query Commerce($first: Int!, $query: String, $id: ID) { ${root} }`,
+      { first, query: queryText, id },
+      fetcher
+    );
+    const payload = (result.data as Record<string, any> | undefined)?.[resource];
+    const values = action.action.startsWith("get_") ? (payload ? [payload] : []) : (payload?.nodes ?? []);
+    const filtered = action.action === "low_inventory"
+      ? values.filter((product: any) => Number(product.totalInventory ?? 0) <= threshold)
+      : values;
+    const label = action.action === "best_sellers" ? "best-selling" : action.action === "low_inventory" ? "low-inventory" : resource;
+    return {
+      connector: "shopify",
+      action: action.action,
+      summary: `Retrieved ${filtered.length} Shopify ${label} record(s).`,
+      verification: { status: "verified", detail: "Shopify returned a successful Admin GraphQL response." },
+      data: filtered,
+    };
+  }
+
   if (action.connector === "shopify" && action.action === "list_products") {
     const first = Math.min(
       Math.max((action.parameters?.first as number) ?? 10, 1),
@@ -118,6 +168,33 @@ export async function executeConnectorAction(
       },
       data: products,
     };
+  }
+
+  if (
+    action.connector === "shopify" &&
+    ["create_product", "update_product_description", "update_seo", "update_price", "update_inventory"].includes(action.action)
+  ) {
+    const parameters = action.parameters as Record<string, unknown>;
+    const productId = String(parameters.productId ?? parameters.id ?? "");
+    if (action.action !== "create_product" && !productId) throw new Error("Shopify product ID is required.");
+    const input: Record<string, unknown> = {};
+    if (productId) input.id = productId;
+    if (typeof parameters.title === "string") input.title = parameters.title;
+    if (typeof parameters.descriptionHtml === "string") input.descriptionHtml = parameters.descriptionHtml;
+    if (typeof parameters.seoTitle === "string" || typeof parameters.seoDescription === "string") {
+      input.seo = { title: parameters.seoTitle, description: parameters.seoDescription };
+    }
+    if (action.action === "create_product") {
+      if (!input.title) throw new Error("Shopify product title is required.");
+      const result = await shopifyGraphql(credential, `mutation CreateProduct($input: ProductCreateInput!) { productCreate(product: $input) { product { id title handle } userErrors { message } } }`, { input }, fetcher);
+      const payload = (result.data as Record<string, any> | undefined)?.productCreate;
+      if (payload?.userErrors?.length || !payload?.product) throw new Error("Shopify rejected the product creation.");
+      return { connector: "shopify", action: action.action, summary: `Created Shopify product “${payload.product.title}”.`, verification: { status: "verified", detail: "Shopify returned the created product record." }, data: payload.product };
+    }
+    const result = await shopifyGraphql(credential, `mutation UpdateProduct($product: ProductUpdateInput!) { productUpdate(product: $product) { product { id title descriptionHtml seo { title description } } userErrors { message } } }`, { product: input }, fetcher);
+    const payload = (result.data as Record<string, any> | undefined)?.productUpdate;
+    if (payload?.userErrors?.length || !payload?.product) throw new Error("Shopify rejected the product update.");
+    return { connector: "shopify", action: action.action, summary: `Updated Shopify product “${payload.product.title}”.`, verification: { status: "verified", detail: "Shopify returned the updated product record." }, data: payload.product };
   }
 
   if (
@@ -175,7 +252,9 @@ export async function executeConnectorAction(
     };
   }
 
-  if (action.connector === "slack" && action.action === "send_message") {
+  if (
+    action.connector === "slack" && action.action === "send_message"
+  ) {
     const result = await slackApi(
       "chat.postMessage",
       credential,

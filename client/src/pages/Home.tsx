@@ -31,13 +31,19 @@ import {
   MoreHorizontal,
   Moon,
   Mail,
+  Megaphone,
   Paperclip,
   PanelRight,
+  Package,
   Plus,
+  ShoppingCart,
   Search,
   Send,
   Settings,
+  ShoppingBag,
   SlidersHorizontal,
+  Store,
+  Users,
   Sparkles,
   Sun,
   Video,
@@ -582,7 +588,7 @@ export default function Home({
             <HannaMark />
             <div>
               <div className="brand-name">Hanna</div>
-              <div className="brand-caption">AI workspace</div>
+              <div className="brand-caption">Commerce operator</div>
             </div>
           </div>
           <button
@@ -602,30 +608,28 @@ export default function Home({
           </Button>
 
           <div className="sidebar-section quick-links">
-            <button
-              className="sidebar-link is-current"
-              onClick={() => {
-                setPanel(null);
-                if (window.innerWidth < 860) setSidebarOpen(false);
-              }}
-            >
-              <Layers3 size={16} />
-              <span>All conversations</span>
-              <span className="sidebar-count">{chats.length}</span>
-            </button>
-            <button
-              className="sidebar-link"
-              onClick={() => togglePanel("analytics")}
-            >
-              <BarChart3 size={16} />
-              <span>Activity & usage</span>
-            </button>
-            <button
-              className="sidebar-link"
-              onClick={() =>
-                showToast("Search is ready for your conversations")
-              }
-            >
+            <div className="history-label" style={{ marginTop: 0 }}>Commerce workspace</div>
+            {[
+              [Store, "Overview", "Give me a store overview"],
+              [Package, "Products", "List my Shopify products"],
+              [ShoppingCart, "Orders", "Show my recent Shopify orders"],
+              [Users, "Customers", "Find my most valuable Shopify customers"],
+              [Layers3, "Collections", "List my Shopify collections"],
+              [Megaphone, "Marketing", "Draft marketing copy for my best products"],
+              [Zap, "Automations", "Show my active store automations"],
+              [BarChart3, "Analytics", "Analyze my store performance"],
+              [PlugZap, "Integrations", "Show my connected store integrations"],
+            ].map(([Icon, label, prompt]) => (
+              <button
+                key={label as string}
+                className={`sidebar-link ${label === "Overview" ? "is-current" : ""}`}
+                onClick={() => useSuggestion(prompt as string)}
+              >
+                <Icon size={16} />
+                <span>{label as string}</span>
+              </button>
+            ))}
+            <button className="sidebar-link" onClick={() => showToast("Search is ready for your conversations")}>
               <Search size={16} />
               <span>Search chats</span>
             </button>
@@ -799,28 +803,29 @@ export default function Home({
                     <span className="eyebrow-line" /> A clear place to begin
                   </div>
                   <h1>
-                    What are we
+                    Run your store
                     <br />
-                    <em>working through?</em>
+                    <em>with Hanna.</em>
                   </h1>
                   <p>
-                    Bring a question, a rough idea, or a piece of work. Hanna
-                    helps you make the next move with less noise.
+                    Inspect products, orders, customers, and campaigns in one
+                    focused workspace. Hanna plans the work, asks before risky
+                    changes, and verifies every real store action.
                   </p>
                   <div className="suggestion-grid">
                     {[
                       {
                         icon: Lightbulb,
-                        text: "Shape a product idea into a clear brief",
+                        text: "Find my worst-performing products and improve their descriptions",
                       },
-                      { icon: Code2, text: "Debug a small piece of Python" },
+                      { icon: Store, text: "Give me a Shopify store overview" },
                       {
                         icon: FileText,
-                        text: "Turn notes into an action plan",
+                        text: "Show my low-inventory products",
                       },
                       {
                         icon: ImageIcon,
-                        text: "Create a visual direction for a launch",
+                        text: "Draft social captions for my best sellers",
                       },
                     ].map(({ icon: Icon, text }) => (
                       <button
@@ -868,22 +873,22 @@ export default function Home({
                         <img src="/hanna-icon-192.png" alt="Hanna" />
                       </span>
                       <div>
-                        <strong
-                          style={{
-                            display: "block",
-                            fontSize: "14px",
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          Hanna AI Workspace
-                        </strong>
+                          <strong
+                            style={{
+                              display: "block",
+                              fontSize: "14px",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            Hanna Commerce Operator
+                          </strong>
                         <span
                           style={{
                             fontSize: "11px",
                             color: "var(--text-tertiary)",
                           }}
                         >
-                          Multi-modal & Connected Tools
+                          Shopify-first store intelligence and execution
                         </span>
                       </div>
                     </div>
@@ -891,18 +896,18 @@ export default function Home({
                       {[
                         {
                           icon: BookOpen,
-                          label: "Socratic Study & Tutoring",
-                          desc: "Step-by-step learning with uploaded PDFs & materials",
+                          label: "Shopify store intelligence",
+                          desc: "Products, orders, customers, collections, and inventory",
                         },
                         {
                           icon: ImageIcon,
-                          label: "Image & Video Analysis",
-                          desc: "Upload and analyze visual artifacts directly",
+                          label: "Marketing copilot",
+                          desc: "Descriptions, SEO, social captions, ad copy, and calendars",
                         },
                         {
                           icon: PlugZap,
-                          label: "25+ App Integrations",
-                          desc: "Shopify, Slack, Google Drive, HeyGen & social channels",
+                          label: "Safe connected actions",
+                          desc: "Approval before writes, real API calls, and verified results",
                         },
                       ].map(feature => (
                         <div
