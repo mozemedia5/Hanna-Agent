@@ -65,12 +65,10 @@ export const integrations: IntegrationDefinition[] = [
       "Connect your Shopify store to manage products, catalog, and orders.",
     docUrl: "https://shopify.dev/docs/apps/auth/admin-app-access-tokens",
     instructions: [
-      "Go to your Shopify Admin panel -> Settings -> Apps and sales channels.",
-      "Click 'Develop apps' and create an app named 'Hanna Agent'.",
-      "Under 'Admin API access scopes', grant permissions for Read/Write Products and Orders.",
-      "Install the app and copy your Admin API Access Token starting with 'shpat_'.",
-      "Enter your myshopify.com domain (e.g. myshop.myshopify.com) and token below.",
+      "Click 'Connect via MCP (One-click)' for automatic store authorization.",
+      "Alternatively, enter your Shopify Admin API Access Token starting with 'shpat_' and myshopify.com domain below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "cjdropshipping",
@@ -83,11 +81,10 @@ export const integrations: IntegrationDefinition[] = [
       "Automate product sourcing, inventory sync, and order fulfillment via CJ Dropshipping API.",
     docUrl: "https://cjdropshipping.com/myCJ.html#/apikey",
     instructions: [
-      "Log into your CJ Dropshipping account.",
-      "Navigate to My CJ -> Authorization / API -> API Key.",
-      "Generate an API key and copy it.",
-      "Paste your API key and account email address below.",
+      "Click 'Connect via MCP (One-click)' to discover and attach CJ Dropshipping tools.",
+      "Or enter your CJ Dropshipping API key and account email address below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "autods",
@@ -100,11 +97,10 @@ export const integrations: IntegrationDefinition[] = [
       "Automate dropshipping product imports, price updates, and automated ordering.",
     docUrl: "https://platform.autods.com/settings/api",
     instructions: [
-      "Log into AutoDS platform settings.",
-      "Go to Settings -> API Settings.",
-      "Generate a new API Secret Token and copy your Store ID.",
-      "Paste both credentials in the fields below.",
+      "Click 'Connect via MCP (One-click)' for automatic AutoDS connection.",
+      "Or generate a new API Secret Token in AutoDS settings and enter it below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "zendrop",
@@ -117,11 +113,10 @@ export const integrations: IntegrationDefinition[] = [
       "Fast US dropshipping fulfillment, custom branding, and automated order processing.",
     docUrl: "https://app.zendrop.com/settings/api",
     instructions: [
-      "Log into Zendrop Dashboard.",
-      "Go to Settings -> API Integrations.",
-      "Generate an API Key for external automation.",
-      "Paste the API key below.",
+      "Click 'Connect via MCP (One-click)' to authorize Zendrop automation.",
+      "Or enter your Zendrop API Key below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "takeapp",
@@ -134,11 +129,10 @@ export const integrations: IntegrationDefinition[] = [
       "WhatsApp-first store platform to manage storefront orders and instant checkout links.",
     docUrl: "https://take.app/docs/api",
     instructions: [
-      "Open your Take.app store dashboard.",
-      "Navigate to Developer Settings -> API Access.",
-      "Copy your Store Slug and API Key.",
-      "Enter both values below.",
+      "Click 'Connect via MCP (One-click)' for instant Take.app workspace linking.",
+      "Or enter your Store Slug and API Key below.",
     ],
+    supportsMcp: true,
   },
 
   // Content Creation & AI Media
@@ -153,11 +147,10 @@ export const integrations: IntegrationDefinition[] = [
       "Generate studio-grade AI avatar videos, video translations, and custom digital humans.",
     docUrl: "https://docs.heygen.com/reference/api-key-1",
     instructions: [
-      "Log into HeyGen Space.",
-      "Go to Space Settings -> API -> API Key.",
-      "Click 'Generate API Key' and copy the token.",
-      "Paste your HeyGen API key below.",
+      "Click 'Connect via MCP (One-click)' to authorize video avatar generation.",
+      "Or enter your HeyGen API key below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "synthesia",
@@ -170,11 +163,10 @@ export const integrations: IntegrationDefinition[] = [
       "Create AI videos with lifelike avatars and natural text-to-speech voiceovers.",
     docUrl: "https://docs.synthesia.io/getting-started/api-keys",
     instructions: [
-      "Log into your Synthesia account.",
-      "Go to Account Settings -> API Keys.",
-      "Create a new API Key with full video generation scope.",
-      "Paste the API Key below.",
+      "Click 'Connect via MCP (One-click)' for seamless Synthesia connection.",
+      "Or enter your Synthesia API Key below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "elevenlabs",
@@ -187,11 +179,10 @@ export const integrations: IntegrationDefinition[] = [
       "Realistic AI speech generation, voice cloning, and audio content creation.",
     docUrl: "https://elevenlabs.io/docs/api-reference/text-to-speech",
     instructions: [
-      "Log into ElevenLabs.",
-      "Click on your profile icon at the bottom left -> Profile & API Keys.",
-      "Click 'Show API Key' and copy it.",
-      "Paste the API key below.",
+      "Click 'Connect via MCP (One-click)' to link ElevenLabs voice tools.",
+      "Or enter your ElevenLabs API key below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "jules",
@@ -203,11 +194,10 @@ export const integrations: IntegrationDefinition[] = [
     description: "Autonomous AI software engineering agent integration.",
     docUrl: "https://jules.google/docs",
     instructions: [
-      "Access Google Jules Developer Console.",
-      "Go to API & Authentication Settings.",
-      "Create a new Agent API key for Jules.",
-      "Paste your Jules API Key below.",
+      "Click 'Connect via MCP (One-click)' to grant agent workspace execution capabilities.",
+      "Or paste your Jules API Key below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "stitch",
@@ -220,11 +210,10 @@ export const integrations: IntegrationDefinition[] = [
       "AI UI/UX design generation and design system component stitching.",
     docUrl: "https://stitch.google/docs",
     instructions: [
-      "Log into Google Stitch UI Developer Console.",
-      "Navigate to API Keys section.",
-      "Generate an API Token for component generation.",
-      "Paste your Stitch API token below.",
+      "Click 'Connect via MCP (One-click)' for design generation.",
+      "Or enter your Stitch API token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "v0",
@@ -237,11 +226,10 @@ export const integrations: IntegrationDefinition[] = [
       "Generative UI system powered by AI for React and Tailwind CSS components.",
     docUrl: "https://v0.dev/docs/api",
     instructions: [
-      "Log into your v0.dev account.",
-      "Go to Settings -> API Keys.",
-      "Create a new v0 API Secret Token.",
-      "Paste the key below.",
+      "Click 'Connect via MCP (One-click)' to enable v0 generative UI.",
+      "Or enter your v0 API Secret Token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "lovable",
@@ -254,11 +242,10 @@ export const integrations: IntegrationDefinition[] = [
       "AI web application builder API for full-stack web software generation.",
     docUrl: "https://docs.lovable.dev",
     instructions: [
-      "Log into your Lovable account at lovable.dev.",
-      "Navigate to Account Settings -> API Keys.",
-      "Generate a new API Key for Lovable.",
-      "Paste your Lovable API key below.",
+      "Click 'Connect via MCP (One-click)' to enable Lovable full-stack builder.",
+      "Or enter your Lovable API key below.",
     ],
+    supportsMcp: true,
   },
 
   // Social & Content Channels
@@ -273,11 +260,10 @@ export const integrations: IntegrationDefinition[] = [
       "Publish short-form videos, analyze video performance, and manage creator profile.",
     docUrl: "https://developers.tiktok.com/doc/overview",
     instructions: [
-      "Go to TikTok Developer Portal and create a TikTok App.",
-      "Enable Content Posting API and User Info permissions.",
-      "Generate a Creator Access Token.",
-      "Paste the Access Token below.",
+      "Click 'Connect via MCP (One-click)' for instant TikTok Creator connection.",
+      "Or paste your Creator Access Token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "instagram",
@@ -290,11 +276,10 @@ export const integrations: IntegrationDefinition[] = [
       "Publish Instagram Reels/Posts, reply to comments, and view engagement analytics.",
     docUrl: "https://developers.facebook.com/docs/instagram-api",
     instructions: [
-      "Open Meta for Developers Console.",
-      "Configure Instagram Graph API for your Business Account.",
-      "Copy your Business Account ID and User Access Token.",
-      "Paste both credentials below.",
+      "Click 'Connect via MCP (One-click)' to authorize Instagram Graph API access.",
+      "Or enter your Business Account ID and Access Token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "youtube",
@@ -307,11 +292,10 @@ export const integrations: IntegrationDefinition[] = [
       "Upload YouTube videos/Shorts, manage channel metadata, and view video analytics.",
     docUrl: "https://developers.google.com/youtube/v3",
     instructions: [
-      "Open Google Cloud Console -> YouTube Data API v3.",
-      "Create OAuth 2.0 Credentials with youtube.upload scope.",
-      "Generate and copy your OAuth Refresh Token.",
-      "Paste the Refresh Token below.",
+      "Click 'Connect via MCP (One-click)' to link your YouTube channel.",
+      "Or enter your OAuth Refresh Token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "pinterest",
@@ -324,11 +308,10 @@ export const integrations: IntegrationDefinition[] = [
       "Publish visual Pins, manage moodboards, and track drive-to-store traffic.",
     docUrl: "https://developers.pinterest.com/docs/api/v5",
     instructions: [
-      "Log into Pinterest Developers App Console.",
-      "Generate an OAuth Access Token with pins:write and boards:read permissions.",
-      "Copy your default Board ID.",
-      "Fill in both fields below.",
+      "Click 'Connect via MCP (One-click)' to connect Pinterest visual boards.",
+      "Or enter your OAuth Access Token and Board ID below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "linktree",
@@ -341,10 +324,10 @@ export const integrations: IntegrationDefinition[] = [
       "Update bio links, featured product URLs, and analyze link click-through rates.",
     docUrl: "https://developer.linktr.ee/docs",
     instructions: [
-      "Open Linktree Developer Portal.",
-      "Generate an API Access Token for link management.",
-      "Copy and paste your API key below.",
+      "Click 'Connect via MCP (One-click)' to sync Linktree profile links.",
+      "Or enter your API key below.",
     ],
+    supportsMcp: true,
   },
 
   // Communication & Messaging
@@ -359,11 +342,10 @@ export const integrations: IntegrationDefinition[] = [
       "Send automated WhatsApp order updates, support messages, and campaign broadcasts.",
     docUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
     instructions: [
-      "Go to Meta for Developers -> WhatsApp -> API Setup.",
-      "Copy your System User Permanent Access Token.",
-      "Copy your Phone Number ID.",
-      "Paste both values below.",
+      "Click 'Connect via MCP (One-click)' for automated WhatsApp messaging.",
+      "Or enter your Phone Number ID and Permanent Access Token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "slack",
@@ -376,11 +358,10 @@ export const integrations: IntegrationDefinition[] = [
       "Send team notifications, broadcast operational updates, and read channel messages.",
     docUrl: "https://api.slack.com/authentication/token-types#bot",
     instructions: [
-      "Go to api.slack.com/apps and create an app for your workspace.",
-      "Under OAuth & Permissions, add chat:write and channels:read scopes.",
-      "Install app to workspace and copy Bot User OAuth Token starting with 'xoxb-'.",
-      "Paste token below.",
+      "Click 'Connect via MCP (One-click)' for instant Slack channel integration.",
+      "Or paste your Bot User OAuth Token starting with 'xoxb-' below.",
     ],
+    supportsMcp: true,
   },
 
   // Developer & Workspace
@@ -396,11 +377,10 @@ export const integrations: IntegrationDefinition[] = [
     docUrl:
       "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens",
     instructions: [
-      "Go to GitHub Settings -> Developer settings -> Personal access tokens (Fine-grained or Classic).",
-      "Generate a token with repo, read:user, and workflow scopes.",
-      "Copy token starting with 'ghp_' or 'github_pat_'.",
-      "Paste token below.",
+      "Click 'Connect via MCP (One-click)' for GitHub repository management.",
+      "Or enter your Personal Access Token starting with 'ghp_' or 'github_pat_' below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "vercel",
@@ -413,10 +393,10 @@ export const integrations: IntegrationDefinition[] = [
       "Deploy frontend applications, monitor build logs, and manage domain settings.",
     docUrl: "https://vercel.com/docs/rest-api",
     instructions: [
-      "Log into Vercel Account Settings -> Tokens.",
-      "Create a new access token with Full Account scope.",
-      "Copy and paste your Vercel Token below.",
+      "Click 'Connect via MCP (One-click)' to link Vercel deployments.",
+      "Or enter your Vercel Token below.",
     ],
+    supportsMcp: true,
   },
   {
     id: "google-workspace",
@@ -429,11 +409,10 @@ export const integrations: IntegrationDefinition[] = [
       "Access Google Docs, Sheets, Drive files, and Calendar schedule.",
     docUrl: "https://developers.google.com/workspace",
     instructions: [
-      "Go to Google Cloud Console -> APIs & Services -> Credentials.",
-      "Create OAuth 2.0 Client ID for Desktop/Web.",
-      "Generate a Refresh Token with Google Drive/Docs API scopes enabled.",
-      "Paste the Refresh Token below.",
+      "Click 'Connect via MCP (One-click)' for Google Workspace authorization.",
+      "Or paste your OAuth Refresh Token below.",
     ],
+    supportsMcp: true,
   },
 
   // AI Model Providers
