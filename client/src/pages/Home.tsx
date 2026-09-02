@@ -2653,7 +2653,67 @@ function SettingsHub({
               </div>
             )}
 
+            {activeItemModal.type === "connector" && (
+              <div
+                style={{
+                  marginBottom: "20px",
+                  padding: "16px",
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--gemini-accent)",
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <div>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      color: "var(--text-primary)",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    Automatic MCP Integration
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                    Connect instantly without API keys using Model Context Protocol (MCP).
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!connectedApps.includes(activeItemModal.item.name)) {
+                      onToggleApp(activeItemModal.item.name);
+                    } else {
+                      onToast(`${activeItemModal.item.name} connected via MCP`);
+                    }
+                    setActiveItemModal(null);
+                  }}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  <PlugZap size={14} style={{ marginRight: "6px" }} /> Connect via MCP (One-click)
+                </Button>
+              </div>
+            )}
+
             <div style={{ display: "grid", gap: "12px", marginBottom: "20px" }}>
+              {activeItemModal.type === "connector" && (
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    letterSpacing: ".06em",
+                    color: "var(--text-tertiary)",
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}
+                >
+                  Or enter API credentials manually
+                </div>
+              )}
               {(activeItemModal.item.credentialFields || ["apiKey"]).map(
                 field => (
                   <div key={field} style={{ display: "grid", gap: "6px" }}>
