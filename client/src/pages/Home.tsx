@@ -1923,7 +1923,7 @@ function SettingsHub({
           credentialFields: found.credentialFields,
         },
       });
-      setFormInputs({});
+      setFormInputs(integrationId === "mcp-custom" ? { connectionMode: "mcp" } : {});
     } else {
       onToggleApp(integrationId);
     }
@@ -1984,7 +1984,7 @@ function SettingsHub({
           },
           body: JSON.stringify({
             0: {
-              json: { connector: activeItemModal.item.id, values: formInputs },
+              json: { connector: activeItemModal.item.id, values: { connectionMode: "api", ...formInputs } },
             },
           }),
         });
@@ -2444,9 +2444,7 @@ function SettingsHub({
               <Webhook size={13} />
               <span>https://your-server.example/mcp</span>
               <button
-                onClick={() =>
-                  onToast("MCP endpoint setup is available in Settings")
-                }
+                onClick={() => openConnectorModal("mcp-custom")}
               >
                 Configure
               </button>
@@ -2653,8 +2651,26 @@ function SettingsHub({
               </div>
             )}
 
+            {activeItemModal.type === "connector" && (
+              <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+                <Button
+                  type="button"
+                  variant={formInputs.connectionMode === "mcp" ? "default" : "outline"}
+                  onClick={() => setFormInputs({ connectionMode: "mcp" })}
+                >
+                  Connect using MCP
+                </Button>
+                <Button
+                  type="button"
+                  variant={formInputs.connectionMode === "mcp" ? "outline" : "default"}
+                  onClick={() => setFormInputs({ connectionMode: "api" })}
+                >
+                  Use API key
+                </Button>
+              </div>
+            )}
             <div style={{ display: "grid", gap: "12px", marginBottom: "20px" }}>
-              {(activeItemModal.item.credentialFields || ["apiKey"]).map(
+              {(activeItemModal.type === "connector" && formInputs.connectionMode === "mcp" ? ["serverUrl"] : activeItemModal.item.credentialFields || ["apiKey"]).map(
                 field => (
                   <div key={field} style={{ display: "grid", gap: "6px" }}>
                     <label
