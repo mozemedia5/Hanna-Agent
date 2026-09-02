@@ -1,7 +1,5 @@
 import express from "express";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { createContext } from "../server/_core/context";
-import { appRouter } from "../server/routers";
+import type { RequestHandler } from "express";
 import {
   getFirebasePublicConfig,
   missingFirebaseConfigFields,
@@ -27,11 +25,29 @@ app.get("/api", (_req, res) => {
 // Support both forms because Vercel rewrites can preserve or strip the /api prefix.
 app.get(["/api/config", "/config"], sendFirebaseConfig);
 
-const trpcMiddleware = createExpressMiddleware({
-  router: appRouter,
-  createContext,
+const lazyTrpcMiddleware: RequestHandler = async (req, res, next) => {
+  try {
+    const [{ createExpressMiddleware }, { createContext }, { appRouter }] =
+      await Promise.all([
+        import("@trpc/server/adapters/express"),
+        import("../server/_core/context"),
+        import("../server/routers"),
+      ]);
+    return createExpressMiddleware({ router: appRouter, createContext })(
+      req,
+      res,
+      next
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+app.use("/api/trpc", lazyTrpcMiddleware);
+app.use("/trpc", lazyTrpcMiddleware);
+
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const message = error instanceof Error ? error.message : "Hanna API failed to initialize.";
+  res.status(500).json({ error: message });
 });
-app.use("/api/trpc", trpcMiddleware);
-app.use("/trpc", trpcMiddleware);
 
 export default app;
