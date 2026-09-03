@@ -62,6 +62,33 @@ describe("authenticated Shopify and Slack connectors", () => {
     expect(result.summary).toContain("1 Shopify products");
   });
 
+  it("dispatches Shopify catalog search through Storefront MCP without an API key", async () => {
+    const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toBe("https://example.myshopify.com/api/ucp/mcp");
+      expect((init?.headers as Record<string, string>)["content-type"]).toBe("application/json");
+      const body = JSON.parse(String(init?.body));
+      expect(body.method).toBe("tools/call");
+      expect(body.params.name).toBe("search_catalog");
+      expect(body.params.arguments.catalog.query).toBe("mugs");
+      return new Response(JSON.stringify({ result: { structuredContent: { products: [{ id: "gid://shopify/Product/9" }] } } }), { status: 200 });
+    });
+    const result = await executeConnectorAction(
+      { connector: "shopify", values: { connectionMode: "mcp", storeDomain: "example.myshopify.com" } },
+      { connector: "shopify", action: "search_products", parameters: { query: "mugs", first: 10 } },
+      fetcher as typeof fetch
+    );
+    expect(result.verification.status).toBe("verified");
+    expect(result.data).toEqual({ structuredContent: { products: [{ id: "gid://shopify/Product/9" }] } });
+  });
+
+  it("rejects Shopify Storefront MCP admin-only actions explicitly", async () => {
+    await expect(executeConnectorAction(
+      { connector: "shopify", values: { connectionMode: "mcp", storeDomain: "example.myshopify.com" } },
+      { connector: "shopify", action: "list_orders", parameters: { first: 10 } },
+      vi.fn() as typeof fetch
+    )).rejects.toThrow("does not expose the 'list_orders' tool");
+  });
+
   it("executes Shopify order retrieval with a verified response", async () => {
     const fetcher = vi.fn(async () =>
       new Response(JSON.stringify({ data: { orders: { nodes: [{ id: "gid://shopify/Order/1", name: "#1001" }] } } }), { status: 200 })

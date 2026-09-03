@@ -86,6 +86,66 @@ async function slackApi(
   return result;
 }
 
+const SHOPIFY_UCP_AGENT_PROFILE = "https://shopify.dev/ucp/agent-profiles/examples/2026-08-25/valid-with-capabilities.json";
+
+function shopifyStorefrontMcpEndpoint(credential: ConnectorCredential, catalog = false) {
+  const domain = shopifyDomain(credential.values.storeDomain ?? "");
+  if (!domain) throw new Error("Shopify store domain is required for Storefront MCP.");
+  if (!domain.endsWith(".myshopify.com")) throw new Error("Shopify Storefront MCP requires a myshopify.com store domain.");
+  return `https://${domain}${catalog ? "/api/ucp/mcp" : "/api/mcp"}`;
+}
+
+async function shopifyStorefrontMcp(
+  credential: ConnectorCredential,
+  toolName: string,
+  args: Record<string, unknown>,
+  fetcher: typeof fetch
+): Promise<Record<string, any>> {
+  const response = await fetcher(shopifyStorefrontMcpEndpoint(credential, true), {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: toolName,
+        arguments: {
+          meta: { "ucp-agent": { profile: SHOPIFY_UCP_AGENT_PROFILE } },
+          catalog: args,
+        },
+      },
+    }),
+  });
+  if (!response.ok) throw new Error(safeError(response.status, "Shopify Storefront MCP"));
+  const body = (await response.json()) as Record<string, any>;
+  if (body.error) throw new Error(`Shopify Storefront MCP error: ${body.error.message ?? "tool call failed"}`);
+  if (body.result?.isError) throw new Error(`Shopify Storefront MCP rejected ${toolName}.`);
+  return body.result ?? body;
+}
+
+async function executeShopifyStorefrontMcpAction(
+  credential: ConnectorCredential,
+  action: Extract<ConnectorAction, { connector: "shopify" }>,
+  fetcher: typeof fetch
+): Promise<ConnectorExecutionResult> {
+  if (["list_products", "search_products"].includes(action.action)) {
+    const parameters = action.parameters as Record<string, unknown>;
+    const result = await shopifyStorefrontMcp(credential, "search_catalog", {
+      query: typeof parameters.query === "string" ? parameters.query : "",
+      pagination: { limit: Math.min(Math.max(Number(parameters.first ?? 20), 1), 50) },
+    }, fetcher);
+    return { connector: "shopify", action: action.action, summary: "Retrieved Shopify products through Storefront MCP.", verification: { status: "verified", detail: "Shopify Storefront MCP returned the catalog response." }, data: result };
+  }
+  if (action.action === "get_product") {
+    const id = typeof action.parameters.id === "string" ? action.parameters.id : "";
+    if (!id) throw new Error("Shopify product ID is required for Storefront MCP.");
+    const result = await shopifyStorefrontMcp(credential, "get_product", { id }, fetcher);
+    return { connector: "shopify", action: action.action, summary: "Retrieved Shopify product through Storefront MCP.", verification: { status: "verified", detail: "Shopify Storefront MCP returned the product response." }, data: result };
+  }
+  throw new Error(`Shopify Storefront MCP does not expose the '${action.action}' tool; admin-only operations require a separate Admin API adapter.`);
+}
+
 export async function executeConnectorAction(
   credential: ConnectorCredential,
   action: ConnectorAction,
@@ -95,6 +155,10 @@ export async function executeConnectorAction(
     throw new Error(
       "Connector credential does not match the requested action."
     );
+
+  if (credential.connector === "shopify" && credential.values.connectionMode === "mcp") {
+    return executeShopifyStorefrontMcpAction(credential, action as Extract<ConnectorAction, { connector: "shopify" }>, fetcher);
+  }
 
   if (
     action.connector === "shopify" &&
