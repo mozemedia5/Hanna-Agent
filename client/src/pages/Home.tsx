@@ -1907,8 +1907,13 @@ function SettingsHub({
   const [isSavingKey, setIsSavingKey] = useState(false);
 
   const openConnectorModal = (integrationId: string) => {
+    const connectorAliases: Record<string, string> = {
+      "Anthropic / Claude": "anthropic",
+      "Google Drive": "google-workspace",
+    };
+    const catalogId = connectorAliases[integrationId] ?? integrationId;
     const found = integrations.find(
-      i => i.id === integrationId || i.name === integrationId
+      i => i.id === catalogId || i.name === integrationId || i.name === catalogId
     );
     if (found) {
       setActiveItemModal({
@@ -1923,7 +1928,7 @@ function SettingsHub({
           credentialFields: found.credentialFields,
         },
       });
-      setFormInputs(integrationId === "mcp-custom" ? { connectionMode: "mcp" } : {});
+      setFormInputs(catalogId === "mcp-custom" ? { connectionMode: "mcp" } : {});
     } else {
       onToggleApp(integrationId);
     }
