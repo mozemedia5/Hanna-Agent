@@ -217,14 +217,12 @@ export default function LandingPage() {
         </div>
 
         <h1 className="hero-title">
-          Your personal assistant for study, store management, and{" "}
-          <span className="gemini-gradient-text">everyday productivity.</span>
+          Automate your E-Commerce business on{" "}
+          <span className="gemini-gradient-text">Shopify, WooCommerce, &amp; beyond.</span>
         </h1>
 
         <p className="hero-description">
-          Hanna helps you learn step by step with interactive tutoring, manage
-          Shopify store operations, run market research, produce videos, publish
-          social media content, and automate daily tasks.
+          Hanna automates E-Commerce store operations, email marketing campaigns, UGC &amp; AI video generation (HeyGen, Creatify, InVideo), Meta &amp; Google Ad Manager, and customer reach tools (Linktree, Beacons).
         </p>
 
         <div className="hero-cta-group">
@@ -692,28 +690,25 @@ export default function LandingPage() {
         <div className="principles-grid-v2">
           <div className="principle-card">
             <span className="principle-num">01</span>
-            <h3>Study & Learning Companion</h3>
+            <h3>E-Commerce &amp; Store Automation</h3>
             <p>
-              Upload lecture notes, textbooks, and research PDFs. Hanna acts as
-              a step-by-step tutor that explains complex concepts clearly.
+              Automate Shopify, WooCommerce, CJ Dropshipping, AutoDS, and Zendrop store syncs, catalog updates, inventory monitoring, and fulfillment.
             </p>
           </div>
 
           <div className="principle-card">
             <span className="principle-num">02</span>
-            <h3>Shopify Store & Commerce Hub</h3>
+            <h3>UGC Video, Email &amp; Ad Campaigns</h3>
             <p>
-              Manage products, analyze sales trends, draft marketing materials,
-              and coordinate dropshipping fulfillment seamlessly.
+              Create UGC videos with HeyGen, Creatify &amp; InVideo, trigger email marketing, and run Meta (IG/FB) and Google Ads campaigns seamlessly.
             </p>
           </div>
 
           <div className="principle-card">
             <span className="principle-num">03</span>
-            <h3>Video & Social Media Growth</h3>
+            <h3>Customer Reach &amp; Bio Links</h3>
             <p>
-              Generate AI videos, conduct market research, and manage your
-              social content strategy with Liverton and connected platforms.
+              Optimize conversions with Linktree, Beacons, and multi-channel customer engagement integrations in one intelligent AI workspace.
             </p>
           </div>
         </div>

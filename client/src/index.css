@@ -686,10 +686,10 @@ kbd {
 .welcome-layout {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: clamp(36px, 8vw, 120px);
-  align-items: center;
-  padding: 0 4%;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr);
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+  padding: 0 2%;
 }
 .eyebrow {
   display: flex;
@@ -732,9 +732,10 @@ kbd {
 .suggestion-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 32px;
-  max-width: 580px;
+  gap: 14px;
+  margin-top: 28px;
+  width: 100%;
+  max-width: 100%;
 }
 .suggestion-card {
   min-height: 90px;
@@ -2492,6 +2493,7 @@ kbd {
 .landing-nav-cta {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   height: 40px;
   padding: 0 18px;
@@ -2502,7 +2504,9 @@ kbd {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 18px color-mix(in srgb, #4285f4 30%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 18px color-mix(in srgb, #1a73e8 30%, transparent);
   transition: all 180ms ease;
 }
 .landing-nav-cta:hover {

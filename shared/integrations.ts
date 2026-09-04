@@ -10,6 +10,10 @@ export type IntegrationCategory =
 
 export type ConnectorId =
   | "shopify"
+  | "woocommerce"
+  | "beacons"
+  | "creatify"
+  | "invideo"
   | "cjdropshipping"
   | "autods"
   | "zendrop"
@@ -58,18 +62,87 @@ export const integrations: IntegrationDefinition[] = [
     id: "shopify",
     name: "Shopify",
     category: "commerce",
-    credentialFields: ["storeDomain"],
+    credentialFields: ["storeDomain", "adminAccessToken"],
     supportsMcp: true,
-    capabilities: ["read_products", "write_products", "read_orders"],
+    capabilities: ["read_products", "write_products", "read_orders", "write_orders"],
     requiresApproval: true,
     description:
-      "Connect your Shopify store to manage products, catalog, and orders.",
+      "Connect your Shopify store via One-Click MCP endpoint or Admin OAuth API key to automate product management, inventory, and order fulfillment.",
     docUrl: "https://shopify.dev/docs/apps/build/storefront-mcp/servers/storefront",
     instructions: [
-      "Enter your Shopify store domain (for example, myshop.myshopify.com).",
-      "Hanna connects through Shopify's Storefront MCP endpoint; no Shopify API key is required.",
-      "The endpoint is derived as https://{your-store}.myshopify.com/api/mcp.",
-      "Storefront MCP supports catalog, cart, and policy tools; admin-only actions are not available through this connection.",
+      "Enter your Shopify store admin domain (e.g., myshop.myshopify.com).",
+      "For One-Click MCP connection, Hanna connects directly via https://{your-store}.myshopify.com/api/mcp.",
+      "For full Admin OAuth access, enter your Admin API Access Token starting with 'shpat_'.",
+      "Click Connect below to authorize and activate store automation.",
+    ],
+  },
+  {
+    id: "woocommerce",
+    name: "WooCommerce",
+    category: "commerce",
+    credentialFields: ["storeUrl", "consumerKey", "consumerSecret"],
+    supportsMcp: true,
+    capabilities: ["read_products", "write_products", "read_orders", "manage_inventory"],
+    requiresApproval: true,
+    description:
+      "Automate WooCommerce store catalog, product sync, customer orders, and inventory monitoring.",
+    docUrl: "https://woocommerce.com/document/woocommerce-rest-api/",
+    instructions: [
+      "Log into your WordPress / WooCommerce Admin Dashboard.",
+      "Go to WooCommerce -> Settings -> Advanced -> REST API.",
+      "Click 'Add Key', set permissions to Read/Write, and click 'Generate API Key'.",
+      "Paste your Store URL, Consumer Key (ck_...), and Consumer Secret (cs_...) below.",
+    ],
+  },
+  {
+    id: "beacons",
+    name: "Beacons",
+    category: "social",
+    credentialFields: ["apiKey", "username"],
+    capabilities: ["links:manage", "store:sync", "analytics:read"],
+    requiresApproval: true,
+    description:
+      "Manage link-in-bio storefronts, digital products, and creator customer reach.",
+    docUrl: "https://beacons.ai/developer",
+    instructions: [
+      "Log into your Beacons Creator Account.",
+      "Go to Account Settings -> Developer & API Access.",
+      "Generate an API Access Key and copy your Beacons username.",
+      "Paste both credentials below to connect.",
+    ],
+  },
+  {
+    id: "creatify",
+    name: "Creatify",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["generate_ugc_video", "product_to_video", "list_templates"],
+    requiresApproval: true,
+    description:
+      "Automate short-form UGC marketing video creation from product URLs and script prompts.",
+    docUrl: "https://creatify.ai/docs/api",
+    instructions: [
+      "Log into Creatify.ai Dashboard.",
+      "Navigate to Settings -> API Keys.",
+      "Generate an API Secret Key for automated UGC video rendering.",
+      "Paste the key below.",
+    ],
+  },
+  {
+    id: "invideo",
+    name: "InVideo",
+    category: "content_creation",
+    credentialFields: ["apiKey"],
+    capabilities: ["script_to_video", "render_video", "list_voices"],
+    requiresApproval: true,
+    description:
+      "Create AI promo videos, YouTube Shorts, and viral E-Commerce ad clips.",
+    docUrl: "https://invideo.io/docs/api",
+    instructions: [
+      "Log into your InVideo Studio account.",
+      "Go to Account -> API Integrations.",
+      "Generate an API Key with video generation permissions.",
+      "Paste the key below.",
     ],
   },
   {

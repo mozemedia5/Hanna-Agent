@@ -26,7 +26,7 @@ export type ClientProfile = {
   displayName: string;
   photoURL: string;
   bio: string;
-  jobTitle: string;
+  customInstructions?: string;
 };
 const requireStore = () => {
   const db = getFirebaseFirestore();
@@ -66,7 +66,7 @@ export async function getUserProfile() {
     displayName: profile?.displayName || authUser?.displayName || "",
     photoURL: profile?.photoURL || authUser?.photoURL || "",
     bio: profile?.bio || "",
-    jobTitle: profile?.jobTitle || "",
+    customInstructions: profile?.customInstructions || "",
   };
 }
 export async function saveUserProfile(profile: ClientProfile) {
