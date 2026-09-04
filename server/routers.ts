@@ -92,20 +92,34 @@ export async function executeHannaRequest(
           endpoint: "",
         };
 
-        // Enrich context with list of connected API keys and connectors
+        // Enrich context with list of connected API keys, connectors, and personalization instructions
         let enrichedContext = requestContext || "";
         if (userId) {
           const connectedProviders = await listProviderCredentials(userId);
           const connectedConnectors = await listConnectorCredentials(userId);
+          const userProfile = await getProfile(String(userId)).catch(() => null);
+
           const providerNames = connectedProviders.map(
             p => p.displayName || p.provider
           );
           const connectorNames = connectedConnectors.map(c => c.connector);
+          const extraLines: string[] = [];
+
+          if (userProfile?.customInstructions?.trim()) {
+            extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
+          }
+
           if (providerNames.length > 0 || connectorNames.length > 0) {
-            const capSummary = `[Active Capabilities & Connected Services:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Connected Connectors/Tools: ${connectorNames.length > 0 ? connectorNames.join(", ") : "None"}]`;
+            extraLines.push(
+              `[Active Capabilities & Connected Services:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Connected Connectors/Tools: ${connectorNames.length > 0 ? connectorNames.join(", ") : "None"}]`
+            );
+          }
+
+          if (extraLines.length > 0) {
+            const extraSummary = extraLines.join("\n\n");
             enrichedContext = enrichedContext
-              ? `${enrichedContext}\n\n${capSummary}`
-              : capSummary;
+              ? `${enrichedContext}\n\n${extraSummary}`
+              : extraSummary;
           }
         }
 
@@ -318,7 +332,7 @@ export const appRouter = router({
           displayName: z.string().trim().min(1).max(120),
           photoURL: z.string().url().or(z.literal("")),
           bio: z.string().max(500),
-          jobTitle: z.string().max(120),
+          customInstructions: z.string().max(1000).optional(),
         })
       )
       .mutation(({ ctx, input }) => saveProfile(ctx.user.openId, input)),

@@ -16,9 +16,9 @@ describe("LandingPage Component", () => {
     render(<LandingPage />);
     expect(screen.getByText("Workspace")).toBeInTheDocument();
     expect(
-      screen.getByText(/Your personal assistant for study/i)
+      screen.getByText(/Automate your E-Commerce business/i)
     ).toBeInTheDocument();
-    expect(screen.getByText("everyday productivity.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Shopify, WooCommerce/i)[0]).toBeInTheDocument();
   });
 
   it("switches hero media tabs between video walkthrough and interactive preview", () => {

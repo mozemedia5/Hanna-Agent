@@ -17,7 +17,7 @@ export type ProfileRecord = {
   displayName: string;
   photoURL: string;
   bio: string;
-  jobTitle: string;
+  customInstructions?: string;
   updatedAt?: string;
 };
 const conversations = new Map<string, Map<string, ConversationRecord>>();
@@ -110,7 +110,7 @@ export async function getProfile(uid: string): Promise<ProfileRecord> {
       displayName: "",
       photoURL: "",
       bio: "",
-      jobTitle: "",
+      customInstructions: "",
     }
   );
 }

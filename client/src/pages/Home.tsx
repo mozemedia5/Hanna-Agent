@@ -193,6 +193,7 @@ export default function Home({
   const [panel, setPanel] = useState<Panel>(null);
   const [settingsSection, setSettingsSection] =
     useState<SettingsSection>("overview");
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [model, setModel] = useState("Hanna Lite");
@@ -696,9 +697,10 @@ export default function Home({
               className="icon-button"
               onClick={e => {
                 e.stopPropagation();
-                onLogout?.();
+                setShowLogoutDialog(true);
               }}
               aria-label="Sign out"
+              title="Sign out"
             >
               <MoreHorizontal size={16} className="muted-icon" />
             </button>
@@ -1362,9 +1364,81 @@ export default function Home({
               connectedApps={connectedApps}
               onToggleApp={toggleApp}
               onToast={showToast}
+              onLogout={() => setShowLogoutDialog(true)}
             />
           )}
         </aside>
+      )}
+
+      {showLogoutDialog && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "20px",
+              padding: "24px",
+              maxWidth: "400px",
+              width: "100%",
+              boxShadow: "var(--shadow)",
+              textAlign: "center",
+            }}
+          >
+            <h3
+              style={{
+                margin: "0 0 8px",
+                fontSize: "18px",
+                fontWeight: "700",
+                color: "var(--text-primary)",
+              }}
+            >
+              Log out of Hanna?
+            </h3>
+            <p
+              style={{
+                margin: "0 0 20px",
+                fontSize: "13px",
+                color: "var(--text-secondary)",
+                lineHeight: "1.5",
+              }}
+            >
+              Are you sure you want to log out? Your conversations and settings remain saved securely in your workspace.
+            </p>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+              <Button
+                variant="outline"
+                onClick={() => setShowLogoutDialog(false)}
+                style={{ borderRadius: "9999px" }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setShowLogoutDialog(false);
+                  await onLogout?.();
+                }}
+                style={{
+                  borderRadius: "9999px",
+                  background: "#ea4335",
+                  color: "#ffffff",
+                }}
+              >
+                Log out
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && (
@@ -1695,6 +1769,7 @@ function SettingsHub({
   connectedApps,
   onToggleApp,
   onToast,
+  onLogout,
 }: {
   activeSection: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
@@ -1703,10 +1778,14 @@ function SettingsHub({
   connectedApps: string[];
   onToggleApp: (name: string) => void;
   onToast: (message: string) => void;
+  onLogout: () => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const apps = [
-    { name: "Shopify", description: "Manage products, catalog, and orders" },
+    { name: "Shopify", description: "Manage products, catalog, and orders via Storefront MCP or Admin OAuth" },
+    { name: "WooCommerce", description: "Automate WordPress WooCommerce store catalog and orders" },
+    { name: "Beacons", description: "Manage link-in-bio storefronts and digital product sales" },
+    { name: "Linktree", description: "Update bio links, featured URLs, and track analytics" },
     {
       name: "Google Gemini",
       description: "Gemini models for multimodal AI and reasoning",
@@ -1731,7 +1810,7 @@ function SettingsHub({
     },
     {
       name: "Creatify",
-      description: "AI marketing video and visual generator",
+      description: "AI marketing UGC video and visual generator",
     },
     {
       name: "Zendrop",
@@ -2045,20 +2124,32 @@ function SettingsHub({
     displayName: "",
     photoURL: "",
     bio: "",
-    jobTitle: "",
+    customInstructions: "",
   });
   const [profileSaving, setProfileSaving] = useState(false);
   useEffect(() => {
     void getUserProfile()
-      .then(setProfile)
+      .then(res =>
+        setProfile({
+          displayName: res.displayName,
+          photoURL: res.photoURL,
+          bio: res.bio,
+          customInstructions: res.customInstructions || "",
+        })
+      )
       .catch(() => undefined);
   }, []);
   const updateProfileField = (field: keyof typeof profile, value: string) =>
     setProfile(current => ({ ...current, [field]: value }));
   const saveProfile = () => {
     setProfileSaving(true);
-    void saveUserProfile(profile)
-      .then(() => onToast("Profile saved to your workspace"))
+    void saveUserProfile({
+      displayName: profile.displayName,
+      photoURL: profile.photoURL,
+      bio: profile.bio,
+      customInstructions: profile.customInstructions,
+    })
+      .then(() => onToast("Profile & personalization saved"))
       .finally(() => setProfileSaving(false));
   };
 
@@ -2193,18 +2284,50 @@ function SettingsHub({
                 onChange={event =>
                   updateProfileField("bio", event.target.value)
                 }
-                placeholder="A little context Hanna should keep in mind"
+                placeholder="A little background context for Hanna"
                 maxLength={500}
+                rows={3}
+              />
+            </label>
+            <label>
+              How Hanna should answer (Personalization)
+              <textarea
+                value={profile.customInstructions}
+                onChange={event =>
+                  updateProfileField("customInstructions", event.target.value)
+                }
+                placeholder="E.g. Be concise, focus on E-Commerce strategies, write code in TypeScript..."
+                maxLength={1000}
                 rows={4}
               />
             </label>
-            <button
-              className="profile-save-button"
-              onClick={saveProfile}
-              disabled={profileSaving || !profile.displayName.trim()}
-            >
-              {profileSaving ? "Saving…" : "Save profile"}
-            </button>
+            <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+              <button
+                className="profile-save-button"
+                onClick={saveProfile}
+                disabled={profileSaving || !profile.displayName.trim()}
+                style={{ flex: 1 }}
+              >
+                {profileSaving ? "Saving…" : "Save profile & personalization"}
+              </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                style={{
+                  height: "40px",
+                  padding: "0 18px",
+                  borderRadius: "9999px",
+                  border: "1px solid #ea4335",
+                  background: "transparent",
+                  color: "#ea4335",
+                  fontWeight: "600",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Log out
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -2320,15 +2443,17 @@ function SettingsHub({
           {[
             {
               category: "E-Commerce & Dropshipping",
-              items: ["Shopify", "CJ Dropshipping", "Zendrop", "AutoDS"],
+              items: ["Shopify", "WooCommerce", "CJ Dropshipping", "Zendrop", "AutoDS"],
             },
             {
-              category: "Social Media Management",
+              category: "Social Media & Customer Reach",
               items: [
                 "Instagram",
                 "TikTok",
                 "YouTube",
                 "Pinterest",
+                "Linktree",
+                "Beacons",
                 "WhatsApp Business",
               ],
             },
