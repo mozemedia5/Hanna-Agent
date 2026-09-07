@@ -263,13 +263,13 @@ export async function getProviderCredentialById(
  * 2. If no custom credential or "Hanna Default" selected -> default to Gemini 3.6 Flash using server GEMINI_API_KEY.
  */
 export async function getProviderCredentialForRequest(
-  userId: number,
+  userId: number | undefined,
   prompt: string,
   requestedProviderOrModel?: string
 ) {
   const resolved = resolveProviderAndModel(requestedProviderOrModel);
 
-  if (resolved.isCustom) {
+  if (userId && resolved.isCustom) {
     const userCred = await getProviderCredentialById(userId, resolved.provider);
     if (userCred && userCred.apiKey) {
       return {
@@ -283,12 +283,11 @@ export async function getProviderCredentialForRequest(
 
   // Canonical Fallback / Default: Hanna's Gemini 3.6 Flash
   const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
-  const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
 
   return {
     provider: "gemini",
     apiKey: defaultGeminiKey,
-    model: resolved.isCustom ? resolved.model : envModel,
+    model: resolved.model,
     endpoint: "",
   };
 }
