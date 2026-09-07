@@ -47,17 +47,12 @@ export async function executeHannaRequest(
       prompt,
       context,
       async ({ context: requestContext, plan }) => {
-        const personalProvider = userId
-          ? await getProviderCredentialForRequest(
-              userId,
-              prompt,
-              requestedModel
-            )
-          : undefined;
-        const envKey = (process.env.GEMINI_API_KEY || "").trim();
-        const apiKey = personalProvider?.apiKey
-          ? personalProvider.apiKey.trim()
-          : envKey;
+        const provider = await getProviderCredentialForRequest(
+          userId,
+          prompt,
+          requestedModel
+        );
+
         const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
         const quota = userId
           ? consumeDailyTokens(
@@ -76,22 +71,10 @@ export async function executeHannaRequest(
           throw new Error(
             `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
           );
-        if (!apiKey)
+        if (!provider.apiKey)
           throw new Error(
             "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
           );
-        const envModel = (
-          process.env.GEMINI_MODEL || "gemini-3.6-flash"
-        ).trim();
-        const provider = personalProvider ?? {
-          provider: "gemini",
-          apiKey,
-          model:
-            requestedModel && !requestedModel.startsWith("Hanna ")
-              ? requestedModel
-              : envModel,
-          endpoint: "",
-        };
 
         // Enrich context with list of connected API keys, connectors, and personalization instructions
         let enrichedContext = requestContext || "";
