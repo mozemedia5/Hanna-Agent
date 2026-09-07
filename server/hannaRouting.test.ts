@@ -2,28 +2,38 @@ import { describe, expect, it } from "vitest";
 import { routeHannaRequest } from "./hannaRouting";
 
 describe("routeHannaRequest", () => {
-  it("routes document and visual work to Gemini", () => {
-    expect(
-      routeHannaRequest("Analyze this PDF and extract the key points").model
-    ).toBe("gemini-3.6-flash");
+  it("routes document and visual work to Gemini 3.6 Flash", () => {
+    const route = routeHannaRequest("Analyze this PDF and extract key points");
+    expect(route.provider).toBe("gemini");
+    expect(route.model).toBe("gemini-3.6-flash");
+    expect(route.capability).toBe("Multimodal & Document Reasoning");
   });
 
-  it("routes coding and deployment work to Claude", () => {
-    expect(
-      routeHannaRequest("Debug my React repository and deploy it").capability
-    ).toBe("Coding and reasoning");
+  it("routes coding and software orchestration work to Gemini 3.6 Flash", () => {
+    const route = routeHannaRequest("Debug my React repository and deploy it");
+    expect(route.provider).toBe("gemini");
+    expect(route.model).toBe("gemini-3.6-flash");
+    expect(route.capability).toBe("Coding & Software Orchestration");
   });
 
-  it("routes research work to a structured analysis model", () => {
-    expect(
-      routeHannaRequest("Research competitors and compare their positioning")
-        .model
-    ).toBe("gpt-5-mini");
+  it("routes Shopify and store work to Gemini 3.6 Flash", () => {
+    const route = routeHannaRequest("List my Shopify products and update catalog");
+    expect(route.provider).toBe("gemini");
+    expect(route.model).toBe("gemini-3.6-flash");
+    expect(route.capability).toBe("Shopify & Store Management");
   });
 
-  it("keeps general prompts on a fast general model", () => {
-    expect(routeHannaRequest("Help me write a welcome note").reason).toContain(
-      "general-purpose"
-    );
+  it("routes research and strategy work to Gemini 3.6 Flash", () => {
+    const route = routeHannaRequest("Research competitors and compare positioning");
+    expect(route.provider).toBe("gemini");
+    expect(route.model).toBe("gemini-3.6-flash");
+    expect(route.capability).toBe("Marketing & Research Strategy");
+  });
+
+  it("keeps general prompts on Gemini 3.6 Flash", () => {
+    const route = routeHannaRequest("Help me write a welcome note");
+    expect(route.provider).toBe("gemini");
+    expect(route.model).toBe("gemini-3.6-flash");
+    expect(route.reason).toContain("general-purpose");
   });
 });

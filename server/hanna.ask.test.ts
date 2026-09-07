@@ -25,7 +25,7 @@ const user = {
 describe("hanna.ask", () => {
   beforeEach(() => invokeUserProvider.mockReset());
 
-  it("returns a routed user-provider response from the server procedure", async () => {
+  it("returns a routed user-provider response when custom provider model is selected", async () => {
     invokeUserProvider.mockResolvedValue(
       "## Done\n\nI found three useful themes."
     );
@@ -37,18 +37,43 @@ describe("hanna.ask", () => {
     );
     const result = await caller(user).hanna.ask({
       prompt: "Research the key themes",
+      model: "openai",
     });
     expect(result.text).toContain("three useful themes");
     expect(result.model).toContain("openai");
     expect(result.plan.trace).toBeUndefined();
   });
 
-  it("returns a safe configuration response when no user provider is configured", async () => {
-    const result = await caller({ ...user, id: 9101 }).hanna.ask({
-      prompt: "Help me think",
-    });
-    expect(result.text).toContain("Check its API key in Settings");
-    expect(result.providerError).toBe(true);
+  it("routes to Hanna Default Gemini 3.6 Flash when default model is selected", async () => {
+    const origKey = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "AIzaSyServerEnvTestKey";
+    invokeUserProvider.mockResolvedValue("Gemini response");
+
+    try {
+      const result = await caller(user).hanna.ask({
+        prompt: "Hello Hanna",
+        model: "Hanna Default",
+      });
+      expect(result.text).toBe("Gemini response");
+      expect(result.model).toContain("gemini");
+      expect(result.model).toContain("gemini-3.6-flash");
+    } finally {
+      process.env.GEMINI_API_KEY = origKey;
+    }
+  });
+
+  it("returns a safe configuration error when default Gemini API key is missing", async () => {
+    const origKey = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+
+    try {
+      const result = await caller({ ...user, id: 9101 }).hanna.ask({
+        prompt: "Help me think",
+      });
+      expect(result.text).toContain("Gemini API key is not configured");
+    } finally {
+      process.env.GEMINI_API_KEY = origKey;
+    }
   });
 
   it("validates requests through the actual tRPC procedure", async () => {
@@ -56,12 +81,19 @@ describe("hanna.ask", () => {
   });
 
   it("stops before provider execution when an external write requires approval", async () => {
-    const result = await executeHannaRequest(
-      "Publish this post to Instagram",
-      undefined,
-      user.id
-    );
-    expect(result.text).toContain("need your approval");
-    expect(invokeUserProvider).not.toHaveBeenCalled();
+    const origKey = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "AIzaSyTestKey";
+
+    try {
+      const result = await executeHannaRequest(
+        "Publish this post to Instagram",
+        undefined,
+        user.id
+      );
+      expect(result.text).toContain("need your approval");
+      expect(invokeUserProvider).not.toHaveBeenCalled();
+    } finally {
+      process.env.GEMINI_API_KEY = origKey;
+    }
   });
 });

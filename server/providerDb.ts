@@ -1,10 +1,15 @@
+import { resolveProviderAndModel } from "./aiConfig";
 import {
   credentialHint,
   decryptCredential,
   encryptCredential,
   maskCredential,
 } from "./credentialCrypto";
-import { routeHannaRequest } from "./hannaRouting";
+import {
+  deleteStoredProviderCredential,
+  getStoredProviderCredentials,
+  saveStoredProviderCredential,
+} from "./persistentStore";
 
 export const providerCatalog = [
   {
@@ -203,7 +208,7 @@ export const providerCatalog = [
   },
 ] as const;
 
-type CredentialRecord = {
+export type CredentialRecord = {
   provider: string;
   displayName: string;
   endpoint: string;
@@ -212,21 +217,23 @@ type CredentialRecord = {
   isEnabled: boolean;
   updatedAt: Date;
 };
-const runtimeCredentials = new Map<string, CredentialRecord>();
+
 const keyFor = (userId: number, provider: string) => `${userId}:${provider}`;
 
-/** Temporary backend store. Replace these methods with Firebase Admin/Firestore in production. */
 export async function listProviderCredentials(userId: number) {
-  return Array.from(runtimeCredentials.entries())
-    .filter(([key]) => key.startsWith(`${userId}:`))
-    .map(([, row]) => ({
-      id: keyFor(userId, row.provider),
+  const all = getStoredProviderCredentials();
+  const userPrefix = `${userId}:`;
+
+  return Object.entries(all)
+    .filter(([k]) => k.startsWith(userPrefix))
+    .map(([key, row]) => ({
+      id: key,
       provider: row.provider,
       displayName: row.displayName,
       keyHint: row.keyHint,
       maskedKey: row.keyHint,
-      isEnabled: row.isEnabled,
-      updatedAt: row.updatedAt,
+      isEnabled: Boolean(row.isEnabled),
+      updatedAt: new Date(row.updatedAt),
     }));
 }
 
@@ -234,89 +241,56 @@ export async function getProviderCredentialById(
   userId: number,
   provider: string
 ) {
-  const row = runtimeCredentials.get(keyFor(userId, provider));
+  const all = getStoredProviderCredentials();
+  const row = all[keyFor(userId, provider)] as CredentialRecord | undefined;
   if (!row || !row.isEnabled) return undefined;
+
+  const resolved = resolveProviderAndModel(row.provider);
+
   return {
     provider: row.provider,
     apiKey: decryptCredential(row.encryptedKey),
-    endpoint: row.endpoint,
-    model: "gpt-4o-mini",
+    endpoint: row.endpoint || "",
+    displayName: row.displayName,
+    model: resolved.model,
   };
 }
 
+/**
+ * Resolves user credentials and model pairs deterministically.
+ * Hierarchy:
+ * 1. User selected custom provider/model -> use user's credential.
+ * 2. If no custom credential or "Hanna Default" selected -> default to Gemini 3.6 Flash using server GEMINI_API_KEY.
+ */
 export async function getProviderCredentialForRequest(
   userId: number,
   prompt: string,
   requestedProviderOrModel?: string
 ) {
-  const route = routeHannaRequest(prompt);
+  const resolved = resolveProviderAndModel(requestedProviderOrModel);
 
-  if (
-    requestedProviderOrModel &&
-    !requestedProviderOrModel.startsWith("Hanna ")
-  ) {
-    const reqLower = requestedProviderOrModel.toLowerCase();
-    let preferredProvider = "";
-    if (reqLower.includes("gemini")) preferredProvider = "gemini";
-    else if (reqLower.includes("anthropic") || reqLower.includes("claude"))
-      preferredProvider = "anthropic";
-    else if (reqLower.includes("llama") || reqLower.includes("groq"))
-      preferredProvider = "llama";
-    else if (reqLower.includes("mistral")) preferredProvider = "mistral";
-    else if (reqLower.includes("openrouter")) preferredProvider = "openrouter";
-    else if (reqLower.includes("openai") || reqLower.includes("gpt"))
-      preferredProvider = "openai";
-    else if (reqLower.includes("jules")) preferredProvider = "jules";
-    else if (reqLower.includes("stitch")) preferredProvider = "stitch";
-    else if (reqLower.includes("v0")) preferredProvider = "v0";
-    else if (reqLower.includes("lovable")) preferredProvider = "lovable";
-    else preferredProvider = "custom";
-
-    const cred = await getProviderCredentialById(userId, preferredProvider);
-    if (cred) {
-      return { ...cred, model: requestedProviderOrModel };
+  if (resolved.isCustom) {
+    const userCred = await getProviderCredentialById(userId, resolved.provider);
+    if (userCred && userCred.apiKey) {
+      return {
+        provider: resolved.provider,
+        apiKey: userCred.apiKey,
+        model: resolved.model,
+        endpoint: userCred.endpoint || "",
+      };
     }
   }
 
-  const providerOrder = route.model.startsWith("gemini")
-    ? [
-        "gemini",
-        "openai",
-        "anthropic",
-        "llama",
-        "mistral",
-        "openrouter",
-        "custom",
-      ]
-    : [
-        "openai",
-        "gemini",
-        "anthropic",
-        "llama",
-        "mistral",
-        "openrouter",
-        "custom",
-      ];
-  for (const provider of providerOrder) {
-    const credential = await getProviderCredentialById(userId, provider);
-    if (credential) return { ...credential, model: route.model };
-  }
-
+  // Canonical Fallback / Default: Hanna's Gemini 3.6 Flash
   const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
-  if (defaultGeminiKey) {
-    const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
-    return {
-      provider: "gemini",
-      apiKey: defaultGeminiKey,
-      model:
-        requestedProviderOrModel && !requestedProviderOrModel.startsWith("Hanna ")
-          ? requestedProviderOrModel
-          : envModel,
-      endpoint: "",
-    };
-  }
+  const envModel = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
 
-  return undefined;
+  return {
+    provider: "gemini",
+    apiKey: defaultGeminiKey,
+    model: resolved.isCustom ? resolved.model : envModel,
+    endpoint: "",
+  };
 }
 
 export async function upsertProviderCredential(
@@ -335,7 +309,9 @@ export async function upsertProviderCredential(
     isEnabled: true,
     updatedAt: new Date(),
   };
-  runtimeCredentials.set(keyFor(userId, provider), record);
+
+  saveStoredProviderCredential(keyFor(userId, provider), record);
+
   return {
     provider,
     displayName,
@@ -348,6 +324,6 @@ export async function deleteProviderCredential(
   userId: number,
   provider: string
 ) {
-  runtimeCredentials.delete(keyFor(userId, provider));
+  deleteStoredProviderCredential(keyFor(userId, provider));
   return { success: true } as const;
 }

@@ -196,12 +196,13 @@ export default function Home({
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [model, setModel] = useState("Hanna Lite");
+  const [model, setModel] = useState("Hanna Default");
   const [customModel, setCustomModel] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isThinking, setIsThinking] = useState(false);
   const [toast, setToast] = useState("");
   const [connectedApps, setConnectedApps] = useState<string[]>([
+    "Shopify",
     "Google Drive",
   ]);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -573,6 +574,47 @@ export default function Home({
     );
   };
 
+  const suggestionsCategorized = [
+    {
+      category: "Shopify",
+      icon: Store,
+      items: [
+        { label: "Find profitable products", prompt: "Find profitable trending products for my Shopify store" },
+        { label: "Analyze my store", prompt: "Analyze my Shopify store performance and conversion bottlenecks" },
+        { label: "Improve product SEO", prompt: "Improve product title and SEO description for my top items" },
+        { label: "Create a product campaign", prompt: "Draft a high-converting product launch campaign" },
+      ],
+    },
+    {
+      category: "Marketing",
+      icon: Megaphone,
+      items: [
+        { label: "Create a social campaign", prompt: "Create a multi-channel social campaign for my products" },
+        { label: "Generate product content", prompt: "Generate engaging social captions and product benefit bullet points" },
+        { label: "Build an ad concept", prompt: "Design high-ROAS Facebook & Google search ad concept scripts" },
+        { label: "Analyze campaign performance", prompt: "Review ad campaign performance metrics and audience engagement" },
+      ],
+    },
+    {
+      category: "Automation",
+      icon: Zap,
+      items: [
+        { label: "Automate a recurring workflow", prompt: "Set up an automated daily store inventory sync workflow" },
+        { label: "Connect a service", prompt: "Connect my store to Slack notifications and marketing tools" },
+        { label: "Create a multi-step business workflow", prompt: "Draft an automated post-purchase email follow-up sequence" },
+      ],
+    },
+    {
+      category: "Developer",
+      icon: Code2,
+      items: [
+        { label: "Analyze a GitHub repository", prompt: "Analyze my GitHub repository structure and open pull requests" },
+        { label: "Debug an application", prompt: "Debug my store theme liquid template and React frontend" },
+        { label: "Deploy a project", prompt: "Verify build configuration and deploy my application to Vercel" },
+      ],
+    },
+  ];
+
   return (
     <div className="hanna-app">
       <div
@@ -732,12 +774,12 @@ export default function Home({
                 aria-expanded={modelMenuOpen}
               >
                 <span className="model-pulse" />
-                {model === "Custom" && customModel ? customModel : model}
+                {model === "Custom" && customModel ? customModel : model === "Hanna Default" ? "Gemini 3.6 Flash" : model}
                 <ChevronDown size={13} />
               </button>
               {modelMenuOpen && (
                 <div className="model-menu">
-                  {["Hanna Lite", "Hanna Pro", "Custom"].map(option => (
+                  {["Hanna Default", "Hanna Pro", "OpenAI", "Anthropic", "Groq", "Custom"].map(option => (
                     <button
                       key={option}
                       className={`model-option ${model === option ? "is-selected" : ""}`}
@@ -747,9 +789,9 @@ export default function Home({
                       }}
                     >
                       <span>
-                        {option}
+                        {option === "Hanna Default" ? "Hanna Default (Gemini 3.6 Flash)" : option}
                         {option === "Hanna Pro" && (
-                          <small className="model-plan-label">Paid plan</small>
+                          <small className="model-plan-label">Pro tier</small>
                         )}
                       </span>
                       {model === option && <Check size={14} />}
@@ -802,43 +844,51 @@ export default function Home({
               <div className="welcome-layout">
                 <section className="welcome-copy">
                   <div className="eyebrow">
-                    <span className="eyebrow-line" /> A clear place to begin
+                    <span className="eyebrow-line" /> Clean Command Interface
                   </div>
                   <h1>
-                    Run your store
+                    Automate store growth
                     <br />
                     <em>with Hanna.</em>
                   </h1>
                   <p>
-                    Inspect products, orders, customers, and campaigns in one
-                    focused workspace. Hanna plans the work, asks before risky
-                    changes, and verifies every real store action.
+                    Inspect products, orders, marketing campaigns, and connected automations in one focused AI workspace powered by Gemini 3.6 Flash.
                   </p>
-                  <div className="suggestion-grid">
-                    {[
-                      {
-                        icon: Lightbulb,
-                        text: "Find my worst-performing products and improve their descriptions",
-                      },
-                      { icon: Store, text: "Give me a Shopify store overview" },
-                      {
-                        icon: FileText,
-                        text: "Show my low-inventory products",
-                      },
-                      {
-                        icon: ImageIcon,
-                        text: "Draft social captions for my best sellers",
-                      },
-                    ].map(({ icon: Icon, text }) => (
-                      <button
-                        key={text}
-                        className="suggestion-card"
-                        onClick={() => useSuggestion(text)}
-                      >
-                        <Icon size={17} strokeWidth={1.7} />
-                        <span>{text}</span>
-                        <ArrowUp size={14} className="suggestion-arrow" />
-                      </button>
+
+                  <div className="command-suggestions-matrix" style={{ display: "grid", gap: "16px", marginTop: "20px" }}>
+                    {suggestionsCategorized.map(cat => (
+                      <div key={cat.category} className="suggestion-domain-block" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "12px", padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--gemini-accent)", marginBottom: "10px" }}>
+                          <cat.icon size={15} />
+                          <span>{cat.category}</span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
+                          {cat.items.map(item => (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() => useSuggestion(item.prompt)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "8px",
+                                padding: "8px 12px",
+                                fontSize: "12px",
+                                color: "var(--text-primary)",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <span>{item.label}</span>
+                              <ArrowUp size={13} style={{ color: "var(--text-tertiary)", marginLeft: "6px" }} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </section>
