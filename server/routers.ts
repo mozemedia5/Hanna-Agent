@@ -34,6 +34,7 @@ import {
   saveProfile,
 } from "./firestore";
 import { consumeDailyTokens, getDailyQuota, type HannaTier } from "./usage";
+import { performAiHealthCheck } from "./aiHealth";
 
 export async function executeHannaRequest(
   prompt: string,
@@ -369,6 +370,22 @@ export const appRouter = router({
           ctx.user?.id,
           input.model
         )
+      ),
+    healthCheck: publicProcedure
+      .input(
+        z
+          .object({
+            model: z.string().optional(),
+            provider: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(({ ctx, input }) =>
+        performAiHealthCheck({
+          userId: ctx.user?.id,
+          model: input?.model,
+          provider: input?.provider,
+        })
       ),
   }),
 });

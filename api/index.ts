@@ -1,5 +1,6 @@
 import express from "express";
 import type { RequestHandler } from "express";
+import { performAiHealthCheck } from "../server/aiHealth";
 import {
   getFirebasePublicConfig,
   missingFirebaseConfigFields,
@@ -22,8 +23,18 @@ const sendFirebaseConfig = (_req: express.Request, res: express.Response) => {
 app.get("/api", (_req, res) => {
   res.json({ status: "ok", service: "hanna-agent-api" });
 });
-// Support both forms because Vercel rewrites can preserve or strip the /api prefix.
+
 app.get(["/api/config", "/config"], sendFirebaseConfig);
+
+app.get(["/api/health", "/health"], async (req, res) => {
+  const model = typeof req.query.model === "string" ? req.query.model : undefined;
+  const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
+
+  const report = await performAiHealthCheck({ model, provider });
+  const isHealthy = report.status === "AI_READY";
+
+  res.status(isHealthy ? 200 : 503).json(report);
+});
 
 const lazyTrpcMiddleware: RequestHandler = async (req, res, next) => {
   try {

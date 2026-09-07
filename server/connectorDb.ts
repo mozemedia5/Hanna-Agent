@@ -4,6 +4,11 @@ import {
   decryptCredential,
   encryptCredential,
 } from "./credentialCrypto";
+import {
+  deleteStoredConnectorCredential,
+  getStoredConnectorCredentials,
+  saveStoredConnectorCredential,
+} from "./persistentStore";
 
 export type ConnectorId =
   | "shopify"
@@ -131,7 +136,6 @@ type ApprovalRequest = {
   expiresAt: Date;
 };
 
-const credentials = new Map<string, StoredCredential>();
 const approvals = new Map<string, ApprovalRequest>();
 const keyFor = (userId: number, connector: ConnectorId) =>
   `${userId}:${connector}`;
@@ -152,18 +156,24 @@ export async function saveConnectorCredential(
   if (Object.keys(safeValues).length === 0) {
     throw new Error(`${connector} credential fields cannot be empty`);
   }
-  credentials.set(keyFor(userId, connector), {
+
+  const record: StoredCredential = {
     encryptedValues: encryptCredential(JSON.stringify(safeValues)),
     updatedAt: new Date(),
-  });
+  };
+
+  saveStoredConnectorCredential(keyFor(userId, connector), record);
   return { connector, saved: true } as const;
 }
 
 export async function listConnectorCredentials(
   userId: number
 ): Promise<ConnectorSummary[]> {
-  return Array.from(credentials.entries())
-    .filter(([key]) => key.startsWith(`${userId}:`))
+  const all = getStoredConnectorCredentials();
+  const userPrefix = `${userId}:`;
+
+  return Object.entries(all)
+    .filter(([key]) => key.startsWith(userPrefix))
     .map(([key, row]) => {
       const connector = key.split(":")[1] as ConnectorId;
       const values = JSON.parse(
@@ -177,7 +187,7 @@ export async function listConnectorCredentials(
             credentialHint(values[field] ?? ""),
           ])
         ),
-        updatedAt: row.updatedAt,
+        updatedAt: new Date(row.updatedAt),
       };
     });
 }
@@ -186,8 +196,10 @@ export async function getConnectorCredential(
   userId: number,
   connector: ConnectorId
 ): Promise<ConnectorCredential | undefined> {
-  const row = credentials.get(keyFor(userId, connector));
+  const all = getStoredConnectorCredentials();
+  const row = all[keyFor(userId, connector)] as StoredCredential | undefined;
   if (!row) return undefined;
+
   return {
     connector,
     values: JSON.parse(
@@ -200,7 +212,7 @@ export async function deleteConnectorCredential(
   userId: number,
   connector: ConnectorId
 ) {
-  credentials.delete(keyFor(userId, connector));
+  deleteStoredConnectorCredential(keyFor(userId, connector));
   return { success: true } as const;
 }
 

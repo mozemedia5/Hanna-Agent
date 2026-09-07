@@ -1,4 +1,6 @@
-type ProviderRequest = {
+import { GEMINI_FALLBACK_MODELS } from "./aiConfig";
+
+export type ProviderRequest = {
   provider: string;
   apiKey: string;
   model: string;
@@ -16,6 +18,22 @@ BEHAVIORAL DIRECTIVES:
 3. ACTION PERMISSIONS & APPROVAL: Before executing any external action or mutation on a connected service (such as publishing a post, placing/fulfilling an order, deleting data, sending emails/messages, or modifying store listings), ask for explicit user permission and confirmation.
 4. TONE & FORMAT: Always provide thoughtful, well-structured, clear responses formatted in clean Markdown. Keep a natural, professional tone. Never expose raw chain-of-thought.`;
 
+function sanitizeError(message: string): string {
+  // Mask any potential raw API keys in error outputs
+  return message
+    .replace(/AIzaSy[A-Za-z0-9_-]{33}/g, "AIzaSy••••••••")
+    .replace(/sk-ant-[A-Za-z0-9_-]{30,}/g, "sk-ant-••••••••")
+    .replace(/sk-[A-Za-z0-9_-]{30,}/g, "sk-••••••••")
+    .replace(/gsk_[A-Za-z0-9_-]{30,}/g, "gsk_••••••••");
+}
+
+async function getResponseText(response: Response | { text?: () => Promise<string> }): Promise<string> {
+  if (response && typeof response.text === "function") {
+    return await response.text().catch(() => "");
+  }
+  return "";
+}
+
 function userMessage(request: ProviderRequest) {
   return request.context
     ? `Workspace context: ${request.context}\n\nUser request: ${request.prompt}`
@@ -31,6 +49,7 @@ export async function invokeUserProvider(
     );
   }
   const message = userMessage(request);
+
   if (request.provider === "anthropic") {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -40,31 +59,34 @@ export async function invokeUserProvider(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1500,
+        model: request.model || "claude-3-5-sonnet-20241022",
+        max_tokens: 2000,
         system: HANNA_SYSTEM_PROMPT,
         messages: [{ role: "user", content: message }],
       }),
     });
+
     if (!response.ok) {
-      const errText =
-        typeof response.text === "function"
-          ? await response.text().catch(() => "")
-          : "";
+      const errText = await getResponseText(response);
+      const safeText = sanitizeError(errText);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`Anthropic provider returned ${response.status}: Authentication failed. Check your API key in Settings.`);
+      }
+      if (response.status === 429) {
+        throw new Error(`Anthropic provider returned 429: Rate limit or quota exceeded.`);
+      }
       throw new Error(
-        `Anthropic provider returned ${response.status}${errText ? `: ${errText.slice(0, 100)}` : ""}`
+        `Anthropic provider returned ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
       );
     }
-    const data =
-      typeof response.json === "function"
-        ? await response.json().catch(() => null)
-        : null;
-    if (!data)
-      throw new Error("Anthropic returned an invalid response format.");
+
+    const data = (await response.json().catch(() => null)) as {
+      content?: Array<{ type?: string; text?: string }>;
+    } | null;
+
+    if (!data) throw new Error("Anthropic returned an invalid response format.");
     return (
-      (
-        data as { content?: Array<{ type?: string; text?: string }> }
-      ).content?.find(item => item.type === "text")?.text ??
+      data.content?.find(item => item.type === "text")?.text ??
       "I’m ready to help. Could you rephrase that request?"
     );
   }
@@ -75,24 +97,17 @@ export async function invokeUserProvider(
       process.env.GEMINI_MODEL ||
       "gemini-3.6-flash"
     ).trim();
-    // Normalize model strings like "Gemini 3.6 Flash" or "3.6-flash" into API-compatible model names
+
     let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
     if (primaryModel.includes("3.6")) primaryModel = "gemini-3.6-flash";
     else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
     else if (primaryModel.includes("2.5")) primaryModel = "gemini-2.5-flash";
     else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
+    else if (primaryModel.includes("1.5-pro")) primaryModel = "gemini-1.5-pro";
     else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
 
     const candidateModels = Array.from(
-      new Set([
-        primaryModel,
-        "gemini-3.6-flash",
-        "gemini-3.7-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-      ])
+      new Set([primaryModel, ...GEMINI_FALLBACK_MODELS])
     );
 
     let lastError = "";
@@ -111,33 +126,39 @@ export async function invokeUserProvider(
         );
 
         if (!response.ok) {
-          const errText =
-            typeof response.text === "function"
-              ? await response.text().catch(() => "")
-              : "";
-          lastError = `Gemini (${modelName}) returned status ${response.status}${errText ? `: ${errText.slice(0, 150)}` : ""}`;
-          if (response.status === 404) continue; // Try next fallback model if specific model name wasn't found
-          throw new Error(lastError);
+          const errText = await getResponseText(response);
+          const safeText = sanitizeError(errText);
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`Gemini provider returned ${response.status}: Authentication failed.`);
+          }
+          if (response.status === 429) {
+            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
+          }
+          if (response.status === 404) {
+            lastError = `Gemini model ${modelName} unavailable (404).`;
+            continue;
+          }
+          throw new Error(
+            `Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
+          );
         }
 
-        const data =
-          typeof response.json === "function"
-            ? await response.json().catch(() => null)
-            : null;
-        if (!data)
-          throw new Error("Gemini returned an invalid response format.");
-        const text = (
-          data as {
-            candidates?: Array<{
-              content?: { parts?: Array<{ text?: string }> };
-            }>;
-          }
-        ).candidates?.[0]?.content?.parts
+        const data = (await response.json().catch(() => null)) as {
+          candidates?: Array<{
+            content?: { parts?: Array<{ text?: string }> };
+          }>;
+        } | null;
+
+        if (!data) throw new Error("Gemini returned an invalid response format.");
+        const text = data.candidates?.[0]?.content?.parts
           ?.map(part => part.text ?? "")
           .join("");
         if (text && text.trim()) return text;
       } catch (err) {
         if (err instanceof Error) {
+          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
+            throw err;
+          }
           lastError = err.message;
           if (err.message.includes("404")) continue;
         }
@@ -156,12 +177,16 @@ export async function invokeUserProvider(
       : request.provider === "llama"
         ? "https://api.groq.com/openai/v1/chat/completions"
         : "https://api.openai.com/v1/chat/completions";
+
   const model =
     request.provider === "llama"
-      ? "llama-3.3-70b-versatile"
+      ? request.model && request.model.startsWith("llama")
+        ? request.model
+        : "llama-3.3-70b-versatile"
       : request.provider === "custom"
         ? request.model
-        : "gpt-4o-mini";
+        : request.model || "gpt-4o-mini";
+
   const response = await fetch(baseUrl, {
     method: "POST",
     headers: {
@@ -176,20 +201,28 @@ export async function invokeUserProvider(
       ],
     }),
   });
+
   if (!response.ok) {
-    const errText =
-      typeof response.text === "function"
-        ? await response.text().catch(() => "")
-        : "";
+    const errText = await getResponseText(response);
+    const safeText = sanitizeError(errText);
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`${request.provider} provider returned ${response.status}: Authentication failed.`);
+    }
+    if (response.status === 429) {
+      throw new Error(`${request.provider} provider returned 429: Rate limit or quota exceeded.`);
+    }
     throw new Error(
-      `${request.provider} provider returned ${response.status}${errText ? `: ${errText.slice(0, 100)}` : ""}`
+      `${request.provider} provider returned ${response.status}${safeText ? `: ${safeText.slice(0, 100)}` : ""}`
     );
   }
+
   const data = (await response.json().catch(() => null)) as {
     choices?: Array<{ message?: { content?: string } }>;
   } | null;
+
   if (!data)
     throw new Error(`${request.provider} returned an invalid response format.`);
+
   return (
     data.choices?.[0]?.message?.content ??
     "I’m ready to help. Could you rephrase that request?"
