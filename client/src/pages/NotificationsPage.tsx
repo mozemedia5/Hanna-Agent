@@ -3,13 +3,11 @@
  * Styled like the Runable notifications design.
  */
 import {
-  Bell,
-  ExternalLink,
+  ArrowLeft,
   Gift,
   Rocket,
   Star,
   Sparkles,
-  TrendingUp,
   Video,
   Zap,
 } from "lucide-react";
@@ -72,14 +70,26 @@ const notifications: Notification[] = [
   },
 ];
 
-export default function NotificationsPage() {
+type NotificationsPageProps = {
+  onBack?: () => void;
+};
+
+export default function NotificationsPage({ onBack }: NotificationsPageProps) {
   return (
     <div className="page-container">
+      {/* Back Navigation */}
+      <div className="page-header-top">
+        {onBack && (
+          <button className="back-button" onClick={onBack} aria-label="Go back">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        )}
+      </div>
+
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">
-            <span className="eyebrow-line" /> Updates
-          </span>
+          <span className="eyebrow">Updates</span>
           <h1 className="page-title">Notifications</h1>
           <p className="page-description">
             Product updates, new features, and milestones from your Hanna

@@ -7,10 +7,10 @@ import { renderBrandIcon } from "@/components/ProviderIcons";
 import { integrations, type IntegrationDefinition } from "@shared/integrations";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowLeft,
   Check,
   ChevronRight,
   ExternalLink,
-  PlugZap,
   Search,
   X,
 } from "lucide-react";
@@ -58,7 +58,11 @@ const categories = [
   },
 ];
 
-export default function IntegrationsPage() {
+type IntegrationsPageProps = {
+  onBack?: () => void;
+};
+
+export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [connected, setConnected] = useState<string[]>([]);
   const [activeModal, setActiveModal] = useState<IntegrationDefinition | null>(
@@ -124,11 +128,19 @@ export default function IntegrationsPage() {
 
   return (
     <div className="page-container">
+      {/* Back Navigation */}
+      <div className="page-header-top">
+        {onBack && (
+          <button className="back-button" onClick={onBack} aria-label="Go back">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        )}
+      </div>
+
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">
-            <span className="eyebrow-line" /> Extensions
-          </span>
+          <span className="eyebrow">Extensions</span>
           <h1 className="page-title">Integrations</h1>
           <p className="page-description">
             Connect the places where your work lives. Link your store, social

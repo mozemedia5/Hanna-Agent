@@ -2,36 +2,36 @@
  * Profile Page — User profile, credits, usage, and account management
  */
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import {
-  getUserProfile,
-  saveUserProfile,
   calculateConversationAnalytics,
   listUserConversations,
 } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowLeft,
   ArrowUpRight,
   BarChart3,
   CreditCard,
   Gift,
   HelpCircle,
   LogOut,
-  Mail,
   Settings,
   TrendingUp,
-  User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type ProfilePageProps = {
   onLogout: () => void;
   onNavigateToSettings: () => void;
+  onNavigateToUpgrade?: () => void;
+  onBack?: () => void;
 };
 
 export default function ProfilePage({
   onLogout,
   onNavigateToSettings,
+  onNavigateToUpgrade,
+  onBack,
 }: ProfilePageProps) {
   const { user } = useAuth();
   const [analytics, setAnalytics] = useState<ReturnType<
@@ -50,11 +50,19 @@ export default function ProfilePage({
 
   return (
     <div className="page-container">
+      {/* Back Navigation */}
+      <div className="page-header-top">
+        {onBack && (
+          <button className="back-button" onClick={onBack} aria-label="Go back">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        )}
+      </div>
+
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">
-            <span className="eyebrow-line" /> Account
-          </span>
+          <span className="eyebrow">Account</span>
           <h1 className="page-title">Profile</h1>
         </div>
       </div>
@@ -93,7 +101,7 @@ export default function ProfilePage({
             <BarChart3 size={14} />
             Usage
           </Button>
-          <Button className="credits-action-btn upgrade">
+          <Button className="credits-action-btn upgrade" onClick={onNavigateToUpgrade}>
             Upgrade
           </Button>
         </div>
@@ -101,11 +109,11 @@ export default function ProfilePage({
 
       {/* Quick Actions */}
       <div className="profile-actions-list">
-        <button className="profile-action-row">
+        <button className="profile-action-row" onClick={onNavigateToUpgrade}>
           <Gift size={18} />
           <div className="profile-action-copy">
-            <strong>Invite</strong>
-            <span>Earn 20k credits</span>
+            <strong>Upgrade Plan</strong>
+            <span>3-day trial + 50% off first month</span>
           </div>
           <ArrowUpRight size={16} className="profile-action-arrow" />
         </button>
