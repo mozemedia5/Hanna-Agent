@@ -129,6 +129,8 @@ textarea:focus-visible {
 .custom-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 .custom-scroll::-webkit-scrollbar {
   width: 6px;
@@ -703,10 +705,32 @@ kbd {
   font-weight: 500;
 }
 .eyebrow-line {
-  width: 20px;
-  height: 1px;
-  background: var(--text-tertiary);
-  display: inline-block;
+  display: none !important;
+}
+
+.page-header-top {
+  margin-bottom: 12px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.back-button:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-hover, var(--text-tertiary));
 }
 .welcome-copy h1 {
   font-size: clamp(36px, 4.8vw, 62px);
@@ -4734,4 +4758,27 @@ body:has(.auth-loading) {
   padding: 0;
   cursor: pointer;
   color: var(--text-tertiary);
+}
+
+/* Page Responsiveness and Mobile Adjustments */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 20px 16px 60px;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .upgrade-promo-banner {
+    flex-direction: column;
+    text-align: center !important;
+  }
+  .billing-toggle-wrapper {
+    width: 100%;
+    justify-content: center;
+  }
 }

@@ -6,13 +6,12 @@ import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowLeft,
   Check,
   ChevronRight,
   ExternalLink,
   KeyRound,
-  Plus,
   Search,
-  ShieldCheck,
   X,
   Zap,
 } from "lucide-react";
@@ -31,7 +30,7 @@ const connectors: ConnectorEntry[] = [
   {
     id: "gemini",
     name: "Google Gemini",
-    model: "Gemini 3.6 Flash / 1.5 Pro",
+    model: "Gemini 2.5 Flash / 1.5 Pro",
     docUrl: "https://ai.google.dev/gemini-api/docs/api-key",
     instructions: [
       "Go to Google AI Studio (aistudio.google.com).",
@@ -133,7 +132,11 @@ const connectors: ConnectorEntry[] = [
   },
 ];
 
-export default function ConnectorsPage() {
+type ConnectorsPageProps = {
+  onBack?: () => void;
+};
+
+export default function ConnectorsPage({ onBack }: ConnectorsPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<ConnectorEntry | null>(null);
   const [formInputs, setFormInputs] = useState<Record<string, string>>({});
@@ -191,11 +194,19 @@ export default function ConnectorsPage() {
 
   return (
     <div className="page-container">
+      {/* Back Navigation */}
+      <div className="page-header-top">
+        {onBack && (
+          <button className="back-button" onClick={onBack} aria-label="Go back">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        )}
+      </div>
+
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">
-            <span className="eyebrow-line" /> Connections
-          </span>
+          <span className="eyebrow">Connections</span>
           <h1 className="page-title">Connectors</h1>
           <p className="page-description">
             Manage API keys for AI models. Keys are encrypted server-side and
@@ -224,9 +235,9 @@ export default function ConnectorsPage() {
           <Zap size={18} />
         </div>
         <div className="connector-highlight-copy">
-          <strong>Gemini is your default model</strong>
+          <strong>Gemini 2.5 Flash is your default model</strong>
           <span>
-            Hanna uses Google Gemini 3.6 Flash as the primary AI engine. Add
+            Hanna uses Google Gemini 2.5 Flash as the primary AI engine. Add
             your Gemini API key to activate all capabilities including
             multimodal research, code analysis, and image generation.
           </span>

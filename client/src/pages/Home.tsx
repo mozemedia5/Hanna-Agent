@@ -50,6 +50,7 @@ import IntegrationsPage from "./IntegrationsPage";
 import CollectionsPage from "./CollectionsPage";
 import NotificationsPage from "./NotificationsPage";
 import ProfilePage from "./ProfilePage";
+import UpgradePage from "./UpgradePage";
 
 type Page =
   | "chat"
@@ -58,7 +59,8 @@ type Page =
   | "integrations"
   | "collections"
   | "notifications"
-  | "profile";
+  | "profile"
+  | "upgrade";
 
 type ToolKey =
   | "Web Search"
@@ -341,6 +343,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
+    { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Layers3, label: "Collections", page: "collections" as Page },
     { icon: PlugZap, label: "Connectors", page: "connectors" as Page },
     { icon: Store, label: "Integrations", page: "integrations" as Page },
@@ -365,7 +368,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <div className="model-picker">
             <button className="model-button" onClick={() => setModelMenuOpen(c => !c)} aria-expanded={modelMenuOpen}>
               <span className="model-pulse" />
-              {model === "Hanna Default" ? "Gemini 3.6 Flash" : model}
+              {model === "Hanna Default" ? "Gemini 2.5 Flash" : model}
               <ChevronDown size={13} />
             </button>
             {modelMenuOpen && (
@@ -373,7 +376,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 {["Hanna Default", "Custom"].map(option => (
                   <button key={option} className={`model-option ${model === option ? "is-selected" : ""}`}
                     onClick={() => { setModel(option); setModelMenuOpen(false); }}>
-                    <span>{option === "Hanna Default" ? "Gemini 3.6 Flash (Default)" : option}</span>
+                    <span>{option === "Hanna Default" ? "Gemini 2.5 Flash (Default)" : option}</span>
                     {model === option && <Check size={14} />}
                   </button>
                 ))}
@@ -387,7 +390,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           {!hasMessages ? (
             <div className="welcome-layout">
               <section className="welcome-copy">
-                <div className="eyebrow"><span className="eyebrow-line" /> Clean Command Interface</div>
+                <div className="eyebrow">Clean Command Interface</div>
                 <h1>What needs to be done?</h1>
                 <p>Use Hanna to automate store growth, research, coding, and creative work — all powered by Gemini multimodal intelligence.</p>
                 <div className="command-suggestions-matrix" style={{ display: "grid", gap: "16px", marginTop: "20px" }}>
@@ -446,7 +449,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div className="message-stack">
               <div className="conversation-heading">
                 <div>
-                  <div className="eyebrow"><span className="eyebrow-line" /> Conversation</div>
+                  <div className="eyebrow">Conversation</div>
                   <h1>{activeChat.title}</h1>
                 </div>
                 <div className="conversation-actions">
@@ -527,13 +530,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   );
 
   const renderPage = () => {
+    const handleBack = () => navigate("chat");
     switch (currentPage) {
-      case "settings": return <SettingsPage theme={theme} onThemeChange={handleThemeChange} />;
-      case "connectors": return <ConnectorsPage />;
-      case "integrations": return <IntegrationsPage />;
-      case "collections": return <CollectionsPage />;
-      case "notifications": return <NotificationsPage />;
-      case "profile": return <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} />;
+      case "settings": return <SettingsPage theme={theme} onThemeChange={handleThemeChange} onBack={handleBack} />;
+      case "connectors": return <ConnectorsPage onBack={handleBack} />;
+      case "integrations": return <IntegrationsPage onBack={handleBack} />;
+      case "collections": return <CollectionsPage onBack={handleBack} />;
+      case "notifications": return <NotificationsPage onBack={handleBack} />;
+      case "profile": return <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />;
+      case "upgrade": return <UpgradePage onBack={handleBack} />;
       default: return renderChatPage();
     }
   };
@@ -605,7 +610,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   <div className="credits-bar"><div className="credits-bar-fill" /></div>
                   <div className="credits-actions">
                     <Button variant="outline" size="sm" onClick={() => { navigate("profile"); setShowProfilePopup(false); }}>Usage</Button>
-                    <Button size="sm" className="upgrade-btn">Upgrade</Button>
+                    <Button size="sm" className="upgrade-btn" onClick={() => { navigate("upgrade"); setShowProfilePopup(false); }}>Upgrade</Button>
                   </div>
                 </div>
                 <div className="profile-popup-actions">

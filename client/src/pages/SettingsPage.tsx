@@ -3,14 +3,13 @@
  * Hanna name, persona context, descriptions, and theme.
  */
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import {
   getUserProfile,
   saveUserProfile,
-  type ClientConversation,
 } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowLeft,
   Moon,
   Sun,
   Monitor,
@@ -24,11 +23,13 @@ import { useEffect, useState } from "react";
 type SettingsPageProps = {
   theme: "light" | "dark" | "system";
   onThemeChange: (theme: "light" | "dark" | "system") => void;
+  onBack?: () => void;
 };
 
 export default function SettingsPage({
   theme,
   onThemeChange,
+  onBack,
 }: SettingsPageProps) {
   const { user } = useAuth();
   const [profile, setProfile] = useState({
@@ -80,11 +81,19 @@ export default function SettingsPage({
 
   return (
     <div className="page-container">
+      {/* Back Navigation */}
+      <div className="page-header-top">
+        {onBack && (
+          <button className="back-button" onClick={onBack} aria-label="Go back">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        )}
+      </div>
+
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">
-            <span className="eyebrow-line" /> Workspace
-          </span>
+          <span className="eyebrow">Workspace</span>
           <h1 className="page-title">Settings</h1>
           <p className="page-description">
             Personalize how Hanna works for you. Set your workspace name,
@@ -120,7 +129,7 @@ export default function SettingsPage({
             <textarea
               value={profile.bio}
               onChange={e => updateField("bio", e.target.value)}
-              placeholder="A little background context for Hanna — your role, business, or interests"
+              placeholder="A background context for Hanna: your role, business, or interests"
               maxLength={500}
               rows={3}
             />

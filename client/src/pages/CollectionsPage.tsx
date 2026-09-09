@@ -3,7 +3,7 @@
  */
 import { Button } from "@/components/ui/button";
 import {
-  Archive,
+  ArrowLeft,
   ExternalLink,
   FolderOpen,
   Layers3,
@@ -61,7 +61,11 @@ const sampleCollections: Collection[] = [
   },
 ];
 
-export default function CollectionsPage() {
+type CollectionsPageProps = {
+  onBack?: () => void;
+};
+
+export default function CollectionsPage({ onBack }: CollectionsPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [collections] = useState<Collection[]>(sampleCollections);
 
@@ -75,11 +79,19 @@ export default function CollectionsPage() {
 
   return (
     <div className="page-container">
+      {/* Back Navigation */}
+      <div className="page-header-top">
+        {onBack && (
+          <button className="back-button" onClick={onBack} aria-label="Go back">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        )}
+      </div>
+
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">
-            <span className="eyebrow-line" /> Catalog
-          </span>
+          <span className="eyebrow">Catalog</span>
           <h1 className="page-title">Collections</h1>
           <p className="page-description">
             Browse and manage your Shopify product collections. Create, edit,
