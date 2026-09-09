@@ -40,7 +40,7 @@ const codeSnippets = {
 
 const hanna = new HannaClient({
   apiKey: process.env.HANNA_API_KEY,
-  model: "gemini-3.6-flash",
+  model: "gemini-2.5-flash",
 });
 
 // Stream intelligent multimodal reasoning
@@ -57,7 +57,7 @@ for await (const chunk of response) {
 
 client = HannaClient(
     api_key="hn_live_9f82d1c7a304e2",
-    model="gemini-3.6-flash"
+    model="gemini-2.5-flash"
 )
 
 # Execute structured agent workflow with native tools
@@ -72,7 +72,7 @@ print(f"Status: {response.status} | Output: {response.text}")`,
   -H "Authorization: Bearer $HANNA_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gemini-3.6-flash",
+    "model": "gemini-2.5-flash",
     "messages": [{"role": "user", "content": "Explain agentic routing"}],
     "temperature": 0.3
   }'`,
@@ -100,8 +100,8 @@ export default function LandingPage() {
   >("typescript");
   const [copiedCode, setCopiedCode] = useState(false);
   const [selectedModel, setSelectedModel] = useState<
-    "gemini-3.6" | "gemini-2.5"
-  >("gemini-3.6");
+    "gemini-2.5" | "gemini-2.0"
+  >("gemini-2.5");
   const [multimodalTab, setMultimodalTab] = useState<"code" | "web" | "db">(
     "code"
   );
@@ -212,7 +212,7 @@ export default function LandingPage() {
             <Sparkles size={14} className="sparkle-icon" />
             <span>Next-Generation Intelligence</span>
             <span className="badge-dot" />
-            <span className="badge-text-dim">Gemini 3.6 Flash</span>
+            <span className="badge-text-dim">Gemini 2.5 Flash</span>
           </div>
         </div>
 
@@ -287,7 +287,7 @@ export default function LandingPage() {
 
               <div className="media-quality-tag">
                 <span className="live-status-dot" />
-                <span>Gemini 3.6 Engine</span>
+                <span>Gemini 2.5 Engine</span>
               </div>
             </div>
 
@@ -330,7 +330,7 @@ export default function LandingPage() {
 
                         <div className="mock-response-stream">
                           <div className="stream-badge">
-                            <Zap size={12} /> Gemini 3.6 Flash · 84ms latency
+                            <Zap size={12} /> Gemini 2.5 Flash · 84ms latency
                           </div>
                           <div className="stream-code-preview">
                             <span className="code-line">
@@ -389,7 +389,7 @@ export default function LandingPage() {
                   <div className="interactive-demo-card">
                     <div className="demo-input-header">
                       <span className="demo-label">LIVE PROMPT PLAYGROUND</span>
-                      <span className="demo-model-badge">Gemini 3.6 Flash</span>
+                      <span className="demo-model-badge">Gemini 2.5 Flash</span>
                     </div>
 
                     <div className="demo-input-box">
@@ -595,22 +595,22 @@ export default function LandingPage() {
 
             <div className="model-selector-widget">
               <button
-                className={`model-card-option ${selectedModel === "gemini-3.6" ? "is-selected" : ""}`}
-                onClick={() => setSelectedModel("gemini-3.6")}
+                className={`model-card-option ${selectedModel === "gemini-2.5" ? "is-selected" : ""}`}
+                onClick={() => setSelectedModel("gemini-2.5")}
               >
                 <div>
-                  <strong>Gemini 3.6 Flash</strong>
+                  <strong>Gemini 2.5 Flash</strong>
                   <span>Next-gen speed &amp; reasoning</span>
                 </div>
                 <span className="latency-tag">&lt; 90ms</span>
               </button>
 
               <button
-                className={`model-card-option ${selectedModel === "gemini-2.5" ? "is-selected" : ""}`}
-                onClick={() => setSelectedModel("gemini-2.5")}
+                className={`model-card-option ${selectedModel === "gemini-2.0" ? "is-selected" : ""}`}
+                onClick={() => setSelectedModel("gemini-2.0")}
               >
                 <div>
-                  <strong>Gemini 2.5 Flash</strong>
+                  <strong>Gemini 2.0 Flash</strong>
                   <span>Balanced high-volume model</span>
                 </div>
                 <span className="latency-tag">&lt; 120ms</span>

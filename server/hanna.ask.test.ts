@@ -56,7 +56,7 @@ describe("hanna.ask", () => {
       });
       expect(result.text).toBe("Gemini response");
       expect(result.model).toContain("gemini");
-      expect(result.model).toContain("gemini-3.6-flash");
+      expect(result.model).toContain("gemini-2.5-flash");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
     }

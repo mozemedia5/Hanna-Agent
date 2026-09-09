@@ -88,7 +88,7 @@ describe("providerDb Persistent Store", () => {
       );
       expect(defaultReq?.provider).toBe("gemini");
       expect(defaultReq?.apiKey).toBe("AIzaSyServerEnvTestKey");
-      expect(defaultReq?.model).toBe("gemini-3.6-flash");
+      expect(defaultReq?.model).toBe("gemini-2.5-flash");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
     }

@@ -76,7 +76,7 @@ describe("providers and integrations routing & management", () => {
     try {
       const res = await getProviderCredentialForRequest(42, "How do I optimize store conversion?");
       expect(res?.provider).toBe("gemini");
-      expect(res?.model).toBe("gemini-3.6-flash");
+      expect(res?.model).toBe("gemini-2.5-flash");
       expect(res?.apiKey).toBe("AIzaSyServerKeyTest");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
@@ -120,7 +120,7 @@ describe("providers and integrations routing & management", () => {
       // Switch back
       const defaultRes = await getProviderCredentialForRequest(104, "Draft email", "Hanna Default");
       expect(defaultRes?.provider).toBe("gemini");
-      expect(defaultRes?.model).toBe("gemini-3.6-flash");
+      expect(defaultRes?.model).toBe("gemini-2.5-flash");
       expect(defaultRes?.apiKey).toBe("AIzaSyServerKeyTest");
     } finally {
       process.env.GEMINI_API_KEY = origKey;

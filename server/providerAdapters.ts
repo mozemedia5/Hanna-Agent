@@ -95,7 +95,7 @@ export async function invokeUserProvider(
     const rawModel = (
       request.model ||
       process.env.GEMINI_MODEL ||
-      "gemini-3.6-flash"
+      "gemini-2.5-flash"
     ).trim();
 
     let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
