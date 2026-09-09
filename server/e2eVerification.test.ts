@@ -7,7 +7,7 @@ describe("Phase 6 & End-to-End Production Verification", () => {
   it("verifies /api/health returns structured diagnostic status when GEMINI_API_KEY is present or missing", async () => {
     const reportWithoutKey = await performAiHealthCheck();
     expect(reportWithoutKey.provider).toBe("gemini");
-    expect(reportWithoutKey.model).toBe("gemini-3.6-flash");
+    expect(reportWithoutKey.model).toBe("gemini-2.5-flash");
 
     const origKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "AIzaSyTestKeyForHealthCheck";
@@ -27,7 +27,7 @@ describe("Phase 6 & End-to-End Production Verification", () => {
       const reportWithKey = await performAiHealthCheck();
       expect(reportWithKey.status).toBe("AI_READY");
       expect(reportWithKey.provider).toBe("gemini");
-      expect(reportWithKey.model).toBe("gemini-3.6-flash");
+      expect(reportWithKey.model).toBe("gemini-2.5-flash");
       expect(reportWithKey.geminiKeyPresent).toBe(true);
     } finally {
       fetchSpy.mockRestore();
@@ -54,11 +54,11 @@ describe("Phase 6 & End-to-End Production Verification", () => {
       });
 
       expect(response.text).toBe("HANNA_OK");
-      expect(response.model).toContain("gemini-3.6-flash");
+      expect(response.model).toContain("gemini-2.5-flash");
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
           provider: "gemini",
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           apiKey: "AIzaSyTestKeyForE2E",
         })
       );

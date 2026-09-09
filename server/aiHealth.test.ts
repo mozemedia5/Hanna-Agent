@@ -10,7 +10,7 @@ describe("performAiHealthCheck", () => {
       expect(report.status).toBe("GEMINI_KEY_MISSING");
       expect(report.geminiKeyPresent).toBe(false);
       expect(report.provider).toBe("gemini");
-      expect(report.model).toBe("gemini-3.6-flash");
+      expect(report.model).toBe("gemini-2.5-flash");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
     }
@@ -33,7 +33,7 @@ describe("performAiHealthCheck", () => {
       const report = await performAiHealthCheck();
       expect(report.status).toBe("AI_READY");
       expect(report.geminiKeyPresent).toBe(true);
-      expect(report.model).toBe("gemini-3.6-flash");
+      expect(report.model).toBe("gemini-2.5-flash");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
       global.fetch = originalFetch;
