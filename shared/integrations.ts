@@ -41,7 +41,19 @@ export type ConnectorId =
   | "meta-ads"
   | "google-ads"
   | "gmail"
-  | "mcp-custom";
+  | "mcp-custom"
+  | "hubspot"
+  | "mailchimp"
+  | "stripe"
+  | "notion"
+  | "airtable"
+  | "intercom"
+  | "jira"
+  | "zendesk"
+  | "salesforce"
+  | "quickbooks"
+  | "twilio"
+  | "zapier";
 
 export type IntegrationDefinition = {
   id: ConnectorId;
@@ -99,6 +111,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Beacons",
     category: "social",
     credentialFields: ["apiKey", "username"],
+    supportsMcp: true,
     capabilities: ["links:manage", "store:sync", "analytics:read"],
     requiresApproval: true,
     description:
@@ -116,6 +129,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Creatify",
     category: "content_creation",
     credentialFields: ["apiKey"],
+    supportsMcp: true,
     capabilities: ["generate_ugc_video", "product_to_video", "list_templates"],
     requiresApproval: true,
     description:
@@ -133,6 +147,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "InVideo",
     category: "content_creation",
     credentialFields: ["apiKey"],
+    supportsMcp: true,
     capabilities: ["script_to_video", "render_video", "list_voices"],
     requiresApproval: true,
     description:
@@ -150,6 +165,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "CJ Dropshipping",
     category: "commerce",
     credentialFields: ["apiKey", "email"],
+    supportsMcp: true,
     capabilities: ["search_products", "import_products", "sync_orders"],
     requiresApproval: true,
     description:
@@ -167,6 +183,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "AutoDS",
     category: "commerce",
     credentialFields: ["apiKey", "storeId"],
+    supportsMcp: true,
     capabilities: ["sync_inventory", "auto_order", "price_monitor"],
     requiresApproval: true,
     description:
@@ -184,6 +201,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Zendrop",
     category: "commerce",
     credentialFields: ["apiKey"],
+    supportsMcp: true,
     capabilities: ["catalog_search", "order_fulfill"],
     requiresApproval: true,
     description:
@@ -201,6 +219,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Take.app",
     category: "commerce",
     credentialFields: ["apiKey", "storeSlug"],
+    supportsMcp: true,
     capabilities: ["read_orders", "manage_catalog", "whatsapp_checkout"],
     requiresApproval: true,
     description:
@@ -340,6 +359,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "TikTok",
     category: "social",
     credentialFields: ["accessToken"],
+    supportsMcp: true,
     capabilities: ["profile:read", "content:publish", "analytics:read"],
     requiresApproval: true,
     description:
@@ -357,6 +377,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Instagram",
     category: "social",
     credentialFields: ["accessToken", "businessAccountId"],
+    supportsMcp: true,
     capabilities: ["media:read", "content:publish", "insights:read"],
     requiresApproval: true,
     description:
@@ -374,6 +395,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "YouTube",
     category: "media",
     credentialFields: ["oauthRefreshToken"],
+    supportsMcp: true,
     capabilities: ["videos:read", "videos:upload", "shorts:publish"],
     requiresApproval: true,
     description:
@@ -391,6 +413,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Pinterest",
     category: "social",
     credentialFields: ["accessToken", "boardId"],
+    supportsMcp: true,
     capabilities: ["pins:create", "boards:read", "analytics:read"],
     requiresApproval: true,
     description:
@@ -408,6 +431,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Linktree",
     category: "social",
     credentialFields: ["apiKey"],
+    supportsMcp: true,
     capabilities: ["links:read", "links:update", "analytics:read"],
     requiresApproval: true,
     description:
@@ -426,6 +450,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "WhatsApp Business",
     category: "communication",
     credentialFields: ["accessToken", "phoneNumberId"],
+    supportsMcp: true,
     capabilities: ["messages:send", "templates:read", "broadcast:send"],
     requiresApproval: true,
     description:
@@ -443,6 +468,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Slack",
     category: "communication",
     credentialFields: ["botToken"],
+    supportsMcp: true,
     capabilities: ["channels:read", "groups:read", "chat:write"],
     requiresApproval: true,
     description:
@@ -462,6 +488,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "GitHub",
     category: "developer",
     credentialFields: ["personalAccessToken"],
+    supportsMcp: true,
     capabilities: ["repo:read", "issues:write", "pulls:write"],
     requiresApproval: true,
     description:
@@ -480,6 +507,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Vercel",
     category: "developer",
     credentialFields: ["token"],
+    supportsMcp: true,
     capabilities: ["projects:read", "deployments:read", "deployments:create"],
     requiresApproval: true,
     description:
@@ -496,6 +524,7 @@ export const integrations: IntegrationDefinition[] = [
     name: "Google Workspace",
     category: "workspace",
     credentialFields: ["oauthRefreshToken"],
+    supportsMcp: true,
     capabilities: ["drive:read", "docs:read", "sheets:read", "calendar:read"],
     requiresApproval: true,
     description:
@@ -506,6 +535,217 @@ export const integrations: IntegrationDefinition[] = [
       "Create OAuth 2.0 Client ID for Desktop/Web.",
       "Generate a Refresh Token with Google Drive/Docs API scopes enabled.",
       "Paste the Refresh Token below.",
+    ],
+  },
+
+  // Additional Business Connectors
+  {
+    id: "hubspot",
+    name: "HubSpot",
+    category: "workspace",
+    credentialFields: ["accessToken"],
+    supportsMcp: true,
+    capabilities: ["contacts:read", "deals:read", "marketing:manage"],
+    requiresApproval: true,
+    description:
+      "HubSpot CRM & Marketing automation for managing customer deals, leads, and contacts.",
+    docUrl: "https://developers.hubspot.com/docs/api/overview",
+    instructions: [
+      "Log into your HubSpot Account.",
+      "Go to Settings -> Integrations -> Private Apps.",
+      "Create a Private App with crm.objects.contacts and crm.objects.deals scopes.",
+      "Paste your Access Token starting with 'pat-' below.",
+    ],
+  },
+  {
+    id: "mailchimp",
+    name: "Mailchimp",
+    category: "workspace",
+    credentialFields: ["apiKey", "serverPrefix"],
+    supportsMcp: true,
+    capabilities: ["lists:read", "campaigns:create", "members:manage"],
+    requiresApproval: true,
+    description:
+      "Manage email subscriber lists, automated email campaigns, and customer newsletters.",
+    docUrl: "https://mailchimp.com/developer/marketing/api/quick-start/",
+    instructions: [
+      "Log into Mailchimp Account.",
+      "Go to Profile -> Extras -> API Keys.",
+      "Generate an API key and copy your server prefix (e.g. us1, us2).",
+      "Fill in both fields below.",
+    ],
+  },
+  {
+    id: "stripe",
+    name: "Stripe",
+    category: "commerce",
+    credentialFields: ["secretKey"],
+    supportsMcp: true,
+    capabilities: ["charges:read", "subscriptions:manage", "invoices:read"],
+    requiresApproval: true,
+    description:
+      "Automate store payments, recurring subscriptions, and customer invoice tracking.",
+    docUrl: "https://stripe.com/docs/api",
+    instructions: [
+      "Log into Stripe Dashboard -> Developers -> API Keys.",
+      "Copy your Secret Key starting with 'sk_live_' or 'sk_test_'.",
+      "Paste the key below.",
+    ],
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    category: "workspace",
+    credentialFields: ["internalIntegrationToken"],
+    supportsMcp: true,
+    capabilities: ["pages:read", "databases:read", "blocks:write"],
+    requiresApproval: true,
+    description:
+      "Query Notion workspace databases, sync product specs, and generate wiki pages.",
+    docUrl: "https://developers.notion.com/docs/getting-started",
+    instructions: [
+      "Go to notion.so/my-integrations.",
+      "Create a new Internal Integration.",
+      "Copy your Secret Token starting with 'secret_'.",
+      "Share target workspace pages with your integration and paste the token below.",
+    ],
+  },
+  {
+    id: "airtable",
+    name: "Airtable",
+    category: "workspace",
+    credentialFields: ["personalAccessToken", "baseId"],
+    supportsMcp: true,
+    capabilities: ["records:read", "records:write", "schema:read"],
+    requiresApproval: true,
+    description:
+      "Sync custom relational databases, inventory records, and campaign tracking bases.",
+    docUrl: "https://airtable.com/developers/web/api/introduction",
+    instructions: [
+      "Go to airtable.com/create/tokens.",
+      "Create a Personal Access Token with data.records:read and data.records:write scopes.",
+      "Copy your Base ID from the base URL.",
+      "Paste both credentials below.",
+    ],
+  },
+  {
+    id: "intercom",
+    name: "Intercom",
+    category: "communication",
+    credentialFields: ["accessToken"],
+    supportsMcp: true,
+    capabilities: ["conversations:read", "contacts:read", "messages:send"],
+    requiresApproval: true,
+    description:
+      "Automate AI customer support responses, manage tickets, and read active user chats.",
+    docUrl: "https://developers.intercom.com/docs",
+    instructions: [
+      "Log into Intercom Developer Hub.",
+      "Create an Access Token under your app's Authentication settings.",
+      "Paste the Access Token below.",
+    ],
+  },
+  {
+    id: "jira",
+    name: "Jira Software",
+    category: "developer",
+    credentialFields: ["siteUrl", "email", "apiToken"],
+    supportsMcp: true,
+    capabilities: ["issues:read", "issues:create", "projects:read"],
+    requiresApproval: true,
+    description:
+      "Manage engineering bug tickets, agile sprints, and customer feedback tasks.",
+    docUrl: "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
+    instructions: [
+      "Go to id.atlassian.com/manage-profile/security/api-tokens.",
+      "Create an API Token.",
+      "Enter your Jira site URL (e.g. mycompany.atlassian.net), email, and token below.",
+    ],
+  },
+  {
+    id: "zendesk",
+    name: "Zendesk",
+    category: "communication",
+    credentialFields: ["subdomain", "email", "apiToken"],
+    supportsMcp: true,
+    capabilities: ["tickets:read", "tickets:create", "users:read"],
+    requiresApproval: true,
+    description:
+      "Enterprise customer support ticket management and automated resolution workflows.",
+    docUrl: "https://developer.zendesk.com/api-reference/",
+    instructions: [
+      "Log into Zendesk Admin Center -> Apps and integrations -> API -> Zendesk API.",
+      "Enable Token Access and generate an API token.",
+      "Paste your Subdomain, Email, and Token below.",
+    ],
+  },
+  {
+    id: "salesforce",
+    name: "Salesforce",
+    category: "workspace",
+    credentialFields: ["instanceUrl", "accessToken"],
+    supportsMcp: true,
+    capabilities: ["leads:read", "accounts:read", "opportunities:manage"],
+    requiresApproval: true,
+    description:
+      "Enterprise CRM for managing lead pipelines, business accounts, and opportunities.",
+    docUrl: "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_what_is_rest_api.htm",
+    instructions: [
+      "Open Salesforce Setup -> Connected Apps.",
+      "Generate an OAuth Access Token for your user session.",
+      "Provide your Salesforce Instance URL and Access Token below.",
+    ],
+  },
+  {
+    id: "quickbooks",
+    name: "QuickBooks",
+    category: "workspace",
+    credentialFields: ["realmId", "accessToken"],
+    supportsMcp: true,
+    capabilities: ["invoices:read", "expenses:read", "reports:read"],
+    requiresApproval: true,
+    description:
+      "E-Commerce accounting, automated invoice status tracking, and expense auditing.",
+    docUrl: "https://developer.intuit.com/app/developer/qbo/docs/develop",
+    instructions: [
+      "Log into Intuit Developer Portal -> My Apps.",
+      "Copy your Company Realm ID and OAuth Access Token.",
+      "Paste both values below.",
+    ],
+  },
+  {
+    id: "twilio",
+    name: "Twilio",
+    category: "communication",
+    credentialFields: ["accountSid", "authToken", "fromNumber"],
+    supportsMcp: true,
+    capabilities: ["sms:send", "voice:call", "verify:send"],
+    requiresApproval: true,
+    description:
+      "Automated SMS customer notifications, OTP verification, and voice alerts.",
+    docUrl: "https://www.twilio.com/docs/usage/api",
+    instructions: [
+      "Log into Twilio Console Dashboard.",
+      "Copy Account SID and Auth Token.",
+      "Copy your active Twilio Phone Number.",
+      "Paste all credentials below.",
+    ],
+  },
+  {
+    id: "zapier",
+    name: "Zapier NLA",
+    category: "workspace",
+    credentialFields: ["apiKey"],
+    supportsMcp: true,
+    capabilities: ["zaps:trigger", "actions:execute", "mcp:discover"],
+    requiresApproval: true,
+    description:
+      "Connect over 5,000+ business web apps via Zapier Natural Language Actions API & MCP.",
+    docUrl: "https://nla.zapier.com/docs/getting-started/",
+    instructions: [
+      "Log into nla.zapier.com/get-started/.",
+      "Create a Zapier NLA API Key and enable allowed actions.",
+      "Paste the API key below.",
     ],
   },
 

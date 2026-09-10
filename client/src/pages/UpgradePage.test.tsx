@@ -15,7 +15,11 @@ describe("UpgradePage Component", () => {
 
     expect(screen.getByText(/Upgrade your Hanna Experience/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Starter/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Free/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/500 credits weekly/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1,000 credits per week/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Enterprise/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Custom credits/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/19.99 USD/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/3-Day Free Trial/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/50% off for the first month/i)).toBeInTheDocument();

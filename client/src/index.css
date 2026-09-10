@@ -3658,6 +3658,9 @@ body:has(.auth-loading) {
   margin: 0 auto;
   padding: 40px 32px 80px;
 }
+.upgrade-page-container {
+  width: min(100%, 1080px);
+}
 .page-header {
   display: flex;
   align-items: flex-start;

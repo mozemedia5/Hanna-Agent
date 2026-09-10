@@ -19,7 +19,7 @@ import { useMemo, useState } from "react";
 const categories = [
   {
     label: "E-Commerce & Dropshipping",
-    ids: ["shopify", "woocommerce", "cjdropshipping", "zendrop", "autods"],
+    ids: ["shopify", "woocommerce", "stripe", "cjdropshipping", "zendrop", "autods", "takeapp"],
   },
   {
     label: "Social Media & Customer Reach",
@@ -35,20 +35,25 @@ const categories = [
   },
   {
     label: "Video & Visual Generation",
-    ids: ["heygen", "invideo", "creatify"],
+    ids: ["heygen", "invideo", "creatify", "synthesia", "elevenlabs"],
   },
   {
     label: "Marketing & Ads",
-    ids: ["meta-ads", "google-ads"],
+    ids: ["meta-ads", "google-ads", "hubspot", "mailchimp"],
   },
   {
-    label: "Productivity & Communication",
-    ids: ["google-workspace", "gmail", "slack"],
+    label: "CRM, ERP & Support",
+    ids: ["salesforce", "zendesk", "intercom", "quickbooks", "twilio"],
+  },
+  {
+    label: "Productivity & Collaboration",
+    ids: ["google-workspace", "gmail", "slack", "notion", "airtable", "zapier"],
   },
   {
     label: "Developer & AI Tools",
     ids: [
       "github",
+      "jira",
       "vercel",
       "jules",
       "stitch",

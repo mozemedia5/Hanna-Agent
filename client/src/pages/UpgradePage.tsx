@@ -176,7 +176,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
 
             <div style={{ marginBottom: "20px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                <span style={{ fontSize: "36px", fontWeight: "800", color: "var(--text-primary)" }}>0 USD</span>
+                <span style={{ fontSize: "36px", fontWeight: "800", color: "var(--text-primary)" }}>Free</span>
                 <span style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>/ free forever</span>
               </div>
               <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "6px" }}>
@@ -285,7 +285,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
               </span>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
                 {[
-                  "10,000 credits per month (auto-refreshed)",
+                  "1,000 credits per week (auto-refreshed)",
                   "Priority Gemini 2.5 Flash & Pro reasoning models",
                   "3-day free trial with 50% off month 1 ($9.99 USD)",
                   "Advanced Shopify store automations & inventory sync",
@@ -311,7 +311,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
           </Button>
         </div>
 
-        {/* Business Plan */}
+        {/* Enterprise Plan */}
         <div className="pricing-card" style={{
           background: "var(--surface-raised)",
           border: "1px solid var(--border)",
@@ -324,7 +324,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
               <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Crown size={16} /> Business
+                <Crown size={16} /> Enterprise
               </span>
               <span style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: "11px", padding: "4px 10px", borderRadius: "999px", color: "var(--text-secondary)" }}>
                 Enterprise Grade
@@ -344,7 +344,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
                 </div>
               )}
               <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "6px" }}>
-                For high-volume e-commerce brands and teams requiring maximum agent throughput and custom integrations.
+                For high-volume e-commerce brands and teams requiring custom credits, collaboration, and custom integrations.
               </p>
             </div>
 
@@ -354,11 +354,10 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
               </span>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
                 {[
-                  "50,000 credits per month / team shared pool",
-                  "Dedicated multi-agent Shopify orchestration",
-                  "Custom API key connectors (OpenAI, Claude, Groq)",
-                  "Team collaboration & role permissions",
-                  "Custom connector development & webhooks",
+                  "Custom credits tailored to your team volume",
+                  "Team collaboration & workspace role permissions",
+                  "Dedicated multi-agent Shopify & store orchestration",
+                  "Custom API key connectors & webhooks",
                   "Dedicated account manager & 99.9% SLA uptime"
                 ].map(feat => (
                   <li key={feat} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-primary)" }}>
@@ -373,9 +372,9 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
           <Button
             variant="outline"
             style={{ width: "100%", borderRadius: "12px", padding: "12px" }}
-            onClick={() => handleSelectPlan("Business")}
+            onClick={() => handleSelectPlan("Enterprise")}
           >
-            Upgrade to Business
+            Upgrade to Enterprise
           </Button>
         </div>
       </div>
