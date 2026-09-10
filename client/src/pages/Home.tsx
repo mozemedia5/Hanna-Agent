@@ -531,16 +531,18 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const renderPage = () => {
     const handleBack = () => navigate("chat");
+    let content: React.ReactNode;
     switch (currentPage) {
-      case "settings": return <SettingsPage theme={theme} onThemeChange={handleThemeChange} onBack={handleBack} />;
-      case "connectors": return <ConnectorsPage onBack={handleBack} />;
-      case "integrations": return <IntegrationsPage onBack={handleBack} />;
-      case "collections": return <CollectionsPage onBack={handleBack} />;
-      case "notifications": return <NotificationsPage onBack={handleBack} />;
-      case "profile": return <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />;
-      case "upgrade": return <UpgradePage onBack={handleBack} />;
+      case "settings": content = <SettingsPage theme={theme} onThemeChange={handleThemeChange} onBack={handleBack} />; break;
+      case "connectors": content = <ConnectorsPage onBack={handleBack} />; break;
+      case "integrations": content = <IntegrationsPage onBack={handleBack} />; break;
+      case "collections": content = <CollectionsPage onBack={handleBack} />; break;
+      case "notifications": content = <NotificationsPage onBack={handleBack} />; break;
+      case "profile": content = <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
+      case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
       default: return renderChatPage();
     }
+    return <div className="workspace-body custom-scroll">{content}</div>;
   };
 
   return (

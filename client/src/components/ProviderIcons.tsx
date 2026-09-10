@@ -36,6 +36,16 @@ import {
   siTailwindcss,
   siFacebook,
   siTwitch,
+  siWoocommerce,
+  siMailchimp,
+  siHubspot,
+  siIntercom,
+  siJira,
+  siZendesk,
+  siSalesforce,
+  siQuickbooks,
+  siTwilio,
+  siZapier,
 } from "simple-icons";
 
 import React from "react";
@@ -116,6 +126,66 @@ export function GitHubIcon({ size = 20, className = "" }: IconProps) {
 // ── Vercel (simple-icons) ──
 export function VercelIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siVercel} size={size} className={className} />;
+}
+
+// ── WooCommerce (simple-icons) ──
+export function WooCommerceIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siWoocommerce} size={size} className={className} />;
+}
+
+// ── Mailchimp (simple-icons) ──
+export function MailchimpIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siMailchimp} size={size} className={className} />;
+}
+
+// ── HubSpot (simple-icons) ──
+export function HubSpotIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siHubspot} size={size} className={className} />;
+}
+
+// ── Intercom (simple-icons) ──
+export function IntercomIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siIntercom} size={size} className={className} />;
+}
+
+// ── Jira (simple-icons) ──
+export function JiraIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siJira} size={size} className={className} />;
+}
+
+// ── Zendesk (simple-icons) ──
+export function ZendeskIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siZendesk} size={size} className={className} />;
+}
+
+// ── Salesforce (simple-icons) ──
+export function SalesforceIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siSalesforce} size={size} className={className} />;
+}
+
+// ── QuickBooks (simple-icons) ──
+export function QuickBooksIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siQuickbooks} size={size} className={className} />;
+}
+
+// ── Twilio (simple-icons) ──
+export function TwilioIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siTwilio} size={size} className={className} />;
+}
+
+// ── Zapier (simple-icons) ──
+export function ZapierIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siZapier} size={size} className={className} />;
+}
+
+// ── Beacons (official brand mark — yellow beacon star) ──
+export function BeaconsIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <circle cx="12" cy="12" r="11" fill="#FFDD00" />
+      <path fill="#000" d="M12 4l2.5 5.5L20 12l-5.5 2.5L12 20l-2.5-5.5L4 12l5.5-2.5L12 4z" />
+    </svg>
+  );
 }
 
 // ── WhatsApp (simple-icons) ──
@@ -451,9 +521,11 @@ export function renderBrandIcon(
 
   // E-Commerce
   if (lower.includes("shopify")) return <ShopifyIcon size={size} className={className} />;
+  if (lower.includes("woocommerce")) return <WooCommerceIcon size={size} className={className} />;
   if (lower.includes("zendrop")) return <ZendropIcon size={size} className={className} />;
   if (lower.includes("autods")) return <AutoDSIcon size={size} className={className} />;
   if (lower.includes("cj drop") || lower.includes("cjdropshipping")) return <CJDropshippingIcon size={size} className={className} />;
+  if (lower.includes("beacons")) return <BeaconsIcon size={size} className={className} />;
 
   // Social & Communication
   if (lower.includes("whatsapp")) return <WhatsAppIcon size={size} className={className} />;
@@ -492,12 +564,21 @@ export function renderBrandIcon(
   if (lower.includes("jules")) return <JulesIcon size={size} className={className} />;
   if (lower.includes("stitch")) return <StitchIcon size={size} className={className} />;
 
-  // Productivity
+  // Productivity & Business
   if (lower.includes("slack")) return <SlackIcon size={size} className={className} />;
   if (lower.includes("notion")) return <NotionIcon size={size} className={className} />;
   if (lower.includes("figma")) return <FigmaIcon size={size} className={className} />;
   if (lower.includes("airtable")) return <AirtableIcon size={size} className={className} />;
   if (lower.includes("stripe")) return <StripeIcon size={size} className={className} />;
+  if (lower.includes("mailchimp")) return <MailchimpIcon size={size} className={className} />;
+  if (lower.includes("hubspot")) return <HubSpotIcon size={size} className={className} />;
+  if (lower.includes("intercom")) return <IntercomIcon size={size} className={className} />;
+  if (lower.includes("jira")) return <JiraIcon size={size} className={className} />;
+  if (lower.includes("zendesk")) return <ZendeskIcon size={size} className={className} />;
+  if (lower.includes("salesforce")) return <SalesforceIcon size={size} className={className} />;
+  if (lower.includes("quickbooks")) return <QuickBooksIcon size={size} className={className} />;
+  if (lower.includes("twilio")) return <TwilioIcon size={size} className={className} />;
+  if (lower.includes("zapier")) return <ZapierIcon size={size} className={className} />;
 
   // Video & Content
   if (lower.includes("heygen")) return <HeyGenIcon size={size} className={className} />;
