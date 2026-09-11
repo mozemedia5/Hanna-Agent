@@ -7,6 +7,53 @@ describe("Vercel API entrypoint", () => {
     expect((handler as any).listen).toBeTypeOf("function");
   });
 
+  it("returns 200 JSON on /api root endpoint", async () => {
+    let jsonResult: any = null;
+    let statusCode = 200;
+    const req = { method: "GET", url: "/api", headers: {} } as any;
+    const res: any = {
+      statusCode: 200,
+      status: (code: number) => { statusCode = code; res.statusCode = code; return res; },
+      setHeader: () => res,
+      getHeader: () => undefined,
+      json: (data: any) => { jsonResult = data; return res; },
+      send: (data: any) => { jsonResult = data; return res; },
+      end: () => res,
+    };
+
+    await new Promise<void>(resolve => {
+      (handler as any)(req, res, () => resolve());
+      setTimeout(resolve, 100);
+    });
+
+    expect(statusCode).toBe(200);
+    expect(jsonResult).toEqual({ status: "ok", service: "hanna-agent-api" });
+  });
+
+  it("returns 200 JSON on /api/mcp endpoint", async () => {
+    let jsonResult: any = null;
+    let statusCode = 200;
+    const req = { method: "GET", url: "/api/mcp", headers: {} } as any;
+    const res: any = {
+      statusCode: 200,
+      status: (code: number) => { statusCode = code; res.statusCode = code; return res; },
+      setHeader: () => res,
+      getHeader: () => undefined,
+      json: (data: any) => { jsonResult = data; return res; },
+      send: (data: any) => { jsonResult = data; return res; },
+      end: () => res,
+    };
+
+    await new Promise<void>(resolve => {
+      (handler as any)(req, res, () => resolve());
+      setTimeout(resolve, 100);
+    });
+
+    expect(statusCode).toBe(200);
+    expect(jsonResult?.name).toBe("hanna-mcp-server");
+    expect(Array.isArray(jsonResult?.tools)).toBe(true);
+  });
+
   it("serves firebase configuration from environment variables", async () => {
     const originalEnv = { ...process.env };
     process.env.FIREBASE_API_KEY = "test-api-key";

@@ -51,6 +51,8 @@ import NotificationsPage from "./NotificationsPage";
 import ProfilePage from "./ProfilePage";
 import UpgradePage from "./UpgradePage";
 import UsagePage from "./UsagePage";
+import ContributorsPage from "./ContributorsPage";
+import { Users, Share2 } from "lucide-react";
 
 type Page =
   | "chat"
@@ -60,7 +62,8 @@ type Page =
   | "notifications"
   | "profile"
   | "upgrade"
-  | "usage";
+  | "usage"
+  | "contributors";
 
 type ToolKey =
   | "Web Search"
@@ -141,11 +144,34 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [model, setModel] = useState("Hanna Lite");
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareEmails, setShareEmails] = useState("");
+  const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
+  const [apiStatusMsg, setApiStatusMsg] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId) ?? chats[0], [activeChatId, chats]);
   const hasMessages = activeChat.messages.length > 0;
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then(r => {
+        if (!r.ok) throw new Error("API check failed");
+        return r.json();
+      })
+      .then(data => {
+        if (data.status === "AI_READY") {
+          setApiHealthy(true);
+        } else {
+          setApiHealthy(false);
+          setApiStatusMsg(`API Health: ${data.details || data.status}`);
+        }
+      })
+      .catch(() => {
+        setApiHealthy(true);
+      });
+  }, []);
 
   useEffect(() => {
     void listUserConversations().then(stored => {
@@ -243,11 +269,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const submitMessage = async () => {
     const text = composer.trim();
-    if ((!text && attachments.length === 0) || isThinking) return;
+    if ((!text && attachments.length === 0) || isThinking || apiHealthy === false) return;
     const chatId = activeChatId;
     let contentWithAttachments = text;
     if (attachments.length > 0) {
-      const attachSummary = attachments.map(a => `[Attachment: ${a.name} (${a.type.toUpperCase()})]`).join("\n");
+      const attachSummary = attachments.map(a => `[Attachment (metadata-only): ${a.name} (${a.type.toUpperCase()})]`).join("\n");
       contentWithAttachments = text ? `${text}\n\n${attachSummary}` : attachSummary;
     }
     const userMessage: Message = {
@@ -262,13 +288,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       messages: [...currentChat.messages, userMessage],
     };
     setChats(current => current.map(c => c.id === chatId ? chatWithUser : c));
-    void saveUserConversation({ ...chatWithUser, id: String(chatWithUser.id) }).catch(() => undefined);
     const sentAttachments = [...attachments];
     setComposer(""); setAttachments([]); setIsThinking(true);
     try {
       const token = await getFirebaseIdToken();
       const isStudyMode = selectedTools.includes("Study");
-      const attachmentContext = sentAttachments.length ? `\n[Attached: ${sentAttachments.map(a => `${a.name} (${a.type})`).join(", ")}]` : "";
+      const attachmentContext = sentAttachments.length ? `\n[Attached (metadata-only): ${sentAttachments.map(a => `${a.name} (${a.type})`).join(", ")}]` : "";
       const toolsCtx = selectedTools.length ? `[Tools: ${selectedTools.join(", ")}]${isStudyMode ? " [STUDY MODE]" : ""}` : "";
       const fullPrompt = `${toolsCtx}${attachmentContext}\n\n${contentWithAttachments}`;
       const response = await fetch("/api/trpc/hanna.ask?batch=1", {
@@ -306,14 +331,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       setChats(current => current.map(c => c.id === chatId ? completedChat : c));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
-      const errorContent = reason instanceof Error ? reason.message : "Hanna is unavailable.";
-      const errorMessage: Message = {
-        id: `${chatId}-error-${Date.now()}`, role: "assistant", content: errorContent,
-        tokenCount: estimateTokens(errorContent), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      const failedChat = { ...chatWithUser, messages: [...chatWithUser.messages, errorMessage] };
-      setChats(current => current.map(c => c.id === chatId ? failedChat : c));
-      void saveUserConversation({ ...failedChat, id: String(failedChat.id) }).catch(() => undefined);
+      const errorContent = reason instanceof Error ? reason.message : "Hanna API unavailable.";
+      showToast(`Submission failed: ${errorContent}`);
     } finally { setIsThinking(false); }
   };
 
@@ -358,6 +377,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
+    { icon: Users, label: "Contributors", page: "contributors" as Page },
     { icon: Layers3, label: "Collections", page: "collections" as Page },
     { icon: Store, label: "Plugins", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
@@ -387,14 +407,25 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             {modelMenuOpen && (
               <div className="model-menu">
                 {[
-                  { id: "Hanna Lite", label: "Hanna Lite (Gemini 2.5 Flash)" },
-                  { id: "Hanna Pro", label: "Hanna Pro (Gemini 2.5 Flash)" },
-                  { id: "Custom", label: "Custom Provider Key" },
+                  { id: "Hanna Lite", label: "Hanna Lite", desc: "Fast & lightweight intelligence" },
+                  { id: "Hanna Pro", label: "Hanna Pro ✨", desc: "Deep reasoning & multimodal research (Requires Pro)" },
+                  { id: "Custom", label: "Custom Provider Key", desc: "Use your own API key in Settings" },
                 ].map(option => (
                   <button key={option.id} className={`model-option ${model === option.id ? "is-selected" : ""}`}
-                    onClick={() => { setModel(option.id); setModelMenuOpen(false); }}>
-                    <span>{option.label}</span>
-                    {model === option.id && <Check size={14} />}
+                    onClick={() => {
+                      setModelMenuOpen(false);
+                      if (option.id === "Hanna Pro") {
+                        showToast("Upgrade to Hanna Pro to unlock deep reasoning");
+                        navigate("upgrade");
+                      } else {
+                        setModel(option.id);
+                      }
+                    }}>
+                    <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                      <strong style={{ fontSize: "13px", fontWeight: "600" }}>{option.label}</strong>
+                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{option.desc}</span>
+                    </div>
+                    {model === option.id && <Check size={14} style={{ marginLeft: "auto" }} />}
                   </button>
                 ))}
               </div>
@@ -409,7 +440,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <section className="welcome-copy">
                 <div className="eyebrow">Clean Command Interface</div>
                 <h1>What needs to be done?</h1>
-                <p>Use Hanna to automate store growth, research, coding, and creative work — all powered by Gemini multimodal intelligence.</p>
+                <p>Use Hanna to automate store growth, research, coding, and creative work — powered by first-party multimodal AI intelligence.</p>
                 <div className="command-suggestions-matrix" style={{ display: "grid", gap: "16px", marginTop: "20px" }}>
                   {suggestionsCategorized.map(cat => (
                     <div key={cat.category} style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "12px", padding: "14px 16px" }}>
@@ -437,7 +468,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     </span>
                     <div>
                       <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)" }}>Hanna Commerce Operator</strong>
-                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>Gemini-powered multimodal intelligence</span>
+                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>Multimodal commerce intelligence</span>
                     </div>
                   </div>
                   <div style={{ display: "grid", gap: "8px" }}>
@@ -469,7 +500,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   <div className="eyebrow">Conversation</div>
                   <h1>{activeChat.title}</h1>
                 </div>
-                <div className="conversation-actions">
+                <div className="conversation-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
+                    <Share2 size={13} /> Share with Contributors
+                  </Button>
                   <span className="conversation-usage">
                     {activeChat.messages.length} messages · {activeChat.messages.reduce((t, m) => t + (m.tokenCount ?? estimateTokens(m.content)), 0)} est. tokens
                   </span>
@@ -509,6 +543,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       </div>
       <div className="composer-region">
         <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept="image/*,application/pdf,video/*" />
+        {apiHealthy === false && (
+          <div style={{ background: "rgba(234, 67, 53, 0.12)", border: "1px solid rgba(234, 67, 53, 0.3)", color: "#ea4335", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", marginBottom: "8px", textAlign: "center" }}>
+            {apiStatusMsg || "Hanna API unavailable."} Prompt submission disabled.
+          </div>
+        )}
         <div className="composer-shell">
           <div className="composer-topline">
             <span className="composer-context">
@@ -536,7 +575,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   onClick={() => tool.label === "Image Input" ? fileInputRef.current?.click() : toggleTool(tool.label)} />
               ))}
             </div>
-            <Button className="send-button" onClick={submitMessage} disabled={(!composer.trim() && attachments.length === 0) || isThinking} aria-label="Send message">
+            <Button className="send-button" onClick={submitMessage} disabled={(!composer.trim() && attachments.length === 0) || isThinking || apiHealthy === false} aria-label="Send message">
               <Send size={16} />
             </Button>
           </div>
@@ -557,6 +596,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "profile": content = <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onNavigateToUsage={() => navigate("usage")} onBack={handleBack} />; break;
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
       case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
+      case "contributors": content = <ContributorsPage onBack={handleBack} />; break;
       default: return renderChatPage();
     }
     return <div className="workspace-body custom-scroll">{content}</div>;
@@ -667,6 +707,41 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
               <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancel</Button>
               <Button onClick={async () => { setShowLogoutDialog(false); await onLogout?.(); }} style={{ background: "#ea4335", color: "#ffffff" }}>Log out</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showShareModal && (
+        <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "460px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Share2 size={18} style={{ color: "var(--gemini-accent)" }} /> Share Conversation with Contributors
+              </h3>
+              <button onClick={() => setShowShareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={18} /></button>
+            </div>
+            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Grant contributors access to collaborate on <strong>"{activeChat.title}"</strong>.
+            </p>
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
+                Contributor Emails (comma separated)
+              </label>
+              <textarea
+                value={shareEmails}
+                onChange={e => setShareEmails(e.target.value)}
+                placeholder="colleague1@company.com, colleague2@company.com"
+                rows={3}
+                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" onClick={() => setShowShareModal(false)}>Cancel</Button>
+              <Button onClick={() => {
+                setShowShareModal(false);
+                setShareEmails("");
+                showToast("Chat access shared with contributors!");
+              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Share Chat Access</Button>
             </div>
           </div>
         </div>

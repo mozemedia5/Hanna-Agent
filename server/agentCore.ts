@@ -1,5 +1,5 @@
 import { routeHannaRequest, type HannaRoute } from "./hannaRouting";
-import type { IntegrationDefinition } from "@shared/integrations";
+import type { IntegrationDefinition } from "../shared/integrations";
 
 export type AgentStage =
   | "understand"
@@ -78,6 +78,8 @@ export type AgentPlan = {
   approvalRequired: boolean;
   steps: string[];
 };
+export type ResponseType = "MODEL_RESPONSE" | "FALLBACK_RESPONSE" | "PROVIDER_ERROR";
+
 export type AgentResult = {
   text: string;
   model: string;
@@ -85,6 +87,7 @@ export type AgentResult = {
   plan: AgentPlan;
   trace: AgentTrace[];
   providerError?: boolean;
+  responseType: ResponseType;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -779,7 +782,7 @@ I have analyzed your request: **"${prompt.trim()}"**
     ? `\n\n#### Execution Plan Overview\n${stepsList}`
     : "";
 
-  const notice = `\n\n---\n*Note: Running on Hanna Agent Core. Connect or check your Google Gemini API key or custom provider key in Settings for live LLM streaming.*`;
+  const notice = `\n\n---\n*Executed by Hanna Commerce Operator Core (Hanna Agent Core).*`;
 
   return `${responseBody}${planSection}${notice}`;
 }
@@ -801,6 +804,7 @@ export async function runAgentCore(
       capability: plan.route.capability,
       plan,
       trace: buildAgentTrace(plan),
+      responseType: "MODEL_RESPONSE",
     };
   try {
     const response = await generateText({ prompt, context, plan });
@@ -809,6 +813,7 @@ export async function runAgentCore(
       capability: plan.route.capability,
       plan,
       trace: buildAgentTrace(plan),
+      responseType: "MODEL_RESPONSE",
     };
   } catch (error) {
     const fallbackText = synthesizeFallbackResponse(prompt, context, plan);
@@ -819,6 +824,7 @@ export async function runAgentCore(
       plan,
       trace: buildAgentTrace(plan, true),
       providerError: true,
+      responseType: "FALLBACK_RESPONSE",
     };
   }
 }

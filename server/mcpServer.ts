@@ -3,7 +3,7 @@
  * Exposes connected plugins and tools via JSON-RPC 2.0 (tools/list, tools/call)
  */
 
-import { integrations, type IntegrationDefinition } from "@shared/integrations";
+import { integrations, type IntegrationDefinition } from "../shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import { getConnectorCredential, type ConnectorCredential } from "./connectorDb";
 
