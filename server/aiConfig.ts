@@ -40,6 +40,9 @@ export function resolveProviderAndModel(
     process.env.GEMINI_MODEL || DEFAULT_AI_MODEL
   ).trim();
 
+  const envModel = (process.env.GEMINI_MODEL || "").trim();
+  const effectiveDefaultModel = envModel || DEFAULT_AI_MODEL;
+
   if (
     !requestedModelOrProvider ||
     !requestedModelOrProvider.trim() ||
@@ -50,11 +53,9 @@ export function resolveProviderAndModel(
     requestedModelOrProvider === "default" ||
     requestedModelOrProvider.toLowerCase().startsWith("hanna")
   ) {
-    const isPro = requestedModelOrProvider?.toLowerCase().includes("pro");
-    const targetModel = isPro ? HANNA_PRO_MODEL : HANNA_LITE_MODEL;
     return {
       provider: DEFAULT_AI_PROVIDER,
-      model: targetModel,
+      model: effectiveDefaultModel,
       isCustom: false,
     };
   }

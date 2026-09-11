@@ -278,9 +278,17 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       });
       const responseText = await response.text();
       let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string; providerError?: boolean } } }; error?: { json?: { message?: string } } }> | null = null;
-      try { payload = JSON.parse(responseText); } catch { throw new Error("Hanna is warming up. Please try again."); }
+      try {
+        payload = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          !response.ok
+            ? `Server HTTP ${response.status}: ${responseText.slice(0, 150) || "Invalid server response."}`
+            : "Invalid JSON response from Hanna API."
+        );
+      }
       if (Array.isArray(payload) && payload[0]?.error) throw new Error(payload[0].error?.json?.message || "Hanna encountered an issue.");
-      if (!response.ok || !payload) throw new Error("Hanna encountered a server response issue.");
+      if (!response.ok || !payload) throw new Error(`Server returned status ${response.status}`);
       const data = payload[0]?.result?.data;
       const isJson = data && "json" in data;
       const responseData = isJson ? (data as any).json : undefined;
