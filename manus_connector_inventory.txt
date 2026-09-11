@@ -1,0 +1,392 @@
+390 connector(s):
+fe9e9390-17c1-4928-b758-b7d232a0a8b9  1inch  [mcp/http]  https://api.1inch.com/mcp/protocol  disabled
+b5a0f606-9a57-4a78-91c6-871dc40333ce  AWS Knowledge  [mcp/stdio]  uvx  disabled
+d19e28ca-86ad-4b92-907f-92638df0741c  AWS Marketplace  [mcp/http]  https://marketplace-mcp.us-east-1.api.aws/mcp  disabled
+66016084-fe65-4335-ac7a-1456e9bdc3ed  AWeber  [mcp/http]  https://mcp.aweber.com/mcp  disabled
+1952714c-7024-434c-a873-8428e4d3ea85  ActiveCampaign  [mcp/http]  disabled
+83c8c16d-c638-43ff-8f43-32c34a9d57b3  Adzviser  [mcp/http]  https://mcp.adzviser.com/http  disabled
+e04526a4-a794-45dc-9e7f-e37fabbff09e  Agent Opus  [mcp/http]  https://api.opus.pro/api/agent-mcp  disabled
+286a7dcf-945e-4184-a8fc-80d28192acdf  AgentMail  [mcp/http]  https://mcp.agentmail.to/mcp  disabled
+d6edde3e-95ee-4e8a-b3fb-d6ad1d69884d  Ahrefs  [mcp/http]  https://api.ahrefs.com/mcp/mcp  disabled
+305b3b49-32ce-4b2b-a355-3492fe85d17f  Ahrefs API  [api]  disabled
+88bc2d5b-5939-4975-b7b1-329a993372ab  AirOps  [mcp/http]  https://app.airops.com/mcp  disabled
+d669ca60-22cf-4e16-93d4-845071f9216c  Airtable  [mcp/http]  https://mcp.airtable.com/mcp  disabled
+0f3fdcbd-000f-432e-b41c-80af5e502424  AllTrails  [mcp/http]  https://www.alltrails.com/mcp  disabled
+e3cb9fd4-d7fc-4922-aef6-11f96c6c8e67  Alma Food  [mcp/http]  https://mcp.alma.food  disabled
+a9b81503-d0b6-4ea0-bba6-0bb51bffabd4  Alpaca  [mcp/stdio]  uvx  disabled
+9d600184-8bda-4b60-96d4-9e8e1a11b641  Alpha Vantage  [mcp/http]  disabled
+3de2a6fa-79aa-4966-b84f-770da5284c80  Amplemarket  [mcp/http]  https://mcp.amplemarket.com/mcp  disabled
+fecee2b1-04ac-44b9-abce-9bc807057740  Amplitude  [mcp/http]  disabled
+d7a2e55b-5a4b-41ca-b5fc-517ad5434152  Anchor Browser  [api]  disabled
+815b5a30-463e-4662-8da7-081e3b5dfc7d  Anthropic  [api]  disabled
+174c07f5-ae63-48c4-8c83-66606b3afac3  Antimetal  [mcp/http]  https://mcp.antimetal.com  disabled
+800d6e26-f120-4033-9c78-bba4944bded8  Apify  [mcp/http]  https://mcp.apify.com/  disabled
+cf19c9d0-5f91-4e7a-af04-593febb5c80c  Apify  [builtin]  disabled
+b07923ac-740e-4dbc-9ed2-c7681f3d451d  Apollo  [mcp/http]  https://mcp.apollo.io/mcp  disabled
+bb2a05d0-d728-48eb-b796-9b71e4f9c9ee  Apollo API  [api]  disabled
+219459c8-f04d-41af-9a0d-6f9159bf9205  Asana  [mcp/http]  https://mcp.asana.com/v2/mcp  disabled
+71920651-2e68-4f19-b4b7-40060e54b632  Ashby  [mcp/http]  https://mcp.ashbyhq.com/mcp/v1  disabled
+1c98d393-9c54-4a2c-9622-acf440880844  Atlan  [mcp/http]  https://mcp.atlan.com/mcp  disabled
+74d21d62-2ba7-4840-a918-c8327db5c711  Atlassian  [mcp/http]  https://mcp.atlassian.com/v1/mcp/authv2  disabled
+732133c4-f1df-4d80-a3b5-6cd027db8f0e  Attio  [mcp/http]  https://mcp.attio.com/mcp  disabled
+02c502e8-90fa-4c5c-bfd0-cf0b84fe6223  Aurora  [mcp/http]  https://mcp.ai.consilio.com/mcp  disabled
+950d8712-dbac-4e6e-83e6-08bfe8bdb5e1  Ayrshare  [mcp/http]  https://api.ayrshare.com/mcp  disabled
+94a42d27-0f23-4d3c-a271-f92a99646c38  Base  [mcp/http]  https://mcp.base.org  disabled
+62691c2e-728a-47bd-902d-beb6fec927f2  Bigdata.com  [mcp/http]  https://mcp.bigdata.com/  disabled
+27e468cb-84c3-41dd-afdb-c65255c30b0e  Bitly  [mcp/http]  https://api-ssl.bitly.com/v4/mcp  disabled
+1c93f18e-4a6c-48c9-bb0e-11750e39c43d  Blockscout  [mcp/http]  https://mcp.blockscout.com/mcp  disabled
+272203d3-dc74-43c6-9861-7b87ccee05c0  Blotato  [mcp/http]  https://mcp.blotato.com/mcp  disabled
+075d1845-4c4e-4d30-bb83-139b97c81ccf  Box  [mcp/http]  https://mcp.box.com/  disabled
+96f3b000-7e83-4795-9b8d-37b6992c1293  Braintrust  [mcp/http]  disabled
+611d5dc5-2ab3-4b45-93fb-347976957485  Brand24  [mcp/http]  https://mcp.brand24.com/v1/mcp  disabled
+f6e2a716-fee2-44bb-9a02-c4617f7c6687  Brandfetch  [mcp/http]  https://mcp.brandfetch.io/mcp  disabled
+a360b771-871d-4691-ba18-fa525a7abaf8  Braze  [mcp/stdio]  uvx  disabled
+4bf6821f-b5e5-48a3-829e-b599d901047d  Brex  [mcp/http]  https://api.brex.com/mcp  disabled
+c9a0aa02-b156-4ed8-885a-4c2b55af5efd  Bright Data  [mcp/http]  https://mcp.brightdata.com/mcp  disabled
+3a912783-cedc-4bfc-ab5e-23baeef78ff6  Buffer  [mcp/http]  https://mcp.buffer.com/mcp  disabled
+a296c0bf-9c02-445c-a20f-876f91f1d6a0  Buildkite  [mcp/http]  https://mcp.buildkite.com/mcp  disabled
+7459e573-1517-4ea0-bce3-9ef4d6d45f27  COROS  [mcp/http]  https://mcp.coros.com/mcp  disabled
+540e1b53-1174-4bb3-a1fa-e8f9cdae1ac6  Cafe24  [mcp/http]  https://mcp-catalog.cafe24.com/api/mcp  disabled
+239e489b-264d-403e-ba51-ca74f874780f  Cal.com  [mcp/http]  https://mcp.cal.com/mcp  disabled
+1c75a0d8-ce41-4654-93d7-ad4e18a60979  CalendarBridge  [mcp/http]  https://manageapi.calendarbridge.com/mcp  disabled
+3979b4b3-7e02-4eee-b9e1-746af9cb54d7  Calendly  [mcp/http]  https://mcp.calendly.com  disabled
+c63d86db-4c98-483a-af0c-f94721d7f2a5  Canva  [mcp/http]  https://mcp.canva.com/mcp  disabled
+fb31a5ef-0b86-476a-9f31-97ee62a50ca5  Carta CRM  [mcp/http]  https://mcp.app.carta.com/mcp  disabled
+07c33464-f0d6-47a2-a782-1208bb0f2d00  ChartMogul  [mcp/http]  https://mcp.chartmogul.com  disabled
+d28c3299-7e5f-4151-8dc8-4413f5f68d9d  Circleback  [mcp/http]  https://app.circleback.ai/api/mcp  disabled
+53c711fc-0e8e-4292-995f-e21a09761244  Clarify  [mcp/http]  https://api.clarify.ai/mcp  disabled
+457b21cc-1f63-425e-b259-12d13d9adbcd  Clay  [mcp/http]  https://api.clay.com/v3/mcp  disabled
+25c4beb1-1478-4e2e-a379-08b2c1815b7e  Clerk  [mcp/http]  https://mcp.clerk.com/mcp  disabled
+4b0fc791-cb24-4f36-a009-4906bd13bdd4  ClickHouse  [mcp/http]  https://mcp.clickhouse.cloud/mcp  disabled
+e08b2bda-a4a6-488a-b397-c72f0923bdf4  ClickUp  [mcp/http]  https://mcp.clickup.com/mcp  disabled
+9b37aa72-4089-4f25-b774-122860ba61fa  Close  [mcp/http]  https://mcp.close.com/mcp  disabled
+52501e3d-5390-489a-aa5f-8b9bed9f3fa3  Cloudflare  [mcp/http]  https://mcp.cloudflare.com/mcp  disabled
+80bca437-287e-4407-adf0-1a0b298528e5  Cloudflare API  [api]  disabled
+119e6b13-c2e3-48db-b568-f82191de6b4e  Cloudflare Worker Bindings  [mcp/http]  https://bindings.mcp.cloudflare.com/mcp  disabled
+c088a9e9-a73b-43ac-afaa-3974926add33  Cloudinary Asset  [mcp/http]  https://asset-management.mcp.cloudinary.com/mcp  disabled
+e8df35cd-dddd-410c-8360-c20ca236bc05  Clover API  [api]  disabled
+9318174d-49bc-41d8-9d6d-3f773c93d37f  CockroachDB Cloud  [mcp/http]  https://cockroachlabs.cloud/mcp  disabled
+741580d1-26c7-40b6-8a77-8294b102be00  Coda  [mcp/http]  https://coda.io/apis/mcp  disabled
+bbec86c8-29f6-4149-9bba-d5c66bd6a701  Cohere  [api]  disabled
+4bd48293-0b39-41f0-b6a6-a441dd0c3310  CoinDesk  [mcp/http]  https://mcp.coindesk.com/mcp  disabled
+0fc956e1-3d91-4e38-9f04-158adf39e99f  CoinGecko  [mcp/http]  https://mcp.api.coingecko.com/mcp  disabled
+c835730f-9dd5-4abc-8d1c-0fcb26b3005f  CoinMarketCap  [mcp/http]  https://mcp.coinmarketcap.com/mcp  disabled
+17dfa1cc-38e8-4e8a-9a45-43b66e6e82e8  Comfy Cloud  [mcp/http]  https://cloud.comfy.org/mcp  disabled
+073bec7a-29fc-4335-a7e8-7dffbb7cda95  Common Room  [mcp/http]  https://mcp.commonroom.io/mcp  disabled
+9563031f-fad1-4ddc-8152-cb6eb7b23c61  Consensus  [mcp/http]  https://mcp.consensus.app/mcp  disabled
+86682d96-1174-4665-a12f-1ab9cf666493  Contentsquare  [mcp/http]  https://api.contentsquare.com/mcp  disabled
+a5dc4c89-0d47-4494-9654-af4049f95e1b  Context7  [mcp/http]  https://mcp.context7.com/mcp/oauth  disabled
+748c834e-2d88-4187-a529-036176ba5971  Coralogix  [mcp/http]  disabled
+092ba501-ddbc-475e-b66a-da0cf57b51c3  Craft  [mcp/http]  https://mcp.craft.do/my/mcp  disabled
+b5d7909b-c040-4017-8bf6-78652d579a6d  Crossbeam  [mcp/http]  https://mcp.crossbeam.com  disabled
+7a739d5e-b40b-4c56-8192-51a7541a25fa  Crypto.com  [mcp/http]  https://mcp.crypto.com/market-data/mcp  disabled
+5eaef102-01a1-4c92-8dea-7c9af51b4a7f  Customer.io  [mcp/http]  disabled
+a845c454-4e91-41eb-a907-c377f16fe9c9  DataFast  [mcp/http]  https://datafa.st/api/mcp  disabled
+f59ceda6-308c-4bdc-a943-ccf52ae74f17  DataForSEO  [mcp/http]  https://mcp.dataforseo.com/http  disabled
+9fde8e22-0d4e-44e3-a32c-0fe24c12df94  Databricks  [mcp/http]  disabled
+68bc3770-5158-4e94-9a49-51062294195a  Day AI  [mcp/http]  https://day.ai/api/mcp  disabled
+cd19238f-42ec-4780-a33b-42c36c0adc08  Deel  [mcp/http]  https://api.letsdeel.com/mcp  disabled
+8fba2ec9-d06c-43a0-aa67-5ed81b82615f  Deepnote  [mcp/http]  https://deepnote.com/mcp  disabled
+08c7b859-2521-4f4c-af48-f8be1c416080  Demodesk  [mcp/http]  https://demodesk.com/mcp  disabled
+65ca3b32-d94a-4405-880e-bb6057ab9c84  Descript  [mcp/http]  https://api.descript.com/v2/mcp  disabled
+31ddef41-f6a8-469c-ad04-94b88939405b  DevRev  [mcp/http]  https://api.devrev.ai/mcp/v1  disabled
+f5771bcf-1bf8-45be-b9e7-c35e60f0907d  Dex  [mcp/http]  https://mcp.getdex.com/mcp  disabled
+ac3b024b-f3ad-4ce4-a4b8-2e417b3cfd40  Dice  [mcp/http]  https://mcp.dice.com/mcp  disabled
+888c4ef0-4ed7-4f8b-ade0-55a86fc531dc  Dify  [mcp/http]  disabled
+615cdfb2-ea15-48ff-b3bd-862296cf5d44  Digits  [mcp/http]  https://api.digits.com/mcp  disabled
+764963be-f316-449d-859d-2cb0cb872c43  Dovetail  [mcp/http]  https://dovetail.com/api/mcp  disabled
+8caf1f32-3c1e-4af7-81b9-7d24258d714d  Dropbox  [mcp/http]  https://mcp.dropbox.com/mcp  disabled
+2918a878-d84d-47af-94ce-4967b72506f5  Dropbox API  [api]  disabled
+e6621f29-52b9-47cb-beee-b87a7f29bae4  Dupe  [mcp/http]  https://mcp.dupe.com/mcp  disabled
+9cd179e9-7c51-4a8a-a0c1-d6ad8cc0f31a  Egnyte  [mcp/http]  https://mcp-server.egnyte.com/mcp  disabled
+ab5f24cd-849e-42db-a41d-08ab3bcac185  Elastic Email  [mcp/http]  https://mcp.elasticemail.com  disabled
+9effa626-1855-441a-94c9-2335aeb3026c  ElevenLabs  [mcp/stdio]  uvx  disabled
+23181678-c628-4c53-9a77-36778a36bbe5  ElevenLabs API  [api]  disabled
+ec1bf52c-1300-4dc3-889b-e7fd65e248ce  Elicit  [mcp/http]  https://elicit.com/api/mcp  disabled
+2fbd0626-6165-4c91-ba9c-d86d2feb3010  Enterpret  [mcp/http]  https://wisdom-api.enterpret.com/server/mcp  disabled
+e7bc05ee-23c8-4028-a5d2-286b8096091f  Era Context  [mcp/http]  https://context.era.app  disabled
+891046b3-aa1b-4096-ac3e-1582e9e1d21b  Eraser  [mcp/http]  https://app.eraser.io/api/mcp  disabled
+84a78bf7-2321-43b5-9ac5-72362ffa6e7d  Etsy  [mcp/http]  https://mcp.api.etsycloud.com/mcp  disabled
+06b191aa-ad05-4b83-a2a4-5bb029a23255  Exa  [mcp/http]  https://mcp.exa.ai/mcp  disabled
+19ba6a76-dd6c-43ae-9279-84d5577ed1ae  Excalidraw  [mcp/http]  https://api.excalidraw.com/api/v1/mcp  disabled
+3cb9f78b-b53a-49ef-b65e-b56eeddd641d  Explorium  [mcp/sse]  https://mcp.explorium.ai/sse  disabled
+05e69e67-9669-4f1c-8332-baa9763b806e  FactSet  [mcp/http]  https://mcp.factset.com/content/v1  disabled
+4a55063b-1c0b-4144-8aac-98b59cb185f4  Fathom  [mcp/http]  https://api.fathom.ai/mcp  disabled
+a1eaa353-1583-46f5-a8c0-88de2d444f26  Fellow  [mcp/http]  https://fellow.app/mcp  disabled
+d01047d7-002c-4c0d-91ef-553ff01ccf86  Ferryhopper  [mcp/http]  https://mcp.ferryhopper.com/mcp  disabled
+e4ae227a-d617-40fa-9bfd-9ccfa0714682  Fever  [mcp/http]  https://data-search.apigw.feverup.com/mcp  disabled
+404dc7af-6fde-46de-96b1-a5f1a509eba2  Fibery  [mcp/http]  https://mcp.fibery.io/mcp  disabled
+90e6d1d1-8f07-450c-bb95-e382c95ee293  Financial Datasets  [mcp/http]  https://mcp.financialdatasets.ai/  disabled
+f9b8d7a6-5c4b-3a2b-1c0d-e9f8g7h6i5j4  Financial Modeling Prep  [mcp/http]  https://financialmodelingprep.com/mcp  disabled
+4fb7621f-a8d7-4fce-957a-c7b859ecc52d  FireHydrant  [mcp/stdio]  npx  disabled
+abb9ed36-e693-44ab-be3d-1f5c3bb02294  Firecrawl  [mcp/stdio]  npx  disabled
+1b62b634-58e9-4b49-b327-339cc5aaeaf5  Fireflies  [mcp/http]  https://api.fireflies.ai/mcp  disabled
+428f9f82-7d85-4315-a525-410b12a02d90  Fiscal  [mcp/http]  https://api.fiscal.ai/mcp  disabled
+58e694fc-4f51-4888-b813-ad4c26528f9d  Fitbod  [mcp/http]  https://mcp.fitbod.me/mcp  disabled
+717044af-7230-45f7-aae8-0d2ea3318aa1  Flightradar24  [mcp/stdio]  npx  disabled
+63bb0748-265e-4e94-b0e0-4a2e6d5731f1  Flux  [mcp/http]  https://mcp.bfl.ai  disabled
+5c305236-d14e-43f7-93ff-b288afd26f09  Flux API  [api]  disabled
+d4ca8a53-5d8b-4dc0-a279-0b674e256cbf  FullEnrich  [mcp/http]  https://mcp.fullenrich.com/mcp  disabled
+b7112d64-8f58-44a6-b3a2-52aa77a73786  Gamma  [mcp/http]  https://mcp.gamma.app/mcp  disabled
+29862da2-9c29-419d-8f44-24e0183bdfa0  GitBook  [mcp/http]  https://mcp.gitbook.com/mcp  disabled
+8387945e-9687-4a71-86b4-8a220dbd5b6b  GitHits  [mcp/http]  https://mcp.githits.com  disabled
+bbb0df76-66bd-4a24-ae4f-2aac4750d90b  GitHub  [builtin]  enabled
+9444d960-ab7e-450f-9cb9-b9467fb0adda  Gmail  [builtin]  disabled
+a1cfc9b3-0021-4772-902c-2ac19b2d1f75  GoCardless  [mcp/http]  https://mcp.gocardless.com  disabled
+93e8b6c1-2fba-4541-86af-d5d93430c138  GoDaddy  [mcp/http]  https://api.godaddy.com/v1/domains/mcp  disabled
+ec8a5b76-3b03-41a8-b8ad-fc34feb707ef  Google Ads  [builtin]  disabled
+dd5abf31-7ad3-4c0b-9b9a-f0a576645baf  Google Calendar  [builtin]  disabled
+4157dedf-1326-4be8-9295-51416c7dba62  Google Gemini  [api]  disabled
+f0fe31ba-4280-4df6-84cc-5cd2a6012e25  Google Maps  [mcp/http]  https://mapstools.googleapis.com/mcp  disabled
+f8900a57-4bd7-46cc-83a3-5ebd2420a817  Google Workspace  [builtin]  disabled
+56f6e9cf-3f6e-4ce0-9564-ad725bc6c5ee  Grafana  [mcp/stdio]  uvx  disabled
+67e561db-5782-4100-8bd5-fbce231ad6c8  Grain  [mcp/http]  https://api.grain.com/_/mcp  disabled
+0d21d573-1ee0-484b-8e91-aed6534dbb19  Granola  [mcp/http]  https://mcp.granola.ai/mcp  disabled
+d2256ab1-c135-4260-9236-67460d1b40e0  Granted  [mcp/http]  https://grantedai.com/api/mcp/mcp  disabled
+491cde51-195c-4e72-96ea-8d80557c3b58  Grok  [api]  disabled
+7d7c5257-340b-4164-b914-8fcee1bbf326  Guru  [mcp/http]  https://mcp.api.getguru.com/mcp  disabled
+3d4e0264-71cd-4531-82d0-bd500bd58691  Gusto  [mcp/http]  https://mcp.api.gusto.com  disabled
+43fed8a7-9be6-4fa5-9248-f2a678d70939  Habitify  [mcp/http]  https://mcp.habitify.me/mcp  disabled
+2a5e3c4e-2b8d-4e37-a232-5616a53ce949  Harmonic  [mcp/http]  https://mcp.api.harmonic.ai  disabled
+8c77aef3-bb46-41ab-ab4f-d837c882a3de  Harness  [mcp/http]  https://mcp.harness.io/mcp  disabled
+970396d0-b13a-43aa-b2d6-f14f05640b37  Helium 10  [mcp/http]  https://mcp.helium10.com/mcp  disabled
+8b4b397a-2f2f-40ea-ac9a-e6b621105a79  Heptabase  [mcp/http]  https://api.heptabase.com/mcp  disabled
+d35c2577-dc03-4d17-bf13-c3382e4cb602  Hex  [mcp/http]  https://app.hex.tech/mcp  disabled
+c183add9-c22c-4199-b7f2-d885571afa3a  HeyGen  [mcp/http]  https://mcp.heygen.com/mcp/v1/  disabled
+062ba883-f91d-46f2-b1d1-864924865703  HeyGen API  [api]  disabled
+f35bac78-47bf-475d-bb9d-0d5d39b1a0e5  Higgsfield  [mcp/http]  https://mcp.higgsfield.ai/mcp  disabled
+d97da95a-31ff-4325-b2f4-684f6e8d1efc  HighLevel LeadConnector  [mcp/http]  https://services.leadconnectorhq.com/mcp  disabled
+7f2650b0-b936-4ddd-8832-a2a86793ce99  Honeycomb  [mcp/http]  disabled
+b389f747-6221-41aa-9dbb-732a97a02ea6  HubSpot  [mcp/http]  https://mcp.hubspot.com  disabled
+bdfa81ea-c0ca-4022-bba1-805c48b583c1  Hugging Face  [mcp/http]  https://huggingface.co/mcp?login  disabled
+a4fc87c3-c8bf-4344-a776-3b42b0546f13  Hume  [mcp/stdio]  npx  disabled
+06bc4820-e95b-42b3-ab2f-45b5a9d7bd04  Hunter  [mcp/http]  https://mcp.hunter.io/mcp  disabled
+37b2fd1e-6e11-41a7-8289-a13de5dcea26  IcePanel  [mcp/http]  https://mcp.icepanel.io/mcp  disabled
+3e830229-ba58-4a4b-9876-642f54d68fa5  Instacart  [mcp/http]  https://mcp.instacart.com/mcp  disabled
+4b899211-fd12-410e-a8d2-264a409cbc78  Instagram  [builtin]  disabled
+9777f7bd-4ca3-431a-98d6-a7ed5221dd81  Instagram Creator Marketplace  [builtin]  disabled
+6885bf97-7934-4e02-b2c0-63bc72794a6f  Instantly  [mcp/http]  https://mcp.instantly.ai/mcp  disabled
+1bff1524-2490-4393-9fa5-9c821bb927b8  Interactive Brokers  [mcp/http]  https://api.ibkr.com/v1/api/mcp-public  disabled
+73f5f556-978a-4f8a-85b3-ef2eec4473e5  Intercom  [mcp/http]  https://mcp.intercom.com/mcp  disabled
+53f744d1-afdc-4df7-8f21-9a2f833c3914  Iterable  [mcp/stdio]  npx  disabled
+c8298c13-6d9a-4847-9f1f-1523952fddbd  JSONBin.io  [api]  disabled
+45d392d3-d308-4cdb-8a2d-5d249bcec594  Jam  [mcp/http]  https://mcp.jam.dev/mcp  disabled
+9c18621d-f597-4f6f-b26a-ce3ee0f7237a  Jentic  [mcp/http]  https://api.jentic.com/mcp  disabled
+cd81b1b9-35a1-47c0-91fc-5ba3387a53c5  Jinko  [mcp/http]  https://mcp.builders.gojinko.com/mcp  disabled
+92262486-6778-4451-9921-8c29c9dfa60a  Jotform  [mcp/http]  https://mcp.jotform.com  disabled
+c380fb1b-0bd0-4886-aa0b-4703712845e0  Ketryx  [mcp/http]  https://app.ketryx.com/api/mcp  disabled
+7f610b35-71ce-4054-9ecd-8d5907e017d0  Kiwi.com  [mcp/http]  https://mcp.kiwi.com  disabled
+65b7049d-427a-435d-987e-63d73597b524  Klaviyo  [mcp/http]  https://mcp.klaviyo.com/mcp  disabled
+99474cab-58bf-47ae-af0e-43c156703be9  Kling  [api]  disabled
+7553131d-8bd8-4efa-bbc9-e6df692e6c52  Krisp  [mcp/http]  https://mcp.krisp.ai/mcp  disabled
+94c74572-5587-4b9e-8614-2b2cef7413b6  LINE  [mcp/stdio]  npx  disabled
+454ed9be-43e6-441e-8a92-60ae207178c1  Lambus  [mcp/http]  https://mcp.lambus.ai/mcp  disabled
+f4b7a91a-8ec0-456e-a9c5-dae6825cf25b  LaunchDarkly  [mcp/http]  https://mcp.launchdarkly.com/mcp/launchdarkly  disabled
+e27aba32-cfa1-4e58-a0db-de4742430b1d  Learning Commons  [mcp/http]  https://kg.mcp.learningcommons.org/mcp  disabled
+70c27562-50e0-475f-98f9-e67777bb9fa1  Leonardo  [mcp/http]  https://mcp.leonardo.ai/v1/mcp  disabled
+2c55fa8b-bb42-4013-bc90-187d981cd8d7  Lightfield  [mcp/http]  https://mcp.lightfield.app/mcp  disabled
+982c169d-0c89-4dbd-95fd-30b49cc2f71e  Linear  [mcp/http]  https://mcp.linear.app/mcp  disabled
+9d1c612b-b03c-415f-b8dc-065b4e2f8514  Linkly  [mcp/http]  https://mcp.linklyhq.com  disabled
+ac49c6fb-f5e3-430b-b9be-a01c9d8bc599  Listen Labs  [mcp/http]  https://listenlabs.ai/mcp  disabled
+7169cfc0-c9d9-4939-8be5-6ed7970e92b5  LiveKit Docs  [mcp/http]  https://docs.livekit.io/mcp  disabled
+494f67d4-7b41-4625-81ba-3ba488e528fc  Local Falcon  [mcp/http]  https://mcp.localfalcon.com/mcp  disabled
+30ef0349-6188-42e6-832c-3977c174b919  Lucid  [mcp/http]  https://mcp.lucid.app/mcp  disabled
+1f2a1ad2-ee3d-42cc-95ca-a28d45b05cc0  Lumin PDF  [mcp/http]  https://mcp.luminpdf.com/mcp  disabled
+c77f527a-9b7d-42ff-9bfc-0fff21b41e5d  LunarCrush  [mcp/http]  https://lunarcrush.ai/mcp  disabled
+d293c7d3-ad5c-4dc4-8f2b-15a37d0a9ec1  Magic Patterns  [mcp/http]  https://mcp.magicpatterns.com/mcp  disabled
+7871a52e-fca1-4865-af7d-dbd3cf12cfe5  Magnific  [mcp/http]  https://mcp.magnific.com  disabled
+331ff697-8348-4ed7-a596-7df98740fc1f  Mailchimp Marketing  [api]  disabled
+88545a3f-3c0e-4d97-9cd9-d437e10bbd9d  MailerLite  [mcp/http]  https://mcp.mailerlite.com/mcp  disabled
+f8405590-5602-4fee-bfd6-f221623e6f72  Make  [mcp/http]  https://mcp.make.com  disabled
+beed54c0-53f1-4314-8ef2-511ccdc1f746  Mapbox  [mcp/http]  https://mcp.mapbox.com/mcp  disabled
+09d57655-a4ca-49fc-a000-eac1cf482f7b  MarcoPolo  [mcp/http]  https://mcp.marcopolo.dev  disabled
+a536c36f-2a24-47a4-8315-e6abc12f99b7  Mem  [mcp/http]  https://mcp.mem.ai/mcp  disabled
+087279d1-ac7e-4eb4-bdc7-2904fcac5f6f  Mercury  [mcp/http]  https://mcp.mercury.com/mcp  disabled
+74099636-2b26-4a23-ba31-b4bcd5f2f322  Mermaid Chart  [mcp/http]  https://mcp.mermaid.ai/mcp  disabled
+c073ede4-35a7-4c89-8158-c9b40c489932  Meta Ads Manager  [builtin]  disabled
+9fe14dac-4288-4371-91a8-86a36051a865  Metabase  [mcp/stdio]  disabled
+242c68fc-e9f4-4148-97cd-d6eb21f11aa9  Metaview  [mcp/http]  https://mcp.metaview.ai/mcp  disabled
+8854a0b4-cbb4-4616-bfb2-f8c031dcf00a  Metricool  [mcp/http]  https://ai.metricool.com/mcp  disabled
+4fdfd6cb-812f-4028-a09a-1067bf51d079  Microsoft Clarity  [mcp/stdio]  npx  disabled
+f4c2516f-40c3-4be2-b1c6-fb18da6a04bf  Microsoft Learn  [mcp/http]  https://learn.microsoft.com/api/mcp  disabled
+ab2cf4c6-33b1-4940-80b3-7f3ebf6742c2  Mindbody API  [api]  disabled
+1987d07e-eb26-479f-867b-ad4b79c80d11  MiniMax  [mcp/stdio]  uvx  disabled
+a293e6d8-577d-4239-ab02-ae62b9fb289f  Mintlify  [mcp/http]  https://mcp.mintlify.com  disabled
+378a9c9c-f0e1-4119-b441-6ab927568c15  Miro  [mcp/http]  https://mcp.miro.com/  disabled
+2e49eb8a-f011-4266-ac3e-bff1c130eddc  Mixpanel  [mcp/http]  disabled
+73ebc40f-2395-4c22-b28d-2421dcbdc9de  Mobbin  [mcp/http]  https://api.mobbin.com/mcp  disabled
+1f2e9d2b-5ccc-4da2-a311-4af8f62e47c6  Monte Carlo  [mcp/http]  https://mcp.getmontecarlo.com/mcp  disabled
+e64dad35-85b5-46d3-8d78-56c5d0368cdc  Morningstar  [mcp/http]  https://mcp.morningstar.com/mcp  disabled
+f0e2d556-53d9-4980-a3dd-8bd4098218e4  MotherDuck  [mcp/http]  https://api.motherduck.com/mcp  disabled
+be268223-40b2-4f3c-a907-c12eb1699283  My Browser  [builtin]  disabled
+87c7ae22-c6d4-4efe-9d89-0917b46cb1fe  Nango  [mcp/http]  https://api.nango.dev/mcp  disabled
+6c584560-ea32-444c-a8b9-b9e1279befc7  Navan  [mcp/http]  https://mcp.navan.com/mcp  disabled
+b3cc6a72-a6bc-4243-8829-987089297ea5  Neimo  [mcp/http]  https://app.neimo.ai/api/mcp/mcp  disabled
+9a0c8590-c0d9-498b-9b3d-bd0df0dbc134  Neon  [mcp/http]  https://mcp.neon.tech/mcp  disabled
+33c38b91-a09b-422d-9137-d26c8df22f1b  Netlify  [mcp/stdio]  npx  disabled
+ff6b4019-f8fd-4bd7-a4f3-b59c7ce33f24  NocoDB  [mcp/http]  https://app.nocodb.com/mcp  disabled
+9c27c684-2f4f-4d33-8fcf-51664ea15c00  Notion  [mcp/http]  https://mcp.notion.com/mcp  disabled
+a21bcb78-df23-45a8-aecc-f20eb25f42ab  Numeric  [mcp/http]  https://api.numeric.io/mcp  disabled
+52ce21d3-dc82-46db-9083-24578caa061e  Oath  [mcp/http]  https://mcp.oath.md/mcp  disabled
+42e5a327-53f4-4a40-bb72-90251e68cb68  Omni Analytics  [mcp/http]  https://callbacks.omniapp.co/callback/mcp  disabled
+044e1872-0485-4261-8a6d-702fbf29b345  OneSignal  [mcp/http]  https://api.onesignal.com/mcp/oauth  disabled
+163e2b39-ac1c-486b-b920-4bbd841da4d7  Open Targets  [mcp/http]  https://mcp.platform.opentargets.org/mcp  disabled
+942ea72c-09f6-46f0-b4b3-f9890a6edbc5  OpenAI  [api]  disabled
+a022f615-ab95-49b7-88ca-b700e0fa1073  OpenRouter  [mcp/http]  https://mcp.openrouter.ai/mcp  disabled
+c55a74cf-a236-4eda-8885-365d336cae4b  OpenRouter API  [api]  disabled
+42e623f7-8444-43bd-a7a9-4e0b810bd6e4  OpticOdds  [mcp/http]  https://api.opticodds.com/mcp  disabled
+5e38f3fd-f0ca-43bb-a0b4-680f523e7893  Orion  [mcp/http]  https://g.runorion.com/mcp  disabled
+405c7a5f-37f6-4b93-b821-b649c0006606  Otter.ai  [mcp/http]  https://mcp.otter.ai/mcp  disabled
+4bca3029-d276-4644-898d-578a723361b2  Outlook Calendar  [builtin]  disabled
+d485c6dd-4939-40fb-9c4a-c9821971468b  Outlook Mail  [builtin]  disabled
+e6546542-d3c8-4f71-9ee6-9818d0ee42ba  PagerDuty  [mcp/stdio]  uvx  disabled
+6c3d6f11-6c9f-4c91-949f-af9692d8d62f  PandaDoc  [mcp/http]  https://mcp.pandadoc.com/v1/mcp  disabled
+955a342f-f6b3-4d85-a05b-d19c50ce2912  Parallel  [mcp/http]  https://search.parallel.ai/mcp-oauth  disabled
+3f472b8b-ef53-4d38-91d2-00154b431da0  Particl  [mcp/http]  https://mcp.particl.com/mcp  disabled
+e90398ef-c17d-46e8-86d6-0bd98642cbbb  PayPal for Business  [mcp/http]  https://mcp.paypal.com/mcp  disabled
+b1b882cc-677f-475f-97ce-ab93d4766e50  Pazy  [mcp/http]  https://mcp.pazy.io/mcp  disabled
+87cd6aa4-d9ad-4b43-9227-868620630b52  Peec AI  [mcp/http]  https://api.peec.ai/mcp  disabled
+37f93c81-8445-4ae4-ba5d-67982172eed6  Pendo  [mcp/http]  disabled
+2a574fdc-89ab-4ad7-b334-e2c156201b6f  Perplexity  [api]  disabled
+03bfff12-105e-437e-82ae-577b36b92022  Plain  [mcp/http]  https://mcp.plain.com/mcp  disabled
+22da9a68-1c39-424a-9960-2769ef209308  PlanetScale  [mcp/http]  https://mcp.pscale.dev/mcp/planetscale  disabled
+d6a2cbfd-4aa2-44a1-bb08-88b1040b16d9  Plaud  [mcp/http]  https://mcp.plaud.ai/mcp  disabled
+356d5bc1-fb9f-4fa1-babb-05039dc09d63  Playwright  [mcp/stdio]  npx  disabled
+15eb9666-ea16-4dde-8507-41c201ad966f  Pletor  [mcp/http]  https://api.pletor.ai/mcp  disabled
+85f07505-9023-4afd-9542-0041a4e7b8ff  Podio  [mcp/http]  https://mcp.podio.com/mcp  disabled
+f87416ff-8e7b-4640-a5b3-c6a8b24efb86  Polar Analytics  [mcp/http]  https://api.polaranalytics.com/mcp  disabled
+63e9fd2a-2804-4509-897a-a9544c127b2b  PopHIVE  [mcp/http]  https://mcp.pophive.org/mcp  disabled
+89dac2c3-74d0-4f94-86d1-0ee6c4566193  PostHog  [mcp/http]  https://mcp.posthog.com/mcp  disabled
+f503bb32-3d4e-41b6-927e-192dc0b107cd  Postiz  [mcp/http]  https://mcp.postiz.com/mcp  disabled
+434bc546-8f2e-4f96-8b43-e15ea42b77af  Postman  [mcp/http]  https://mcp.postman.com/mcp  disabled
+4c55391d-38ea-4a36-a670-a59a1c7680cb  Prisma Postgres  [mcp/http]  https://mcp.prisma.io/mcp  disabled
+e1605815-364a-4957-ac92-4443b85f4be0  Privacy.com  [mcp/http]  https://mcp.privacy.com  disabled
+ba90ff71-2ce5-45c5-ae05-ef996a77b59e  Productboard  [mcp/http]  https://mcp.productboard.com  disabled
+806c6e15-9cd8-48d6-a9c2-8f632863e41f  Profound  [mcp/http]  https://mcp.tryprofound.com/mcp  disabled
+7012a922-ede2-4f26-bd81-82eb5526725d  Publer API  [api]  disabled
+57244593-6fea-42e4-9368-3a73a06fc8df  Publora  [mcp/http]  https://mcp.publora.com/mcp  disabled
+cdca8203-7e54-4662-bbee-c468a235568a  Pylon  [mcp/http]  https://mcp.usepylon.com  disabled
+89d59a20-a095-43c0-8a4d-7aba80989bf2  QuiverAI  [mcp/http]  https://app.quiver.ai/mcp  disabled
+802922e9-3347-42eb-834b-d318f50c79dc  Raindrop  [mcp/http]  https://api.raindrop.io/rest/v2/ai/mcp  disabled
+bf4fab8c-e130-462d-bba1-59f24115d315  Raisely  [mcp/http]  https://mcp.raisely.com/mcp  disabled
+8ebebfb4-d82f-4e76-b42b-930fd2a3943b  Rally  [mcp/http]  https://mcp.rallyuxr.com/mcp  disabled
+0aeeab76-cef5-4a58-b0a4-1b7ff5385195  Ramp  [mcp/http]  https://mcp.ramp.com/mcp  disabled
+fe5ca57e-b40f-4542-8b70-309b14828fb0  Razorpay  [mcp/http]  https://mcp.razorpay.com/mcp  disabled
+c26553d3-981d-4f70-ad1a-9671dff64bbe  Read AI  [mcp/http]  https://api.read.ai/mcp  disabled
+21bfac0f-e767-4055-8711-147162dadebb  Readwise  [mcp/http]  https://mcp2.readwise.io/mcp  disabled
+27a07347-581a-4f11-b4bb-419f48aed9da  Red Sift  [mcp/http]  disabled
+bfba6367-3ea6-4257-9288-7299cf834277  Regal  [mcp/http]  https://mcp.regal.ai/v1/external-mcp/mcp  disabled
+a62812d7-4c72-46d1-9af8-5eb2ec1f3461  Render  [mcp/http]  https://mcp.render.com/mcp  disabled
+1935db9d-f706-4002-85f2-7e43a8578a28  Replicate  [mcp/stdio]  npx  disabled
+f656e44e-4830-45a4-9a09-36507646ff80  Resend  [mcp/stdio]  npx  disabled
+c17e1da0-814f-4c1b-a6ee-2db4fe5d3c54  Resolve  [mcp/http]  https://app0.resolve.ai/mcp/v2  disabled
+e392d1de-98cc-4275-8462-72a8b8818d1e  Responsive  [mcp/http]  https://app.rfpio.com/oa/v1/mcp  disabled
+a104e1ac-73e5-482f-96e6-8b95f4756f27  RevenueCat  [mcp/http]  https://mcp.revenuecat.ai/mcp  disabled
+b885e53a-8a61-4d54-8b9a-673eead103e9  Revise  [mcp/http]  https://mcp.revise.io/mcp  disabled
+a0463fa2-21a0-4180-8931-65333150013a  Rhizome AI  [mcp/http]  https://rhizomeai.com/api/mcp  disabled
+5b9f2741-de76-40fb-beaf-befa35fb9358  Rhythm  [mcp/http]  https://mcp.rhythm.cloud/mcp  disabled
+4e3f1b40-d7c4-42e5-8106-88de2750eeab  Ribbon AI  [mcp/http]  https://app.ribbon.ai/be-api/mcp/ats  disabled
+1732599d-c2cf-4af4-a730-66caaa9ecc1b  Rillet  [mcp/http]  https://api.rillet.com/mcp  disabled
+9021b67e-f4c3-4213-8b1d-8a729782d244  Roam  [mcp/http]  https://api.ro.am/mcp  disabled
+aa9a0314-1222-4b39-bdaf-c93f4f5aad63  Roboflow  [mcp/http]  https://mcp.roboflow.com/mcp  disabled
+75d77189-9566-475b-a9ff-99bcb47f9220  Rootly  [mcp/http]  https://mcp.rootly.com/mcp  disabled
+930e9f27-da25-45fe-a2bf-8c4a801b8ebe  Runway  [mcp/http]  https://mcp.runwayml.com/mcp  disabled
+1b2cac60-fc14-4567-acc5-71bde70f3f1c  S&P Global  [mcp/http]  https://kfinance.kensho.com/integrations/mcp  disabled
+abda1e23-3951-4ce9-915d-aabaf87bc67f  Salesloft  [mcp/http]  https://mcp.salesloft.com/mcp  disabled
+c9c7834c-1b83-41cc-a776-6fbcb99af752  Sanity  [mcp/http]  https://mcp.sanity.io  disabled
+ac9a3a1f-9b47-45ec-839a-4cc721697eb9  Scite  [mcp/http]  https://api.scite.ai/mcp  disabled
+0b149a9c-1734-4b31-bbab-371612a2eb35  Semrush  [mcp/http]  https://mcp.semrush.com/v1/mcp  disabled
+a707d22c-a54d-4c25-8433-a26c2d4ef54e  SendMux  [mcp/http]  https://mcp.sendmux.ai/mcp  disabled
+838d5e1c-7dd4-4782-9429-c459126707c7  Sentry  [mcp/http]  https://mcp.sentry.dev/mcp  disabled
+f7f15fe8-15cf-4fb9-a546-720f16dcf5e6  Serena  [mcp/stdio]  uvx  disabled
+5e320e05-3f83-4d6a-9271-957bb54a984d  Serpstat  [mcp/http]  https://mcp.serpstat.com/mcp  disabled
+cb744ea4-3ff4-4e1f-a496-d97b795c1d5b  Shapes  [mcp/http]  https://mcp.shapes.co/mcp  disabled
+8b81dcd8-d524-48ff-8360-7065e3088f57  Shopify  [builtin]  disabled
+4927b129-86d8-442a-b9c2-588ae2f52e81  Sigma  [mcp/http]  disabled
+8354597f-a912-4fef-aec1-e0683c2096ac  SignNow  [mcp/stdio]  uvx  disabled
+8dafdda7-d18f-4626-b430-dc7aef1a258d  Similarweb  [mcp/http]  https://mcp.similarweb.com  disabled
+700c656f-b4a4-4e39-a886-a20782d99b6f  Similarweb API  [api]  disabled
+001e6a99-5585-4b3e-b8cb-533fe24d7788  Slack  [mcp/http]  https://mcp.slack.com/mcp  disabled
+eae2c9ec-6014-406b-92f1-097b82933a0f  SmartSpectra  [mcp/http]  https://mcp.presagetech.com/mcp  disabled
+63a18256-adc2-4ada-9593-2a26c06e4658  Smartsheet  [mcp/http]  disabled
+72a8e3f1-fddd-44ac-bc59-238a98120ffc  Snowflake  [mcp/http]  disabled
+843893c4-9780-4762-906e-0f26f94cbfd2  Sonatype Guide  [mcp/http]  https://mcp.guide.sonatype.com/mcp  disabled
+f30dd41a-a697-486c-9381-c9cf72f605d8  Sourcegraph  [mcp/http]  disabled
+11dcd174-4c75-47f1-97fc-d49db37d484c  Splice  [mcp/http]  https://mcp.splice.com/mcp  disabled
+582a5438-2a3d-4ea7-9300-2a991cb06bc4  Square  [mcp/sse]  https://mcp.squareup.com/sse  disabled
+cd0a3131-1724-4fdf-8f88-f958a15b36ad  Statsig  [mcp/http]  https://api.statsig.com/v1/mcp  disabled
+29986b52-7cbb-4d5e-9263-dd0abacaf28d  Stripe  [mcp/http]  https://mcp.stripe.com  disabled
+fb659ead-d821-40cc-ab35-1cad9af13649  Stripe API  [api]  disabled
+685ecb47-b1d7-4c5a-bb77-8a76d1d803f5  Stytch  [mcp/http]  https://mcp.stytch.dev/mcp  disabled
+fbbf3159-c9ed-40fe-b023-a393ff1744a3  SubscriptionFlow  [mcp/http]  https://mcp.subscriptionflow.com/mcp  disabled
+43715872-7e77-45ab-8eb1-1e9929025ffc  Sumble  [mcp/http]  https://mcp.sumble.com  disabled
+84ab78ef-139c-48ff-acd4-cba718b8a484  Supabase  [mcp/http]  https://mcp.supabase.com/mcp  disabled
+86a04f98-35cf-4099-9044-ab851a473cf5  Supabase API  [api]  disabled
+256c5108-1584-4e6b-9417-d0e95c04baaf  Superhuman Mail  [mcp/http]  https://mcp.mail.superhuman.com/mcp  disabled
+422a7583-eca6-4318-942f-dd156b11b51a  Supermetrics  [mcp/http]  https://mcp.supermetrics.com/mcp  disabled
+1253ffb2-3adc-48bf-8893-bf4f3df2f2f2  SurveyMonkey  [mcp/http]  https://mcp.surveymonkey.com/mcp  disabled
+7a181d9a-e407-4204-81e8-f5fdc27cbd02  Sybill  [mcp/http]  https://mcp.sybill.ai/mcp  disabled
+77287de2-e552-4b55-a122-c774e4c5b199  Synthesize Bio  [mcp/http]  https://app.synthesize.bio/api/mcp  disabled
+f992173d-9675-43ab-b362-b093f1dd7779  Tableau  [mcp/stdio]  node  disabled
+8c253ac1-6557-4c14-89a2-87f93071bf0b  Tally  [mcp/http]  https://api.tally.so/mcp  disabled
+83def239-6052-4184-83a4-fb315e67e21c  Tango  [mcp/http]  https://govcon.dev/mcp  disabled
+b0b849c6-2cab-4a24-b300-4df5de49a4de  Taplio  [mcp/http]  https://mcp.taplio.com  disabled
+afcafa93-f185-416a-bd4f-879be2f97432  Taskade  [mcp/stdio]  npx  disabled
+1fe026f4-01d2-4c0c-b506-7c43481e2c20  Tavily  [mcp/stdio]  npx  disabled
+3a26983b-6e2a-40c4-b747-b402f22d6e46  Ticket Tailor  [mcp/http]  https://mcp.tickettailor.ai/mcp  disabled
+e7c9b43b-513d-4bbb-a416-0f16e81e7b96  TierZero  [mcp/http]  https://api.tierzero.ai/mcp/  disabled
+014a1cb8-cf87-4551-9a36-a2ce717a24cc  TikTok for Business  [mcp/http]  https://business-api.tiktok.com/open_mcp/tt-ads-mcp-flat  disabled
+8c41f760-65d5-43bd-910b-b9319d362f3a  Tines  [mcp/http]  disabled
+5eaca5c8-873e-4ac3-b00a-43fe72dc4443  Toast API  [api]  disabled
+2900673c-afaa-4dfa-901d-00a6b3f7275e  Todoist  [mcp/http]  https://ai.todoist.net/mcp  disabled
+15027330-caa8-49d2-8c90-75397e2c6410  TomTom Maps  [mcp/http]  https://mcp.tomtom.com/maps  disabled
+74ca40e3-a058-4e08-a879-f57a41eac4b2  Trello  [mcp/http]  https://mcp.trello.com/v1  disabled
+2ff5bb8b-695d-4cb1-8843-90f03f5506bc  Trendtrack  [mcp/http]  https://api.trendtrack.io/v1/mcp  disabled
+3db6c7f4-0ce6-4b76-baad-c6e3c4882acd  Tripo AI  [api]  disabled
+4b8233da-2569-429c-b2e0-d389f7678629  Trivago  [mcp/http]  https://mcp.trivago.com/mcp  disabled
+e55de6c2-a8af-4846-b682-9fbd28fb0ad0  Truthifi  [mcp/http]  https://api.truthifi.com/mcp  disabled
+7a642bbb-6190-4a4d-b54c-550e15556c4b  Twilio Documentation  [mcp/http]  https://mcp.twilio.com/docs  disabled
+64aba21e-dfaa-41da-9ba3-58beeb1d766f  Typeform  [mcp/http]  disabled
+658a2969-b74c-42c5-a7b3-9b98128ff724  Typeform  [api]  disabled
+d0040078-ac75-4d48-9025-615f7b90b110  Ubersuggest  [mcp/http]  https://ubersuggest-mcp.neilpatelapi.com/mcp  disabled
+ad45ed22-a46f-46c4-b2b4-b1f5225a0149  Unthread  [mcp/http]  https://app.unthread.io/api/mcp  disabled
+0e32c3cf-038d-4aeb-9248-bf4e525708f5  Unusual Whales  [mcp/http]  https://api.unusualwhales.com/api/mcp  disabled
+9635e6fb-e8d4-47c1-b133-34c34db1b000  Unwrap  [mcp/http]  https://nlp.api.production.unwrap.ai/mcp  disabled
+650f42af-2a97-454a-8f8f-6da82db32dfa  VEED Fabric  [mcp/http]  https://www.veed.io/api/v1/mcp  disabled
+40ffbef4-489a-4581-b923-b43f2e6592b0  Vantage  [mcp/http]  https://mcp.vantage.sh/mcp  disabled
+a50c5d31-af5e-4e01-a992-057663a7ee1f  Vercel  [mcp/http]  https://mcp.vercel.com  disabled
+2f51c329-cb23-43ed-a6e7-788f23a5f557  Viator  [mcp/http]  https://exp-app-mcp.prod.ep.viator.com/mcp  disabled
+5e30b298-b802-4db3-9a40-fea38b97dd9d  Vibe Prospecting  [mcp/http]  https://vibeprospecting.explorium.ai/mcp  disabled
+53049eb7-17d8-4518-b939-d7b66c4a7928  Wave API  [api]  disabled
+1d489fb9-0601-4ea7-9942-b866657178c1  Webflow  [mcp/http]  https://mcp.webflow.com/mcp  disabled
+1800b435-fc73-4814-a6d5-e9f5092ebacd  Whimsical  [mcp/http]  https://mcp.whimsical.com/mcp  disabled
+340e212e-fba0-4593-858f-76d3c900fda8  Whop  [mcp/http]  https://mcp.whop.com/mcp  disabled
+9b03ed00-2d01-40a2-970e-2e2eab7ec2a0  Windsor.ai  [mcp/http]  https://mcp.windsor.ai  disabled
+e679913a-bedf-4214-9f77-ee3e4283062c  Wireflow  [mcp/http]  https://www.wireflow.ai/api/mcp  disabled
+10965901-2ed2-4171-9e6e-edb18b32f72e  Wispr Flow  [mcp/http]  https://api.wisprflow.ai/connect/mcp  disabled
+d0fa4acf-7cf6-4402-bd84-82a850342a79  Wix  [mcp/http]  https://mcp.wix.com/mcp  disabled
+96ffd426-74b8-4853-8a3c-3257eada8738  Wolfram  [mcp/http]  https://agenttools.wolfram.com/mcp  disabled
+7278d969-e1c5-4176-8ecd-54b2f6357e84  WordPress  [mcp/http]  https://public-api.wordpress.com/wpcom/v2/mcp/v1  disabled
+f0c3382a-bde4-44b7-b645-a4f78e87ee4c  WorkOS  [mcp/http]  https://mcp.workos.com/mcp  disabled
+436a806b-9a55-47d3-9bc4-85425bc83e4f  Workable  [mcp/http]  https://mcp.workable.com/mcp  disabled
+0cac2dee-dc77-43f4-87cc-df68fb723808  Wrike  [mcp/http]  https://mcp.wrike.com/app/mcp/stream  disabled
+7c635638-0b9f-40f4-b5c8-6f2762416d79  Xero  [mcp/stdio]  npx  disabled
+d3446e5a-df33-42bf-89f9-d7b7d1ff49fe  Yelp API  [api]  disabled
+433d2fe0-e56d-42b2-8625-9996eab0bb1d  Zapier  [mcp/http]  https://mcp.zapier.com/api/v1/connect  disabled
+a4a2e976-5cd5-439e-93be-97d6ac1dc92f  Zendesk API  [api]  disabled
+3c35c721-3f1c-4130-876e-30a98f2af578  Zernio  [mcp/http]  https://mcp.zernio.com/mcp  disabled
+b6f75076-814a-4652-be9e-a3f3095b61f1  Zocks  [mcp/http]  https://mcp.zocks.io/v1/mcp  disabled
+15bb805b-42bd-40f8-92c2-c5b0e248f303  Zoho  [mcp/http]  disabled
+88dce3b9-7487-4709-a745-4ac64768e4d3  Zoom  [mcp/http]  https://mcp.zoom.us/mcp/zoom/streamable  disabled
+f0ecfd89-4f12-428a-8e71-ccbea88a738f  beehiiv  [mcp/http]  https://mcp.beehiiv.com/mcp  disabled
+f59341d3-2d91-4600-81f0-e8e634b95905  doola  [mcp/http]  https://mcp.doola.com  disabled
+bcc473c5-7b95-4864-80e1-7eac45a6394b  fal.ai  [mcp/http]  https://mcp.fal.ai/mcp  disabled
+3be636d8-d7dd-4994-a082-cf9a61a8ebd2  freee  [mcp/http]  https://mcp.freee.co.jp/mcp  disabled
+d999ce59-54e1-4b98-9cff-dcd6a4375ba5  ilert  [mcp/http]  https://mcp.ilert.com/mcp  disabled
+9c4a4d9d-e9c8-4240-acdd-a13b56d121dd  incident.io  [mcp/http]  https://mcp.incident.io/mcp  disabled
+40ecbda4-5aaf-4e95-bf54-679299ea1c19  monday.com  [mcp/http]  https://mcp.monday.com/mcp  disabled
+1f5335e6-f052-49dc-be33-e06989050496  n8n  [mcp/http]  -  disabled
+d6b4170a-4001-450d-823a-287dfd9716a7  n8n API  [api]  disabled
+f7bbbff0-61fe-458b-975a-3e2f6a91269c  tl;dv  [mcp/stdio]  disabled
+6644be89-e68d-4582-b7bb-6a61aa60614c  vidIQ  [mcp/http]  https://mcp.vidiq.com/mcp  disabled
+Use 'manus-config connector get <uid>' for full detail.
