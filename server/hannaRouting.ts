@@ -8,8 +8,8 @@ export type HannaRoute = {
 };
 
 /**
- * Routes a prompt to Hanna's general-purpose default model (Gemini 3.6 Flash).
- * Respects Gemini 3.6 Flash as the default general-purpose intelligence for all business,
+ * Routes a prompt to Hanna's general-purpose default model (Gemini 2.5 Flash).
+ * Respects Gemini 2.5 Flash as the default general-purpose intelligence for all business,
  * Shopify, research, content, multimodal, and software automation requests.
  */
 export function routeHannaRequest(prompt: string): HannaRoute {
@@ -20,7 +20,7 @@ export function routeHannaRequest(prompt: string): HannaRoute {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Multimodal & Document Reasoning",
-      reason: "Gemini 3.6 Flash provides high-throughput multimodal context analysis.",
+      reason: "Gemini 2.5 Flash provides high-throughput multimodal context analysis.",
     };
   }
 
@@ -29,7 +29,7 @@ export function routeHannaRequest(prompt: string): HannaRoute {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Shopify & Store Management",
-      reason: "Gemini 3.6 Flash orchestrates connected Shopify and commerce workflows.",
+      reason: "Gemini 2.5 Flash orchestrates connected Shopify and commerce workflows.",
     };
   }
 
@@ -38,7 +38,7 @@ export function routeHannaRequest(prompt: string): HannaRoute {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Marketing & Research Strategy",
-      reason: "Gemini 3.6 Flash generates high-converting marketing campaigns, research briefs, and creative content.",
+      reason: "Gemini 2.5 Flash generates high-converting marketing campaigns, research briefs, and creative content.",
     };
   }
 
@@ -47,7 +47,7 @@ export function routeHannaRequest(prompt: string): HannaRoute {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Coding & Software Orchestration",
-      reason: "Gemini 3.6 Flash handles code comprehension, debugging, and deployment planning.",
+      reason: "Gemini 2.5 Flash handles code comprehension, debugging, and deployment planning.",
     };
   }
 
@@ -55,6 +55,6 @@ export function routeHannaRequest(prompt: string): HannaRoute {
     provider: DEFAULT_AI_PROVIDER,
     model: DEFAULT_AI_MODEL,
     capability: "General Assistance",
-    reason: "Gemini 3.6 Flash is Hanna's primary general-purpose intelligence engine.",
+    reason: "Gemini 2.5 Flash is Hanna's primary general-purpose intelligence engine.",
   };
 }

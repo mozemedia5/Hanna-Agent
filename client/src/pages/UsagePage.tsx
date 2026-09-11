@@ -153,7 +153,7 @@ export default function UsagePage({
             <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block", marginBottom: "4px" }}>
               AI Model Access
             </span>
-            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>Hanna Lite (Gemini 2.5 Flash) / Hanna Pro (Gemini 3.6 Flash)</strong>
+            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>Hanna Lite (Gemini 2.5 Flash) / Hanna Pro (Gemini 2.5 Flash)</strong>
             <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>
               High-speed multimodal
             </span>

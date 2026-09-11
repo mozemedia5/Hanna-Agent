@@ -260,7 +260,7 @@ export async function getProviderCredentialById(
  * Resolves user credentials and model pairs deterministically.
  * Hierarchy:
  * 1. User selected custom provider/model -> use user's credential.
- * 2. If no custom credential or "Hanna Default" selected -> default to Gemini 3.6 Flash using server GEMINI_API_KEY.
+ * 2. If no custom credential or "Hanna Default" selected -> default to Gemini 2.5 Flash using server GEMINI_API_KEY.
  */
 export async function getProviderCredentialForRequest(
   userId: number | undefined,
@@ -281,7 +281,7 @@ export async function getProviderCredentialForRequest(
     }
   }
 
-  // Canonical Fallback / Default: Hanna's Gemini 3.6 Flash
+  // Canonical Fallback / Default: Hanna's Gemini 2.5 Flash
   const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
 
   return {

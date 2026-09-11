@@ -70,7 +70,7 @@ describe("providers and integrations routing & management", () => {
     );
   });
 
-  it("routes default request to Gemini 3.6 Flash when no custom provider selected", async () => {
+  it("routes default request to Gemini 2.5 Flash when no custom provider selected", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "AIzaSyServerKeyTest";
     try {
@@ -107,7 +107,7 @@ describe("providers and integrations routing & management", () => {
     expect(res?.model).toBe("llama-3.3-70b-versatile");
   });
 
-  it("deterministically switches back to Gemini 3.6 Flash when user selects Hanna Default", async () => {
+  it("deterministically switches back to Gemini 2.5 Flash when user selects Hanna Default", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "AIzaSyServerKeyTest";
     try {

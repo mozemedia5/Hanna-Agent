@@ -58,7 +58,7 @@ describe("providerDb Persistent Store", () => {
     expect(retrieved?.apiKey).toBe("sk-ant-persistent-secret-999");
   });
 
-  it("routes to custom provider when connected and requested, and falls back to Gemini 3.6 Flash on default", async () => {
+  it("routes to custom provider when connected and requested, and falls back to Gemini 2.5 Flash on default", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     try {
       process.env.GEMINI_API_KEY = "AIzaSyServerEnvTestKey";

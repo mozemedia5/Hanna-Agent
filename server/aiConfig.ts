@@ -2,7 +2,7 @@ export const DEFAULT_AI_PROVIDER = "gemini";
 export const DEFAULT_AI_MODEL = "gemini-2.5-flash";
 
 export const HANNA_LITE_MODEL = "gemini-2.5-flash";
-export const HANNA_PRO_MODEL = "gemini-3.6-flash";
+export const HANNA_PRO_MODEL = "gemini-2.5-flash";
 export const HANNA_DEFAULT_MODEL = HANNA_LITE_MODEL;
 
 export const GEMINI_FALLBACK_MODELS = [
@@ -65,7 +65,7 @@ export function resolveProviderAndModel(
   // Gemini models
   if (lower.includes("gemini")) {
     let modelName = defaultModel;
-    if (lower.includes("3.6")) modelName = "gemini-3.6-flash";
+    if (lower.includes("3.6")) modelName = "gemini-2.5-flash";
     else if (lower.includes("3.7")) modelName = "gemini-3.7-flash";
     else if (lower.includes("2.5")) modelName = "gemini-2.5-flash";
     else if (lower.includes("2.0")) modelName = "gemini-2.0-flash";
