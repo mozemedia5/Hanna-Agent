@@ -45,7 +45,6 @@ import {
 } from "@/lib/firestore";
 
 import SettingsPage from "./SettingsPage";
-import ConnectorsPage from "./ConnectorsPage";
 import IntegrationsPage from "./IntegrationsPage";
 import CollectionsPage from "./CollectionsPage";
 import NotificationsPage from "./NotificationsPage";
@@ -56,7 +55,6 @@ import UsagePage from "./UsagePage";
 type Page =
   | "chat"
   | "settings"
-  | "connectors"
   | "integrations"
   | "collections"
   | "notifications"
@@ -353,7 +351,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Layers3, label: "Collections", page: "collections" as Page },
-    { icon: PlugZap, label: "Connectors", page: "connectors" as Page },
     { icon: Store, label: "Integrations", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
     { icon: Settings, label: "Customize", page: "settings" as Page },
@@ -546,7 +543,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     let content: React.ReactNode;
     switch (currentPage) {
       case "settings": content = <SettingsPage theme={theme} onThemeChange={handleThemeChange} onBack={handleBack} />; break;
-      case "connectors": content = <ConnectorsPage onBack={handleBack} />; break;
       case "integrations": content = <IntegrationsPage onBack={handleBack} />; break;
       case "collections": content = <CollectionsPage onBack={handleBack} />; break;
       case "notifications": content = <NotificationsPage onBack={handleBack} />; break;
