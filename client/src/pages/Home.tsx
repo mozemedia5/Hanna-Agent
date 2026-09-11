@@ -279,7 +279,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         body: JSON.stringify({ 0: { json: { prompt: fullPrompt, model: model === "Custom" ? "custom" : model } } }),
       });
       const responseText = await response.text();
-      let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string } } }; error?: { json?: { message?: string } } }> | null = null;
+      let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string; providerError?: boolean } } }; error?: { json?: { message?: string } } }> | null = null;
       try { payload = JSON.parse(responseText); } catch { throw new Error("Hanna is warming up. Please try again."); }
       if (Array.isArray(payload) && payload[0]?.error) throw new Error(payload[0].error?.json?.message || "Hanna encountered an issue.");
       if (!response.ok || !payload) throw new Error("Hanna encountered a server response issue.");
@@ -288,6 +288,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const responseData = isJson ? (data as any).json : undefined;
       const reply = responseData?.answer || responseData?.text;
       const isProviderError = Boolean(responseData?.providerError);
+      if (isProviderError) {
+        throw new Error(responseData?.text || "Hanna’s AI provider is unavailable. Check Settings and try again.");
+      }
       if (!reply) throw new Error("Hanna returned an empty response.");
       if (isProviderError) {
         showToast("Provider connection alert");
