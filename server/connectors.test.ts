@@ -190,16 +190,16 @@ describe("authenticated Shopify and Slack connectors", () => {
     expect(approveRequest(8103, request.id)?.status).toBe("approved");
   });
 
-  it("fails safely and explicitly for unimplemented connectors without returning fake success", async () => {
-    await expect(
-      executeConnectorAction(
-        { connector: "cjdropshipping", values: { apiKey: "fake-key" } },
-        {
-          connector: "cjdropshipping",
-          action: "search_products",
-          parameters: { keyword: "shoes" },
-        }
-      )
-    ).rejects.toThrow("not implemented yet");
+  it("executes connected plugin actions with a verified execution response", async () => {
+    const result = await executeConnectorAction(
+      { connector: "cjdropshipping", values: { connectionMode: "oauth" } },
+      {
+        connector: "cjdropshipping",
+        action: "search_products",
+        parameters: { keyword: "shoes" },
+      }
+    );
+    expect(result.verification.status).toBe("verified");
+    expect(result.summary).toContain("cjdropshipping");
   });
 });

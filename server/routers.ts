@@ -86,16 +86,19 @@ export async function executeHannaRequest(
           const providerNames = connectedProviders.map(
             p => p.displayName || p.provider
           );
-          const connectorNames = connectedConnectors.map(c => c.connector);
+          const connectorSummaries = connectedConnectors.map(c => {
+            const def = integrations.find(i => i.id === c.connector);
+            return `${c.connector}${def ? ` [Capabilities: ${def.capabilities.join(", ")}]` : ""}`;
+          });
           const extraLines: string[] = [];
 
           if (userProfile?.customInstructions?.trim()) {
             extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
           }
 
-          if (providerNames.length > 0 || connectorNames.length > 0) {
+          if (providerNames.length > 0 || connectorSummaries.length > 0) {
             extraLines.push(
-              `[Active Capabilities & Connected Services:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Connected Connectors/Tools: ${connectorNames.length > 0 ? connectorNames.join(", ") : "None"}]`
+              `[Active Capabilities & Connected Plugin Tools:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Active Connected Plugins & Tools: ${connectorSummaries.length > 0 ? connectorSummaries.join("; ") : "None"}]`
             );
           }
 

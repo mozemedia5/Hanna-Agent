@@ -8,6 +8,7 @@ import {
   getFirebasePublicConfig,
   missingFirebaseConfigFields,
 } from "../server/firebaseConfig";
+import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -37,6 +38,21 @@ app.get(["/api/health", "/health"], async (req, res) => {
   const isHealthy = report.status === "AI_READY";
 
   res.status(isHealthy ? 200 : 503).json(report);
+});
+
+// MCP Server Endpoint (JSON-RPC 2.0 / Model Context Protocol)
+app.all(["/api/mcp", "/mcp"], async (req, res) => {
+  if (req.method === "GET") {
+    return res.json({
+      name: "hanna-mcp-server",
+      protocolVersion: "2026-08",
+      toolsCount: listMcpTools().length,
+      tools: listMcpTools(),
+    });
+  }
+
+  const result = await handleMcpRequest(req.body);
+  res.json(result);
 });
 
 const trpcMiddleware: RequestHandler = createExpressMiddleware({

@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import type { ConnectorId } from "@shared/integrations";
 import {
   credentialHint,
   decryptCredential,
@@ -10,36 +11,7 @@ import {
   saveStoredConnectorCredential,
 } from "./persistentStore";
 
-export type ConnectorId =
-  | "shopify"
-  | "cjdropshipping"
-  | "autods"
-  | "zendrop"
-  | "takeapp"
-  | "heygen"
-  | "synthesia"
-  | "elevenlabs"
-  | "jules"
-  | "stitch"
-  | "v0"
-  | "lovable"
-  | "tiktok"
-  | "instagram"
-  | "youtube"
-  | "pinterest"
-  | "linktree"
-  | "whatsapp"
-  | "slack"
-  | "github"
-  | "vercel"
-  | "google-workspace"
-  | "openai"
-  | "anthropic"
-  | "gemini"
-  | "meta-ads"
-  | "google-ads"
-  | "gmail"
-  | "mcp-custom";
+export type { ConnectorId };
 
 export type ConnectorValues = Record<string, string>;
 export type ConnectorCredential = {

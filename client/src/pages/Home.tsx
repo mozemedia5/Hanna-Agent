@@ -359,7 +359,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Layers3, label: "Collections", page: "collections" as Page },
-    { icon: Store, label: "Integrations", page: "integrations" as Page },
+    { icon: Store, label: "Plugins", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
     { icon: Settings, label: "Customize", page: "settings" as Page },
   ];
