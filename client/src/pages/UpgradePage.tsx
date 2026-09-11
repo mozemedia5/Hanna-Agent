@@ -54,7 +54,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
             Upgrade your Hanna Experience
           </h1>
           <p className="page-description" style={{ fontSize: "15px", color: "var(--text-secondary)" }}>
-            Unlock high-speed Gemini 2.5 Flash intelligence, store automations, multimodal research, and higher credit limits.
+            Unlock high-speed Hanna Lite (Gemini 2.5 Flash) &amp; Hanna Pro (Gemini 3.6 Flash) intelligence, store automations, multimodal research, and higher credit limits.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
                 {[
                   "500 credits weekly (auto-refreshes)",
-                  "Gemini 2.5 Flash default AI model",
+                  "Hanna Lite (Gemini 2.5 Flash) default AI model",
                   "Basic Shopify & web search tools",
                   "Up to 10 saved conversation threads",
                   "Standard file & image uploads",
@@ -286,7 +286,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
                 {[
                   "1,000 credits per week (auto-refreshed)",
-                  "Priority Gemini 2.5 Flash & Pro reasoning models",
+                  "Hanna Pro (Gemini 3.6 Flash) priority engine access",
                   "3-day free trial with 50% off month 1 ($9.99 USD)",
                   "Advanced Shopify store automations & inventory sync",
                   "Deep web research & native image generation",

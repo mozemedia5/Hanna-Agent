@@ -140,7 +140,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [model, setModel] = useState("Hanna Default");
+  const [model, setModel] = useState("Hanna Lite");
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -370,16 +370,20 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <div className="model-picker">
             <button className="model-button" onClick={() => setModelMenuOpen(c => !c)} aria-expanded={modelMenuOpen}>
               <span className="model-pulse" />
-              {model === "Hanna Default" ? "Gemini 2.5 Flash" : model}
+              {model}
               <ChevronDown size={13} />
             </button>
             {modelMenuOpen && (
               <div className="model-menu">
-                {["Hanna Default", "Custom"].map(option => (
-                  <button key={option} className={`model-option ${model === option ? "is-selected" : ""}`}
-                    onClick={() => { setModel(option); setModelMenuOpen(false); }}>
-                    <span>{option === "Hanna Default" ? "Gemini 2.5 Flash (Default)" : option}</span>
-                    {model === option && <Check size={14} />}
+                {[
+                  { id: "Hanna Lite", label: "Hanna Lite (Gemini 2.5 Flash)" },
+                  { id: "Hanna Pro", label: "Hanna Pro (Gemini 3.6 Flash)" },
+                  { id: "Custom", label: "Custom Provider Key" },
+                ].map(option => (
+                  <button key={option.id} className={`model-option ${model === option.id ? "is-selected" : ""}`}
+                    onClick={() => { setModel(option.id); setModelMenuOpen(false); }}>
+                    <span>{option.label}</span>
+                    {model === option.id && <Check size={14} />}
                   </button>
                 ))}
               </div>

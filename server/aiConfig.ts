@@ -1,15 +1,17 @@
 export const DEFAULT_AI_PROVIDER = "gemini";
 export const DEFAULT_AI_MODEL = "gemini-2.5-flash";
 
-export const HANNA_DEFAULT_MODEL = "gemini-2.5-flash";
+export const HANNA_LITE_MODEL = "gemini-2.5-flash";
+export const HANNA_PRO_MODEL = "gemini-3.6-flash";
+export const HANNA_DEFAULT_MODEL = HANNA_LITE_MODEL;
 
 export const GEMINI_FALLBACK_MODELS = [
   "gemini-2.5-flash",
+  "gemini-3.6-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
   "gemini-1.5-pro",
   "gemini-3.7-flash",
-  "gemini-3.6-flash",
 ] as const;
 
 export type AiHealthStatus =
@@ -50,9 +52,11 @@ export function resolveProviderAndModel(
     requestedModelOrProvider === "default" ||
     requestedModelOrProvider.toLowerCase().startsWith("hanna")
   ) {
+    const isPro = requestedModelOrProvider?.toLowerCase().includes("pro");
+    const targetModel = isPro ? HANNA_PRO_MODEL : HANNA_LITE_MODEL;
     return {
       provider: DEFAULT_AI_PROVIDER,
-      model: defaultModel,
+      model: targetModel,
       isCustom: false,
     };
   }
