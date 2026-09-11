@@ -48,3 +48,43 @@ describe("Firebase public configuration", () => {
     );
   });
 });
+
+import { parseAndVerifyFirebaseToken } from "./_core/context";
+
+describe("Firebase token verification", () => {
+  const createMockToken = (payload: object) => {
+    const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
+    const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+    return `${header}.${body}.mockSignature`;
+  };
+
+  it("accepts valid token within expiration and matching project ID", () => {
+    process.env.FIREBASE_PROJECT_ID = "test-project-123";
+    const token = createMockToken({
+      user_id: "usr_abc123",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      aud: "test-project-123",
+      iss: "https://securetoken.google.com/test-project-123",
+    });
+    const parsed = parseAndVerifyFirebaseToken(token);
+    expect(parsed?.user_id).toBe("usr_abc123");
+  });
+
+  it("rejects expired token", () => {
+    const token = createMockToken({
+      user_id: "usr_abc123",
+      exp: Math.floor(Date.now() / 1000) - 10,
+    });
+    expect(parseAndVerifyFirebaseToken(token)).toBeNull();
+  });
+
+  it("rejects token with mismatched audience when project ID is set", () => {
+    process.env.FIREBASE_PROJECT_ID = "expected-project";
+    const token = createMockToken({
+      user_id: "usr_abc123",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      aud: "wrong-project",
+    });
+    expect(parseAndVerifyFirebaseToken(token)).toBeNull();
+  });
+});

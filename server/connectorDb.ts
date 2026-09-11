@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { ConnectorId } from "@shared/integrations";
+import type { ConnectorId } from "../shared/integrations";
 import {
   credentialHint,
   decryptCredential,
