@@ -714,10 +714,19 @@ export async function runAgentCore(
   } catch (error) {
     const defaultMsg =
       "Your selected provider could not complete this request. Check its API key in Settings and try again.";
-    const errText =
-      error instanceof Error && error.message
-        ? `${error.message}. Check its API key in Settings and try again.`
-        : defaultMsg;
+    let errText = defaultMsg;
+    if (error instanceof Error && error.message) {
+      const msg = error.message.trim();
+      if (
+        msg.includes("Check its API key") ||
+        msg.includes("Settings and try again")
+      ) {
+        errText = msg;
+      } else {
+        const cleanMsg = msg.replace(/\.+$/, "");
+        errText = `${cleanMsg}. Check its API key in Settings and try again.`;
+      }
+    }
     return {
       text: errText,
       model: plan.route.model,
