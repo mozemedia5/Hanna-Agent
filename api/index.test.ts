@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import handler from "./index";
 
 describe("Vercel API entrypoint", () => {
@@ -85,5 +85,114 @@ describe("Vercel API entrypoint", () => {
     });
 
     process.env = originalEnv;
+  });
+
+  it("returns 503 GEMINI_KEY_MISSING on /api/health when GEMINI_API_KEY is absent", async () => {
+    const originalEnv = { ...process.env };
+    delete process.env.GEMINI_API_KEY;
+
+    let statusCode = 200;
+    let jsonResult: any = null;
+    const req = { method: "GET", url: "/api/health", headers: {}, query: {} } as any;
+    const res: any = {
+      statusCode: 200,
+      status: (code: number) => { statusCode = code; res.statusCode = code; return res; },
+      setHeader: () => res,
+      getHeader: () => undefined,
+      json: (data: any) => { jsonResult = data; return res; },
+      send: (data: any) => { jsonResult = data; return res; },
+      end: () => res,
+    };
+
+    await new Promise<void>(resolve => {
+      (handler as any)(req, res, () => resolve());
+      setTimeout(resolve, 100);
+    });
+
+    expect(statusCode).toBe(503);
+    expect(jsonResult?.status).toBe("GEMINI_KEY_MISSING");
+    expect(jsonResult?.geminiKeyPresent).toBe(false);
+
+    process.env = originalEnv;
+  });
+
+  it("returns 503 GEMINI_AUTH_FAILED on /api/health when Gemini API rejects key", async () => {
+    const originalEnv = { ...process.env };
+    process.env.GEMINI_API_KEY = "AIzaSyInvalidKey";
+
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => "API key not valid",
+    });
+
+    let statusCode = 200;
+    let jsonResult: any = null;
+    const req = { method: "GET", url: "/api/health", headers: {}, query: {} } as any;
+    const res: any = {
+      statusCode: 200,
+      status: (code: number) => { statusCode = code; res.statusCode = code; return res; },
+      setHeader: () => res,
+      getHeader: () => undefined,
+      json: (data: any) => { jsonResult = data; return res; },
+      send: (data: any) => { jsonResult = data; return res; },
+      end: () => res,
+    };
+
+    try {
+      await new Promise<void>(resolve => {
+        (handler as any)(req, res, () => resolve());
+        setTimeout(resolve, 100);
+      });
+
+      expect(statusCode).toBe(503);
+      expect(jsonResult?.status).toBe("GEMINI_AUTH_FAILED");
+      expect(jsonResult?.geminiKeyPresent).toBe(true);
+    } finally {
+      process.env = originalEnv;
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("returns 200 AI_READY on /api/health when Gemini API responds successfully", async () => {
+    const originalEnv = { ...process.env };
+    process.env.GEMINI_API_KEY = "AIzaSyValidKey";
+
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: "Pong" }] } }],
+      }),
+    });
+
+    let statusCode = 0;
+    let jsonResult: any = null;
+    const req = { method: "GET", url: "/api/health", headers: {}, query: {} } as any;
+    const res: any = {
+      statusCode: 200,
+      status: (code: number) => { statusCode = code; res.statusCode = code; return res; },
+      setHeader: () => res,
+      getHeader: () => undefined,
+      json: (data: any) => { jsonResult = data; return res; },
+      send: (data: any) => { jsonResult = data; return res; },
+      end: () => res,
+    };
+
+    try {
+      await new Promise<void>(resolve => {
+        (handler as any)(req, res, () => resolve());
+        setTimeout(resolve, 100);
+      });
+
+      expect(statusCode).toBe(200);
+      expect(jsonResult?.status).toBe("AI_READY");
+      expect(jsonResult?.geminiKeyPresent).toBe(true);
+    } finally {
+      process.env = originalEnv;
+      global.fetch = originalFetch;
+    }
   });
 });

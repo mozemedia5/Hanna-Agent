@@ -284,8 +284,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       if (Array.isArray(payload) && payload[0]?.error) throw new Error(payload[0].error?.json?.message || "Hanna encountered an issue.");
       if (!response.ok || !payload) throw new Error("Hanna encountered a server response issue.");
       const data = payload[0]?.result?.data;
-      const reply = data && "json" in data ? data.json?.answer || data.json?.text : undefined;
+      const isJson = data && "json" in data;
+      const responseData = isJson ? (data as any).json : undefined;
+      const reply = responseData?.answer || responseData?.text;
+      const isProviderError = Boolean(responseData?.providerError);
       if (!reply) throw new Error("Hanna returned an empty response.");
+      if (isProviderError) {
+        showToast("Provider connection alert");
+      }
       const assistantMessage: Message = {
         id: `${chatId}-assistant-${Date.now()}`, role: "assistant", content: reply,
         tokenCount: estimateTokens(reply), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),

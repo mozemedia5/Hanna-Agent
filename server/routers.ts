@@ -132,6 +132,7 @@ export async function executeHannaRequest(
         steps: [],
       },
       trace: [],
+      providerError: true,
     };
   }
 }
