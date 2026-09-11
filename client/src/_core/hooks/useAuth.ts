@@ -141,5 +141,10 @@ export function useAuth(options?: UseAuthOptions) {
   };
 }
 export async function getFirebaseIdToken() {
-  return (await getAuthClient()).currentUser?.getIdToken() ?? null;
+  try {
+    const auth = await getAuthClient();
+    return auth.currentUser?.getIdToken() ?? null;
+  } catch {
+    return null;
+  }
 }

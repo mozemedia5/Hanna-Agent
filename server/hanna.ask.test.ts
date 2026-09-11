@@ -70,7 +70,8 @@ describe("hanna.ask", () => {
       const result = await caller({ ...user, id: 9101 }).hanna.ask({
         prompt: "Help me think",
       });
-      expect(result.text).toContain("Gemini API key is not configured");
+      expect(result.text).toContain("Hanna Agent Core");
+      expect(result.providerError).toBe(true);
     } finally {
       process.env.GEMINI_API_KEY = origKey;
     }

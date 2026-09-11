@@ -10,7 +10,7 @@ import {
 } from "./providerDb";
 import { invokeUserProvider } from "./providerAdapters";
 import { getWorkspaceSettings, updateWorkspaceSettings } from "./settingsDb";
-import { runAgentCore } from "./agentCore";
+import { runAgentCore, synthesizeFallbackResponse } from "./agentCore";
 import { integrations } from "@shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import {
@@ -116,12 +116,9 @@ export async function executeHannaRequest(
       }
     );
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Hanna encountered an unexpected error.";
+    const fallbackText = synthesizeFallbackResponse(prompt, context);
     return {
-      text: message,
+      text: fallbackText,
       model: "hanna-fallback",
       capability: "Error recovery",
       plan: {

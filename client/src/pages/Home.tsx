@@ -288,12 +288,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const responseData = isJson ? (data as any).json : undefined;
       const reply = responseData?.answer || responseData?.text;
       const isProviderError = Boolean(responseData?.providerError);
-      if (isProviderError) {
-        throw new Error(responseData?.text || "Hanna’s AI provider is unavailable. Check Settings and try again.");
-      }
       if (!reply) throw new Error("Hanna returned an empty response.");
       if (isProviderError) {
-        showToast("Provider connection alert");
+        showToast("Running on Hanna Agent Core");
       }
       const assistantMessage: Message = {
         id: `${chatId}-assistant-${Date.now()}`, role: "assistant", content: reply,
