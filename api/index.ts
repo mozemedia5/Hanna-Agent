@@ -1,5 +1,8 @@
 import express from "express";
 import type { RequestHandler } from "express";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { createContext } from "../server/_core/context";
+import { appRouter } from "../server/routers";
 import { performAiHealthCheck } from "../server/aiHealth";
 import {
   getFirebasePublicConfig,
@@ -36,25 +39,12 @@ app.get(["/api/health", "/health"], async (req, res) => {
   res.status(isHealthy ? 200 : 503).json(report);
 });
 
-const lazyTrpcMiddleware: RequestHandler = async (req, res, next) => {
-  try {
-    const [{ createExpressMiddleware }, { createContext }, { appRouter }] =
-      await Promise.all([
-        import("@trpc/server/adapters/express"),
-        import("../server/_core/context"),
-        import("../server/routers"),
-      ]);
-    return createExpressMiddleware({ router: appRouter, createContext })(
-      req,
-      res,
-      next
-    );
-  } catch (error) {
-    return next(error);
-  }
-};
-app.use("/api/trpc", lazyTrpcMiddleware);
-app.use("/trpc", lazyTrpcMiddleware);
+const trpcMiddleware: RequestHandler = createExpressMiddleware({
+  router: appRouter,
+  createContext,
+});
+app.use("/api/trpc", trpcMiddleware);
+app.use("/trpc", trpcMiddleware);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const message = error instanceof Error ? error.message : "Hanna API failed to initialize.";
