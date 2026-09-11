@@ -30,7 +30,7 @@ const connectors: ConnectorEntry[] = [
   {
     id: "gemini",
     name: "Google Gemini",
-    model: "Hanna Lite (Gemini 2.5 Flash) / Hanna Pro (Gemini 3.6 Flash)",
+    model: "Hanna Lite (Gemini 2.5 Flash) / Hanna Pro (Gemini 2.5 Flash)",
     docUrl: "https://ai.google.dev/gemini-api/docs/api-key",
     instructions: [
       "Go to Google AI Studio (aistudio.google.com).",
@@ -235,9 +235,9 @@ export default function ConnectorsPage({ onBack }: ConnectorsPageProps) {
           <Zap size={18} />
         </div>
         <div className="connector-highlight-copy">
-          <strong>Hanna Lite (Gemini 2.5 Flash) &amp; Hanna Pro (Gemini 3.6 Flash)</strong>
+          <strong>Hanna Lite (Gemini 2.5 Flash) &amp; Hanna Pro (Gemini 2.5 Flash)</strong>
           <span>
-            Hanna uses proprietary engine configurations powered by Gemini 2.5 Flash (Hanna Lite) and Gemini 3.6 Flash (Hanna Pro). Add your Gemini API key to activate custom limits and full capability.
+            Hanna uses proprietary engine configurations powered by Gemini 2.5 Flash (Hanna Lite and Hanna Pro). Add your Gemini API key to activate custom limits and full capability.
           </span>
         </div>
       </div>

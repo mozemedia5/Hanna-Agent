@@ -99,7 +99,7 @@ export async function invokeUserProvider(
     ).trim();
 
     let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
-    if (primaryModel.includes("3.6")) primaryModel = "gemini-3.6-flash";
+    if (primaryModel.includes("3.6")) primaryModel = "gemini-2.5-flash";
     else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
     else if (primaryModel.includes("2.5")) primaryModel = "gemini-2.5-flash";
     else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";

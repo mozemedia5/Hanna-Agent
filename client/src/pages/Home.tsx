@@ -383,7 +383,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <div className="model-menu">
                 {[
                   { id: "Hanna Lite", label: "Hanna Lite (Gemini 2.5 Flash)" },
-                  { id: "Hanna Pro", label: "Hanna Pro (Gemini 3.6 Flash)" },
+                  { id: "Hanna Pro", label: "Hanna Pro (Gemini 2.5 Flash)" },
                   { id: "Custom", label: "Custom Provider Key" },
                 ].map(option => (
                   <button key={option.id} className={`model-option ${model === option.id ? "is-selected" : ""}`}
