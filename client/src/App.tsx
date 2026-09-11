@@ -11,7 +11,7 @@ function App() {
   if (auth.loading) return <DashboardLayoutSkeleton />;
   return (
     <ErrorBoundary>
-      {auth.isAuthenticated ? (
+      {auth.isAuthenticated || auth.error ? (
         <Home user={auth.user} onLogout={auth.logout} />
       ) : (
         <Switch>
