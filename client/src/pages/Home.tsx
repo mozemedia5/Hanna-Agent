@@ -51,6 +51,7 @@ import CollectionsPage from "./CollectionsPage";
 import NotificationsPage from "./NotificationsPage";
 import ProfilePage from "./ProfilePage";
 import UpgradePage from "./UpgradePage";
+import UsagePage from "./UsagePage";
 
 type Page =
   | "chat"
@@ -60,7 +61,8 @@ type Page =
   | "collections"
   | "notifications"
   | "profile"
-  | "upgrade";
+  | "upgrade"
+  | "usage";
 
 type ToolKey =
   | "Web Search"
@@ -538,8 +540,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "integrations": content = <IntegrationsPage onBack={handleBack} />; break;
       case "collections": content = <CollectionsPage onBack={handleBack} />; break;
       case "notifications": content = <NotificationsPage onBack={handleBack} />; break;
-      case "profile": content = <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
+      case "profile": content = <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onNavigateToUsage={() => navigate("usage")} onBack={handleBack} />; break;
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
+      case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
       default: return renderChatPage();
     }
     return <div className="workspace-body custom-scroll">{content}</div>;
@@ -611,7 +614,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   <div className="credits-row"><CreditCard size={16} /><span>Credits</span><span className="credits-amount">2.5k left</span></div>
                   <div className="credits-bar"><div className="credits-bar-fill" /></div>
                   <div className="credits-actions">
-                    <Button variant="outline" size="sm" onClick={() => { navigate("profile"); setShowProfilePopup(false); }}>Usage</Button>
+                    <Button variant="outline" size="sm" onClick={() => { navigate("usage"); setShowProfilePopup(false); }}>Usage</Button>
                     <Button size="sm" className="upgrade-btn" onClick={() => { navigate("upgrade"); setShowProfilePopup(false); }}>Upgrade</Button>
                   </div>
                 </div>

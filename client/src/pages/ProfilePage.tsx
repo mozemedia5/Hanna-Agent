@@ -24,6 +24,7 @@ type ProfilePageProps = {
   onLogout: () => void;
   onNavigateToSettings: () => void;
   onNavigateToUpgrade?: () => void;
+  onNavigateToUsage?: () => void;
   onBack?: () => void;
 };
 
@@ -31,6 +32,7 @@ export default function ProfilePage({
   onLogout,
   onNavigateToSettings,
   onNavigateToUpgrade,
+  onNavigateToUsage,
   onBack,
 }: ProfilePageProps) {
   const { user } = useAuth();
@@ -97,7 +99,7 @@ export default function ProfilePage({
           <div className="credits-bar-fill" style={{ width: "100%" }} />
         </div>
         <div className="credits-actions">
-          <Button variant="outline" className="credits-action-btn">
+          <Button variant="outline" className="credits-action-btn" onClick={onNavigateToUsage}>
             <BarChart3 size={14} />
             Usage
           </Button>
