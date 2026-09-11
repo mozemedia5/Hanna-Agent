@@ -30,7 +30,7 @@ const connectors: ConnectorEntry[] = [
   {
     id: "gemini",
     name: "Google Gemini",
-    model: "Gemini 2.5 Flash / 1.5 Pro",
+    model: "Hanna Lite (Gemini 2.5 Flash) / Hanna Pro (Gemini 3.6 Flash)",
     docUrl: "https://ai.google.dev/gemini-api/docs/api-key",
     instructions: [
       "Go to Google AI Studio (aistudio.google.com).",
@@ -235,11 +235,9 @@ export default function ConnectorsPage({ onBack }: ConnectorsPageProps) {
           <Zap size={18} />
         </div>
         <div className="connector-highlight-copy">
-          <strong>Gemini 2.5 Flash is your default model</strong>
+          <strong>Hanna Lite (Gemini 2.5 Flash) &amp; Hanna Pro (Gemini 3.6 Flash)</strong>
           <span>
-            Hanna uses Google Gemini 2.5 Flash as the primary AI engine. Add
-            your Gemini API key to activate all capabilities including
-            multimodal research, code analysis, and image generation.
+            Hanna uses proprietary engine configurations powered by Gemini 2.5 Flash (Hanna Lite) and Gemini 3.6 Flash (Hanna Pro). Add your Gemini API key to activate custom limits and full capability.
           </span>
         </div>
       </div>
