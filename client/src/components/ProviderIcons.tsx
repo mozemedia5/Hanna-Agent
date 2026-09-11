@@ -10,6 +10,8 @@ import {
   siGoogleads,
   siGmail,
   siGoogledrive,
+  siGooglecalendar,
+  siGooglemaps,
   siInstagram,
   siMeta,
   siOpenai,
@@ -46,6 +48,26 @@ import {
   siQuickbooks,
   siTwilio,
   siZapier,
+  siAsana,
+  siCanva,
+  siClickup,
+  siDropbox,
+  siHuggingface,
+  siLinear,
+  siMake,
+  siMetabase,
+  siPaypal,
+  siPerplexity,
+  siPosthog,
+  siTodoist,
+  siTrello,
+  siWebflow,
+  siWordpress,
+  siXero,
+  siZapier as siZapierIcon,
+  siZoom,
+  siN8n,
+  siTypeform,
 } from "simple-icons";
 
 import React from "react";
@@ -62,12 +84,11 @@ function SimpleBrandIcon({ icon, size = 20, className = "" }: IconProps & { icon
   );
 }
 
-// ── Google (already in simple-icons) ──
+// ── Google & Gemini ──
 export function GoogleIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siGoogle} size={size} className={className} />;
 }
 
-// ── Google Gemini (official brand mark — gradient sparkle) ──
 export function GeminiIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -84,274 +105,281 @@ export function GeminiIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Shopify (simple-icons) ──
+// ── Major AI Models & Developer Tools ──
 export function ShopifyIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siShopify} size={size} className={className} />;
 }
 
-// ── OpenAI (simple-icons) ──
 export function OpenAIIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siOpenai} size={size} className={className} />;
 }
 
-// ── Anthropic (simple-icons) ──
 export function AnthropicIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siAnthropic} size={size} className={className} />;
 }
 
-// ── Groq (official brand mark — stylized G in red) ──
-export function GroqIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#F55036" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 7.647h-3.28c-.394 0-.767.078-1.105.22-.338.143-.632.347-.872.612a2.87 2.87 0 0 0-.556.886c-.12.342-.181.711-.181 1.106v.067c0 .394.06.763.181 1.105.124.343.312.643.556.886.24.265.534.469.872.612.338.142.711.213 1.105.213h3.28c.394 0 .767-.071 1.105-.213.338-.143.632-.347.872-.612.244-.243.432-.543.556-.886.12-.342.181-.711.181-1.105v-.067c0-.395-.06-.764-.181-1.106a2.87 2.87 0 0 0-.556-.886c-.24-.265-.534-.469-.872-.612a3.04 3.04 0 0 0-1.105-.22zM6.206 7.647H2.926c-.394 0-.767.078-1.105.22-.338.143-.632.347-.872.612A2.87 2.87 0 0 0 .393 9.365C.273 9.707.212 10.076.212 10.471v.067c0 .394.061.763.181 1.105.124.343.312.643.556.886.24.265.534.469.872.612.338.142.711.213 1.105.213h3.28c.394 0 .767-.071 1.105-.213.338-.143.632-.347.872-.612.244-.243.432-.543.556-.886.12-.342.181-.711.181-1.105v-.067c0-.395-.06-.764-.181-1.106a2.87 2.87 0 0 0-.556-.886c-.24-.265-.534-.469-.872-.612a3.04 3.04 0 0 0-1.105-.22zm11.788 0h-3.28c-.394 0-.767.078-1.105.22-.338.143-.632.347-.872.612a2.87 2.87 0 0 0-.556.886c-.12.342-.181.711-.181 1.106v.067c0 .394.06.763.181 1.105.124.343.312.643.556.886.24.265.534.469.872.612.338.142.711.213 1.105.213h3.28c.394 0 .767-.071 1.105-.213.338-.143.632-.347.872-.612.244-.243.432-.543.556-.886.12-.342.181-.711.181-1.105v-.067c0-.395-.06-.764-.181-1.106a2.87 2.87 0 0 0-.556-.886c-.24-.265-.534-.469-.872-.612a3.04 3.04 0 0 0-1.105-.22z" />
-    </svg>
-  );
-}
-
-// ── Slack (simple-icons) ──
 export function SlackIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siSlack} size={size} className={className} />;
 }
 
-// ── Gmail (simple-icons) ──
 export function GmailIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siGmail} size={size} className={className} />;
 }
 
-// ── GitHub (simple-icons) ──
+export function GoogleCalendarIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siGooglecalendar} size={size} className={className} />;
+}
+
+export function GoogleMapsIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siGooglemaps} size={size} className={className} />;
+}
+
 export function GitHubIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siGithub} size={size} className={className} />;
 }
 
-// ── Vercel (simple-icons) ──
 export function VercelIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siVercel} size={size} className={className} />;
 }
 
-// ── WooCommerce (simple-icons) ──
 export function WooCommerceIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siWoocommerce} size={size} className={className} />;
 }
 
-// ── Mailchimp (simple-icons) ──
 export function MailchimpIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siMailchimp} size={size} className={className} />;
 }
 
-// ── HubSpot (simple-icons) ──
 export function HubSpotIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siHubspot} size={size} className={className} />;
 }
 
-// ── Intercom (simple-icons) ──
 export function IntercomIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siIntercom} size={size} className={className} />;
 }
 
-// ── Jira (simple-icons) ──
 export function JiraIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siJira} size={size} className={className} />;
 }
 
-// ── Zendesk (simple-icons) ──
 export function ZendeskIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siZendesk} size={size} className={className} />;
 }
 
-// ── Salesforce (simple-icons) ──
 export function SalesforceIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siSalesforce} size={size} className={className} />;
 }
 
-// ── QuickBooks (simple-icons) ──
 export function QuickBooksIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siQuickbooks} size={size} className={className} />;
 }
 
-// ── Twilio (simple-icons) ──
 export function TwilioIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siTwilio} size={size} className={className} />;
 }
 
-// ── Zapier (simple-icons) ──
 export function ZapierIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siZapier} size={size} className={className} />;
 }
 
-// ── Beacons (official brand mark — yellow beacon star) ──
-export function BeaconsIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <circle cx="12" cy="12" r="11" fill="#FFDD00" />
-      <path fill="#000" d="M12 4l2.5 5.5L20 12l-5.5 2.5L12 20l-2.5-5.5L4 12l5.5-2.5L12 4z" />
-    </svg>
-  );
+export function AsanaIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siAsana} size={size} className={className} />;
 }
 
-// ── WhatsApp (simple-icons) ──
-export function WhatsAppIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siWhatsapp} size={size} className={className} />;
+export function CanvaIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siCanva} size={size} className={className} />;
 }
 
-// ── Instagram (simple-icons) ──
-export function InstagramIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siInstagram} size={size} className={className} />;
+export function ClickUpIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siClickup} size={size} className={className} />;
 }
 
-// ── TikTok (simple-icons) ──
-export function TikTokIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siTiktok} size={size} className={className} />;
-}
-
-// ── Meta (simple-icons) ──
-export function MetaAdsIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siMeta} size={size} className={className} />;
-}
-
-// ── Google Ads (simple-icons) ──
-export function GoogleAdsIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siGoogleads} size={size} className={className} />;
-}
-
-// ── Google Drive (simple-icons) ──
-export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siGoogledrive} size={size} className={className} />;
-}
-
-// ── YouTube (simple-icons) ──
-export function YouTubeIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siYoutube} size={size} className={className} />;
-}
-
-// ── Pinterest (simple-icons) ──
-export function PinterestIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siPinterest} size={size} className={className} />;
-}
-
-// ── Stripe (simple-icons) ──
-export function StripeIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siStripe} size={size} className={className} />;
-}
-
-// ── Firebase (simple-icons) ──
-export function FirebaseIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siFirebase} size={size} className={className} />;
-}
-
-// ── Docker (simple-icons) ──
-export function DockerIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siDocker} size={size} className={className} />;
-}
-
-// ── Notion (simple-icons) ──
-export function NotionIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siNotion} size={size} className={className} />;
-}
-
-// ── Figma (simple-icons) ──
-export function FigmaIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siFigma} size={size} className={className} />;
-}
-
-// ── Airtable (simple-icons) ──
-export function AirtableIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siAirtable} size={size} className={className} />;
-}
-
-// ── GitLab (simple-icons) ──
-export function GitLabIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siGitlab} size={size} className={className} />;
-}
-
-// ── Netlify (simple-icons) ──
-export function NetlifyIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siNetlify} size={size} className={className} />;
-}
-
-// ── Heroku (simple-icons) ──
-export function HerokuIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siHeroku} size={size} className={className} />;
-}
-
-// ── Supabase (simple-icons) ──
-export function SupabaseIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siSupabase} size={size} className={className} />;
-}
-
-// ── Cloudflare (simple-icons) ──
 export function CloudflareIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siCloudflare} size={size} className={className} />;
 }
 
-// ── React (simple-icons) ──
-export function ReactIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siReact} size={size} className={className} />;
+export function DropboxIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siDropbox} size={size} className={className} />;
 }
 
-// ── TypeScript (simple-icons) ──
-export function TypeScriptIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siTypescript} size={size} className={className} />;
+export function HuggingFaceIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siHuggingface} size={size} className={className} />;
 }
 
-// ── Tailwind CSS (simple-icons) ──
-export function TailwindIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siTailwindcss} size={size} className={className} />;
+export function LinearIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siLinear} size={size} className={className} />;
 }
 
-// ── Facebook (simple-icons) ──
+export function MakeIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siMake} size={size} className={className} />;
+}
+
+export function MetabaseIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siMetabase} size={size} className={className} />;
+}
+
+export function PayPalIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siPaypal} size={size} className={className} />;
+}
+
+export function PerplexityIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siPerplexity} size={size} className={className} />;
+}
+
+export function PostHogIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siPosthog} size={size} className={className} />;
+}
+
+export function SupabaseIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siSupabase} size={size} className={className} />;
+}
+
+export function TodoistIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siTodoist} size={size} className={className} />;
+}
+
+export function TrelloIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siTrello} size={size} className={className} />;
+}
+
+export function WebflowIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siWebflow} size={size} className={className} />;
+}
+
+export function WordPressIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siWordpress} size={size} className={className} />;
+}
+
+export function XeroIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siXero} size={size} className={className} />;
+}
+
+export function ZoomIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siZoom} size={size} className={className} />;
+}
+
+export function N8nIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siN8n} size={size} className={className} />;
+}
+
+export function TypeformIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siTypeform} size={size} className={className} />;
+}
+
+export function WhatsAppIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siWhatsapp} size={size} className={className} />;
+}
+
 export function FacebookIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siFacebook} size={size} className={className} />;
 }
 
-// ── Twitch (simple-icons) ──
 export function TwitchIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siTwitch} size={size} className={className} />;
 }
 
-// ── LinkedIn (clean brand mark) ──
-export function LinkedInIcon({ size = 20, className = "" }: IconProps) {
+export function GitLabIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siGitlab} size={size} className={className} />;
+}
+
+export function NetlifyIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siNetlify} size={size} className={className} />;
+}
+
+export function HerokuIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siHeroku} size={size} className={className} />;
+}
+
+export function DockerIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siDocker} size={size} className={className} />;
+}
+
+export function FirebaseIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siFirebase} size={size} className={className} />;
+}
+
+export function FigmaIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siFigma} size={size} className={className} />;
+}
+
+export function InstagramIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siInstagram} size={size} className={className} />;
+}
+
+export function TikTokIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siTiktok} size={size} className={className} />;
+}
+
+export function MetaAdsIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siMeta} size={size} className={className} />;
+}
+
+export function GoogleAdsIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siGoogleads} size={size} className={className} />;
+}
+
+export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siGoogledrive} size={size} className={className} />;
+}
+
+export function YouTubeIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siYoutube} size={size} className={className} />;
+}
+
+export function PinterestIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siPinterest} size={size} className={className} />;
+}
+
+export function StripeIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siStripe} size={size} className={className} />;
+}
+
+export function NotionIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siNotion} size={size} className={className} />;
+}
+
+export function AirtableIcon({ size = 20, className = "" }: IconProps) {
+  return <SimpleBrandIcon icon={siAirtable} size={size} className={className} />;
+}
+
+// ── Custom SVG Brand Marks ──
+export function MondayIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#0A66C2" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+      <rect width="24" height="24" rx="6" fill="#FF3366" />
+      <path fill="#fff" d="M6 17V8h2.5l2.2 4.8L12.9 8H15.5v9H13v-5.2l-2 4.4h-1.2l-2-4.4V17H6z" />
     </svg>
   );
 }
 
-// ── Apple (clean brand mark) ──
-export function AppleIcon({ size = 20, className = "" }: IconProps) {
+export function ApifyIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+      <circle cx="12" cy="12" r="11" fill="#00A2FF" />
+      <path fill="#fff" d="M12 4l6 14h-3.2l-1.3-3.2H10.5L9.2 18H6l6-14zm0 4.2L10.8 12h2.4L12 8.2z" />
     </svg>
   );
 }
 
-// ── Microsoft (clean brand mark) ──
-export function MicrosoftIcon({ size = 20, className = "" }: IconProps) {
+export function KlaviyoIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-      <rect x="13" y="1" width="10" height="10" fill="#7FBA00" />
-      <rect x="1" y="13" width="10" height="10" fill="#00A4EF" />
-      <rect x="13" y="13" width="10" height="10" fill="#FFB900" />
+      <rect width="24" height="24" rx="5" fill="#2B3131" />
+      <path fill="#FF6B6B" d="M5 5h14v14H5z" />
+      <path fill="#2B3131" d="M12 5l7 7-7 7-7-7z" />
     </svg>
   );
 }
 
-// ── Amazon (clean brand mark) ──
-export function AmazonIcon({ size = 20, className = "" }: IconProps) {
+export function FirecrawlIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#FF9900" d="M13.958 10.09c0 1.232.029 2.256-.591 3.351-.502.891-1.301 1.44-2.186 1.44-1.214 0-1.922-.924-1.922-2.292 0-2.692 2.415-3.182 4.7-3.182v.683zm3.186 7.705a.659.659 0 0 1-.749.075c-1.053-.877-1.242-1.279-1.818-2.12-1.738 1.772-2.969 2.302-5.218 2.302-2.66 0-4.744-1.645-4.744-4.94 0-2.572 1.394-4.322 3.379-5.181 1.716-.759 4.11-.891 5.942-1.095v-.41c0-.753.058-1.642-.385-2.294-.384-.579-1.124-.82-1.775-.82-1.205 0-2.277.618-2.54 1.897-.054.285-.261.566-.549.58l-3.065-.33c-.259-.058-.548-.266-.472-.66C5.771 3.019 9.195 1.5 12.228 1.5c1.553 0 3.582.413 4.802 1.59 1.542 1.464 1.393 3.413 1.393 5.539v5.037c0 1.508.625 2.168 1.213 2.983.205.287.25.631-.009.843-.652.532-1.812 1.51-2.437 2.061l-.049-.001zM19.5 12.684c-.092-.053-.182-.075-.262-.125-1.493-.932-3.493-1.529-3.493-1.529s.033 2.093-.619 3.528c-.528 1.155-1.595 1.607-2.623 1.607-.583 0-.888-.207-.888-.642 0-.905.749-1.374 1.443-1.374.42 0 .636.155.844.395.207.239.429.566.736.566.307 0 .424-.227.424-.566v-.406c0-.339-.117-.566-.424-.566-.307 0-.529.327-.736.566-.208.24-.424.395-.844.395-.694 0-1.443.469-1.443 1.374 0 .435.305.642.888.642 1.028 0 2.095-.452 2.623-1.607.652-1.435.619-3.528.619-3.528s2 1.234 3.493 1.529c.08.05.17.072.262.125.12.068.24.162.358.254.298.233.508.573.508.953v.134c0 .38-.21.72-.508.953-.118.092-.238.186-.358.254z" />
+      <rect width="24" height="24" rx="6" fill="#FF4500" />
+      <path fill="#fff" d="M12 3c0 4-3 6-3 9 0 3 2.5 5 5 5s5-2 5-5c0-4-4-5-4-9 0 0-3 1-3 0z" />
     </svg>
   );
 }
 
-// ──────────────────────────────────────────
-// Brands NOT in Simple Icons — clean official-style marks
-// ──────────────────────────────────────────
-
-// ── HeyGen (official brand mark — purple gradient play) ──
 export function HeyGenIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -367,7 +395,6 @@ export function HeyGenIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── InVideo (official brand mark — purple-pink gradient play) ──
 export function InVideoIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -383,7 +410,6 @@ export function InVideoIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Creatify (official brand mark — star shape) ──
 export function CreatifyIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -392,7 +418,6 @@ export function CreatifyIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Zendrop (official brand mark — cyan rocket) ──
 export function ZendropIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -401,7 +426,6 @@ export function ZendropIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── AutoDS (official brand mark — blue A) ──
 export function AutoDSIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -411,7 +435,6 @@ export function AutoDSIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── CJ Dropshipping (official brand mark — orange CJ) ──
 export function CJDropshippingIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -421,7 +444,6 @@ export function CJDropshippingIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Linktree (official brand mark — green tree) ──
 export function LinktreeIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -430,7 +452,6 @@ export function LinktreeIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Lovable (official brand mark — red heart) ──
 export function LovableIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -439,7 +460,6 @@ export function LovableIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── v0 by Vercel (official brand mark) ──
 export function V0Icon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -448,7 +468,6 @@ export function V0Icon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Synthesia (official brand mark — purple bars) ──
 export function SynthesiaIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -459,7 +478,6 @@ export function SynthesiaIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── ElevenLabs (official brand mark — sound waves) ──
 export function ElevenLabsIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -472,7 +490,6 @@ export function ElevenLabsIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── TakeApp (official brand mark — green T) ──
 export function TakeAppIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -482,7 +499,6 @@ export function TakeAppIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Jules (Google's AI agent — green badge) ──
 export function JulesIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -492,7 +508,6 @@ export function JulesIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
-// ── Stitch (Google's UI generator — teal circle) ──
 export function StitchIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
@@ -502,8 +517,29 @@ export function StitchIcon({ size = 20, className = "" }: IconProps) {
   );
 }
 
+export function OpenRouterIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect width="24" height="24" rx="6" fill="#6366F1" />
+      <circle cx="8" cy="12" r="2.5" fill="#fff" />
+      <circle cx="16" cy="7" r="2.5" fill="#fff" />
+      <circle cx="16" cy="17" r="2.5" fill="#fff" />
+      <path d="M10 11l4-3M10 13l4 3" stroke="#fff" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+export function BeaconsIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <circle cx="12" cy="12" r="11" fill="#FFDD00" />
+      <path fill="#000" d="M12 4l2.5 5.5L20 12l-5.5 2.5L12 20l-2.5-5.5L4 12l5.5-2.5L12 4z" />
+    </svg>
+  );
+}
+
 // ──────────────────────────────────────────
-// renderBrandIcon — single lookup for all connectors
+// renderBrandIcon — lookup for all connectors
 // ──────────────────────────────────────────
 
 export function renderBrandIcon(
@@ -517,7 +553,9 @@ export function renderBrandIcon(
   if (lower.includes("gemini")) return <GeminiIcon size={size} className={className} />;
   if (lower.includes("openai") || lower.includes("gpt")) return <OpenAIIcon size={size} className={className} />;
   if (lower.includes("anthropic") || lower.includes("claude")) return <AnthropicIcon size={size} className={className} />;
-  if (lower.includes("groq") || lower.includes("llama")) return <GroqIcon size={size} className={className} />;
+  if (lower.includes("openrouter")) return <OpenRouterIcon size={size} className={className} />;
+  if (lower.includes("perplexity")) return <PerplexityIcon size={size} className={className} />;
+  if (lower.includes("hugging")) return <HuggingFaceIcon size={size} className={className} />;
 
   // E-Commerce
   if (lower.includes("shopify")) return <ShopifyIcon size={size} className={className} />;
@@ -533,21 +571,32 @@ export function renderBrandIcon(
   if (lower.includes("tiktok")) return <TikTokIcon size={size} className={className} />;
   if (lower.includes("youtube")) return <YouTubeIcon size={size} className={className} />;
   if (lower.includes("pinterest")) return <PinterestIcon size={size} className={className} />;
-  if (lower.includes("linkedin")) return <LinkedInIcon size={size} className={className} />;
   if (lower.includes("facebook")) return <FacebookIcon size={size} className={className} />;
   if (lower.includes("twitch")) return <TwitchIcon size={size} className={className} />;
   if (lower.includes("linktree")) return <LinktreeIcon size={size} className={className} />;
 
   // Google ecosystem
+  if (lower.includes("google calendar")) return <GoogleCalendarIcon size={size} className={className} />;
+  if (lower.includes("google maps")) return <GoogleMapsIcon size={size} className={className} />;
   if (lower.includes("google ad")) return <GoogleAdsIcon size={size} className={className} />;
   if (lower.includes("google drive") || lower.includes("google workspace")) return <GoogleDriveIcon size={size} className={className} />;
   if (lower.includes("google")) return <GoogleIcon size={size} className={className} />;
   if (lower.includes("gmail")) return <GmailIcon size={size} className={className} />;
 
-  // Marketing & Ads
+  // Marketing & Finance
   if (lower.includes("meta")) return <MetaAdsIcon size={size} className={className} />;
+  if (lower.includes("stripe")) return <StripeIcon size={size} className={className} />;
+  if (lower.includes("paypal")) return <PayPalIcon size={size} className={className} />;
+  if (lower.includes("quickbooks")) return <QuickBooksIcon size={size} className={className} />;
+  if (lower.includes("xero")) return <XeroIcon size={size} className={className} />;
+  if (lower.includes("mailchimp")) return <MailchimpIcon size={size} className={className} />;
+  if (lower.includes("hubspot")) return <HubSpotIcon size={size} className={className} />;
+  if (lower.includes("klaviyo")) return <KlaviyoIcon size={size} className={className} />;
+  if (lower.includes("typeform")) return <TypeformIcon size={size} className={className} />;
+  if (lower.includes("posthog")) return <PostHogIcon size={size} className={className} />;
+  if (lower.includes("metabase")) return <MetabaseIcon size={size} className={className} />;
 
-  // Developer & Infrastructure
+  // Developer & Workspace
   if (lower.includes("github")) return <GitHubIcon size={size} className={className} />;
   if (lower.includes("gitlab")) return <GitLabIcon size={size} className={className} />;
   if (lower.includes("vercel")) return <VercelIcon size={size} className={className} />;
@@ -558,27 +607,35 @@ export function renderBrandIcon(
   if (lower.includes("docker")) return <DockerIcon size={size} className={className} />;
   if (lower.includes("firebase")) return <FirebaseIcon size={size} className={className} />;
   if (lower.includes("supabase")) return <SupabaseIcon size={size} className={className} />;
-  if (lower.includes("react")) return <ReactIcon size={size} className={className} />;
-  if (lower.includes("typescript")) return <TypeScriptIcon size={size} className={className} />;
-  if (lower.includes("tailwind")) return <TailwindIcon size={size} className={className} />;
   if (lower.includes("jules")) return <JulesIcon size={size} className={className} />;
   if (lower.includes("stitch")) return <StitchIcon size={size} className={className} />;
+  if (lower.includes("linear")) return <LinearIcon size={size} className={className} />;
+  if (lower.includes("firecrawl")) return <FirecrawlIcon size={size} className={className} />;
+  if (lower.includes("apify")) return <ApifyIcon size={size} className={className} />;
 
   // Productivity & Business
   if (lower.includes("slack")) return <SlackIcon size={size} className={className} />;
   if (lower.includes("notion")) return <NotionIcon size={size} className={className} />;
   if (lower.includes("figma")) return <FigmaIcon size={size} className={className} />;
   if (lower.includes("airtable")) return <AirtableIcon size={size} className={className} />;
-  if (lower.includes("stripe")) return <StripeIcon size={size} className={className} />;
-  if (lower.includes("mailchimp")) return <MailchimpIcon size={size} className={className} />;
-  if (lower.includes("hubspot")) return <HubSpotIcon size={size} className={className} />;
+  if (lower.includes("asana")) return <AsanaIcon size={size} className={className} />;
+  if (lower.includes("canva")) return <CanvaIcon size={size} className={className} />;
+  if (lower.includes("clickup")) return <ClickUpIcon size={size} className={className} />;
+  if (lower.includes("dropbox")) return <DropboxIcon size={size} className={className} />;
   if (lower.includes("intercom")) return <IntercomIcon size={size} className={className} />;
   if (lower.includes("jira")) return <JiraIcon size={size} className={className} />;
   if (lower.includes("zendesk")) return <ZendeskIcon size={size} className={className} />;
   if (lower.includes("salesforce")) return <SalesforceIcon size={size} className={className} />;
-  if (lower.includes("quickbooks")) return <QuickBooksIcon size={size} className={className} />;
   if (lower.includes("twilio")) return <TwilioIcon size={size} className={className} />;
   if (lower.includes("zapier")) return <ZapierIcon size={size} className={className} />;
+  if (lower.includes("todoist")) return <TodoistIcon size={size} className={className} />;
+  if (lower.includes("trello")) return <TrelloIcon size={size} className={className} />;
+  if (lower.includes("webflow")) return <WebflowIcon size={size} className={className} />;
+  if (lower.includes("wordpress")) return <WordPressIcon size={size} className={className} />;
+  if (lower.includes("zoom")) return <ZoomIcon size={size} className={className} />;
+  if (lower.includes("monday")) return <MondayIcon size={size} className={className} />;
+  if (lower.includes("make")) return <MakeIcon size={size} className={className} />;
+  if (lower.includes("n8n")) return <N8nIcon size={size} className={className} />;
 
   // Video & Content
   if (lower.includes("heygen")) return <HeyGenIcon size={size} className={className} />;
@@ -587,12 +644,7 @@ export function renderBrandIcon(
   if (lower.includes("synthesia")) return <SynthesiaIcon size={size} className={className} />;
   if (lower.includes("elevenlabs")) return <ElevenLabsIcon size={size} className={className} />;
   if (lower.includes("take")) return <TakeAppIcon size={size} className={className} />;
-
-  // Platforms
   if (lower.includes("lovable")) return <LovableIcon size={size} className={className} />;
-  if (lower.includes("apple")) return <AppleIcon size={size} className={className} />;
-  if (lower.includes("microsoft")) return <MicrosoftIcon size={size} className={className} />;
-  if (lower.includes("amazon")) return <AmazonIcon size={size} className={className} />;
 
   // Default fallback
   return <GoogleIcon size={size} className={className} />;

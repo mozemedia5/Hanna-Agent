@@ -43,7 +43,7 @@ const menuItems = [
   { icon: Megaphone, label: "Marketing & Campaigns", path: "/marketing" },
   { icon: Zap, label: "Automations", path: "/automations" },
   { icon: BarChart3, label: "Analytics", path: "/analytics" },
-  { icon: PlugZap, label: "Integrations", path: "/integrations" },
+  { icon: PlugZap, label: "Plugins", path: "/integrations" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
