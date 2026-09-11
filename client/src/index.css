@@ -99,7 +99,7 @@ body {
   color: var(--text-primary);
   font-family:
     "Google Sans", "Inter", "Manrope", ui-sans-serif, system-ui, sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -673,7 +673,11 @@ kbd {
 .workspace-body {
   flex: 1;
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 .conversation-stage {
   width: min(100%, 1040px);
@@ -683,7 +687,8 @@ kbd {
 }
 .conversation-stage.is-empty {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  min-height: min-content;
 }
 .welcome-layout {
   width: 100%;
@@ -896,7 +901,7 @@ kbd {
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 16px;
   padding: 22px 0;
-  animation: message-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: message-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .message-row + .message-row {
   border-top: 1px solid var(--border);
@@ -1956,7 +1961,7 @@ kbd {
 @keyframes message-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -2098,7 +2103,9 @@ kbd {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg);
   color: var(--text-primary);
   font-family: "Google Sans", "Inter", sans-serif;
@@ -2386,6 +2393,8 @@ kbd {
   background: var(--bg);
   font-family: "Google Sans", "Inter", sans-serif;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .container {
   width: min(1200px, calc(100% - 48px));
