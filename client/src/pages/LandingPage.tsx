@@ -313,9 +313,6 @@ export default function LandingPage() {
                         <div className="mock-nav-item">
                           <Terminal size={14} /> Agent Runs
                         </div>
-                        <div className="mock-nav-item">
-                          <Database size={14} /> Connectors
-                        </div>
                       </div>
 
                       <div className="mock-main">
