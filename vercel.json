@@ -3,7 +3,7 @@
   "buildCommand": "pnpm vercel-build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 60
     },
     "api/config.ts": {
@@ -11,8 +11,8 @@
     }
   },
   "rewrites": [
-    { "source": "/api/:path+", "destination": "/api/index" },
-    { "source": "/trpc/:path+", "destination": "/api/index" },
+    { "source": "/api/:path+", "destination": "/api/index.js" },
+    { "source": "/trpc/:path+", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

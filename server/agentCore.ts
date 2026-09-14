@@ -329,13 +329,7 @@ export function normalizeMcpTool(
     scopes: [`mcp:${mcpTool.name}`],
     riskLevel: mcpTool.requiresApproval ? "high" : "medium",
     availability: "available",
-    execute:
-      executor ??
-      (async args => ({
-        mcpTool: mcpTool.name,
-        executed: true,
-        arguments: args,
-      })),
+    execute: executor,
   };
 }
 
@@ -359,14 +353,7 @@ export function normalizeIntegrationTool(
     scopes: integration.capabilities,
     riskLevel: integration.requiresApproval ? "medium" : "low",
     availability: "available",
-    execute:
-      executor ??
-      (async args => ({
-        integration: integration.id,
-        action: actionName,
-        executed: true,
-        arguments: args,
-      })),
+    execute: executor,
   };
 }
 

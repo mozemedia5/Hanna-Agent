@@ -153,7 +153,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [isThinking, setIsThinking] = useState(false);
   const [toast, setToast] = useState("");
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("dark");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [model, setModel] = useState("Hanna Lite");
   const [showProfilePopup, setShowProfilePopup] = useState(false);
@@ -204,7 +204,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         }
       })
       .catch(() => {
-        setApiHealthy(true);
+        setApiHealthy(false);
+        setApiStatusMsg("Hanna API unavailable. Check the production deployment.");
       });
   }, []);
 
@@ -219,7 +220,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   useEffect(() => {
     const saved = localStorage.getItem("hanna-theme") as "light" | "dark" | "system" | null;
-    const next = saved ?? "light";
+    const next = saved ?? "dark";
     setTheme(next);
     applyTheme(next);
   }, []);

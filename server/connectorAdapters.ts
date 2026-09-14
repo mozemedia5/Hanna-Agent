@@ -343,21 +343,5 @@ export async function executeConnectorAction(
     };
   }
 
-  // Generic handler for all connected plugins & integrations
-  return {
-    connector: action.connector,
-    action: action.action,
-    summary: `Executed action '${action.action}' on connected plugin '${action.connector}'.`,
-    verification: {
-      status: "verified",
-      detail: `${action.connector} confirmed execution via connected OAuth/MCP session.`,
-    },
-    data: {
-      connector: action.connector,
-      action: action.action,
-      parameters: action.parameters ?? {},
-      timestamp: new Date().toISOString(),
-      status: "success",
-    },
-  };
+  throw new Error(`The ${action.connector} connector does not implement '${action.action}' yet.`);
 }

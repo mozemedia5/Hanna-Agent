@@ -16,7 +16,7 @@ import {
   Zap,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const categoryMap: Record<string, string[]> = {
   "E-Commerce & Dropshipping": [
@@ -114,10 +114,29 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [activeModal, setActiveModal] = useState<IntegrationDefinition | null>(
     null
   );
-  const [connectionMode, setConnectionMode] = useState<"oauth" | "mcp" | "key">("oauth");
+  const [connectionMode, setConnectionMode] = useState<"mcp" | "key">("key");
   const [formInputs, setFormInputs] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    const loadConnected = async () => {
+      try {
+        const token = await getFirebaseIdToken();
+        const response = await fetch("/api/trpc/integrations.listCredentials?batch=1", {
+          credentials: "include",
+          headers: { ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        const records = payload?.[0]?.result?.data?.json;
+        if (Array.isArray(records)) setConnected(records.map((record: { connector: string }) => record.connector));
+      } catch {
+        // Anonymous visitors can still browse the catalog; only authenticated users see saved state.
+      }
+    };
+    void loadConnected();
+  }, []);
 
   const filteredIntegrations = useMemo(() => {
     if (!searchQuery.trim()) return integrations;
@@ -131,46 +150,8 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
 
   const openModal = (integration: IntegrationDefinition) => {
     setActiveModal(integration);
-    setConnectionMode("oauth");
+    setConnectionMode(integration.supportsMcp ? "mcp" : "key");
     setFormInputs({});
-  };
-
-  const handleConnectOAuth = async () => {
-    if (!activeModal) return;
-    setSaving(true);
-    try {
-      const token = await getFirebaseIdToken();
-      await fetch("/api/trpc/integrations.saveCredential?batch=1", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          0: {
-            json: {
-              connector: activeModal.id,
-              values: {
-                connectionMode: "oauth",
-                oauthToken: `oauth_${activeModal.id}_${Date.now()}`,
-                status: "authenticated",
-              },
-            },
-          },
-        }),
-      });
-      if (!connected.includes(activeModal.id)) {
-        setConnected(prev => [...prev, activeModal.id]);
-      }
-      setToast(`${activeModal.name} connected via One-Click OAuth`);
-      setActiveModal(null);
-      setTimeout(() => setToast(""), 2600);
-    } catch {
-      setToast("Failed to connect via OAuth");
-      setTimeout(() => setToast(""), 2600);
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleSaveCustomInputs = async () => {
@@ -178,7 +159,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     setSaving(true);
     try {
       const token = await getFirebaseIdToken();
-      await fetch("/api/trpc/integrations.saveCredential?batch=1", {
+      const response = await fetch("/api/trpc/integrations.saveCredential?batch=1", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -196,6 +177,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
           },
         }),
       });
+      if (!response.ok) throw new Error("Credential save failed");
       if (!connected.includes(activeModal.id)) {
         setConnected(prev => [...prev, activeModal.id]);
       }
@@ -228,7 +210,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
           <h1 className="page-title">Plugins & Connectors</h1>
           <p className="page-description">
             Connect the tools where your work lives. Authorize your e-commerce store, social accounts,
-            productivity apps, and developer platforms via One-Click OAuth or MCP discovery.
+            productivity apps, and developer platforms through server-side credentials or verified MCP endpoints.
           </p>
         </div>
       </div>
@@ -356,11 +338,11 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
             {/* Connection Mode Selector */}
             <div className="modal-connection-toggle" style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
               <Button
-                variant={connectionMode === "oauth" ? "default" : "outline"}
+                variant={connectionMode === "key" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setConnectionMode("oauth")}
+                onClick={() => setConnectionMode("key")}
               >
-                <Lock size={13} style={{ marginRight: "6px" }} /> One-Click OAuth
+                <Lock size={13} style={{ marginRight: "6px" }} /> Configure credentials
               </Button>
               {activeModal.supportsMcp && (
                 <Button
@@ -373,14 +355,29 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               )}
             </div>
 
-            {connectionMode === "oauth" && (
-              <div style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "16px", borderRadius: "12px", marginBottom: "16px" }}>
-                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>One-Click OAuth Connection</div>
+            {connectionMode === "key" && (
+              <div style={{ marginBottom: "16px" }}>
                 <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "0 0 14px", lineHeight: "1.4" }}>
-                  Authorize Hanna to interact with your {activeModal.name} account securely without entering raw secret keys.
+                  Enter the provider fields required for this connector. Hanna stores them server-side and never reports a connector as active until the fields are saved.
                 </p>
-                <Button onClick={handleConnectOAuth} disabled={saving} className="w-full" style={{ background: "#1a73e8", color: "#fff" }}>
-                  {saving ? "Authorizing..." : `Authorize with ${activeModal.name}`}
+                {activeModal.credentialFields.map(field => (
+                  <label className="modal-field" key={field}>
+                    <span className="modal-field-label">{field.replaceAll("_", " ")}</span>
+                    <input
+                      type={field.toLowerCase().includes("token") || field.toLowerCase().includes("key") || field.toLowerCase().includes("secret") ? "password" : "text"}
+                      value={formInputs[field] || ""}
+                      onChange={e => setFormInputs(prev => ({ ...prev, [field]: e.target.value }))}
+                      placeholder={`Enter ${field.replaceAll("_", " ")}`}
+                    />
+                  </label>
+                ))}
+                <Button
+                  onClick={handleSaveCustomInputs}
+                  disabled={saving || activeModal.credentialFields.some(field => !formInputs[field]?.trim())}
+                  className="w-full"
+                  style={{ marginTop: "10px" }}
+                >
+                  {saving ? "Saving securely..." : "Save credentials"}
                 </Button>
               </div>
             )}

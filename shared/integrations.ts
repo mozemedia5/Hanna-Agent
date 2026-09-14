@@ -111,10 +111,10 @@ export const integrations: IntegrationDefinition[] = [
     supportsMcp: true,
     capabilities: ["read_products", "write_products", "read_orders", "write_orders"],
     requiresApproval: true,
-    description: "Connect your Shopify store via One-Click OAuth authorization or Storefront MCP endpoint to automate product catalog, inventory, and order fulfillment.",
+    description: "Connect your Shopify store through server-side credentials or a verified Storefront MCP endpoint to automate product catalog, inventory, and order fulfillment.",
     docUrl: "https://shopify.dev/docs/apps/build/storefront-mcp/servers/storefront",
     instructions: [
-      "Click 'Connect with OAuth' to instantly authorize Hanna with your Shopify store.",
+      "Enter the provider credentials to instantly authorize Hanna with your Shopify store.",
       "Alternatively, enter your Shopify store admin domain (e.g., myshop.myshopify.com).",
       "Click Connect to activate store automation.",
     ],
@@ -131,7 +131,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automate WooCommerce store catalog, product sync, customer orders, and inventory monitoring.",
     docUrl: "https://woocommerce.com/document/woocommerce-rest-api/",
     instructions: [
-      "Click 'Connect with OAuth' to authenticate with your WooCommerce WordPress dashboard.",
+      "Enter the provider credentials to authenticate with your WooCommerce WordPress dashboard.",
       "Or enter your store URL to establish a secure MCP connection.",
     ],
   },
@@ -147,7 +147,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage link-in-bio storefronts, digital products, and creator customer reach.",
     docUrl: "https://beacons.ai/developer",
     instructions: [
-      "Click 'Connect with OAuth' to grant Hanna access to your Beacons creator workspace.",
+      "Enter the provider credentials to grant Hanna access to your Beacons creator workspace.",
       "Or enter your Beacons creator username.",
     ],
   },
@@ -163,7 +163,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automate short-form UGC marketing video creation from product URLs and script prompts.",
     docUrl: "https://creatify.ai/docs/api",
     instructions: [
-      "Click 'Connect with OAuth' to link your Creatify AI account.",
+      "Enter the provider credentials to link your Creatify AI account.",
       "Grant video generation permissions to complete setup.",
     ],
   },
@@ -179,7 +179,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Create AI promo videos, YouTube Shorts, and viral E-Commerce ad clips.",
     docUrl: "https://invideo.io/docs/api",
     instructions: [
-      "Click 'Connect with OAuth' to authorize InVideo Studio integration.",
+      "Enter the provider credentials to authorize InVideo Studio integration.",
     ],
   },
   {
@@ -194,7 +194,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automate product sourcing, inventory sync, and order fulfillment via CJ Dropshipping.",
     docUrl: "https://cjdropshipping.com/myCJ.html#/apikey",
     instructions: [
-      "Click 'Connect with OAuth' to authorize CJ Dropshipping fulfillment.",
+      "Enter the provider credentials to authorize CJ Dropshipping fulfillment.",
     ],
   },
   {
@@ -209,7 +209,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automate dropshipping product imports, price updates, and automated ordering.",
     docUrl: "https://platform.autods.com/settings/api",
     instructions: [
-      "Click 'Connect with OAuth' to link your AutoDS store workspace.",
+      "Enter the provider credentials to link your AutoDS store workspace.",
     ],
   },
   {
@@ -224,7 +224,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Fast US dropshipping fulfillment, custom branding, and automated order processing.",
     docUrl: "https://app.zendrop.com/settings/api",
     instructions: [
-      "Click 'Connect with OAuth' to connect your Zendrop account.",
+      "Enter the provider credentials to connect your Zendrop account.",
     ],
   },
   {
@@ -239,7 +239,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "WhatsApp-first store platform to manage storefront orders and instant checkout links.",
     docUrl: "https://take.app/docs/api",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Take.app WhatsApp store integration.",
+      "Enter the provider credentials to authorize Take.app WhatsApp store integration.",
     ],
   },
 
@@ -256,7 +256,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Generate studio-grade AI avatar videos, video translations, and custom digital humans.",
     docUrl: "https://docs.heygen.com/reference/api-key-1",
     instructions: [
-      "Click 'Connect with OAuth' to grant Hanna access to your HeyGen video workspace.",
+      "Enter the provider credentials to grant Hanna access to your HeyGen video workspace.",
     ],
   },
   {
@@ -271,7 +271,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Create AI videos with lifelike avatars and natural text-to-speech voiceovers.",
     docUrl: "https://docs.synthesia.io/getting-started/api-keys",
     instructions: [
-      "Click 'Connect with OAuth' to link your Synthesia video creation suite.",
+      "Enter the provider credentials to link your Synthesia video creation suite.",
     ],
   },
   {
@@ -286,7 +286,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Realistic AI speech generation, voice cloning, and audio content creation.",
     docUrl: "https://elevenlabs.io/docs/api-reference/text-to-speech",
     instructions: [
-      "Click 'Connect with OAuth' to authorize ElevenLabs voice tools.",
+      "Enter the provider credentials to authorize ElevenLabs voice tools.",
     ],
   },
   {
@@ -301,7 +301,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Autonomous AI software engineering agent integration.",
     docUrl: "https://jules.google/docs",
     instructions: [
-      "Click 'Connect with OAuth' to link Google Jules AI developer console.",
+      "Enter the provider credentials to link Google Jules AI developer console.",
     ],
   },
   {
@@ -316,7 +316,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "AI UI/UX design generation and design system component stitching.",
     docUrl: "https://stitch.google/docs",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Google Stitch UI generator.",
+      "Enter the provider credentials to authorize Google Stitch UI generator.",
     ],
   },
   {
@@ -331,7 +331,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Generative UI system powered by AI for React and Tailwind CSS components.",
     docUrl: "https://v0.dev/docs/api",
     instructions: [
-      "Click 'Connect with OAuth' to connect your Vercel v0 generative UI account.",
+      "Enter the provider credentials to connect your Vercel v0 generative UI account.",
     ],
   },
   {
@@ -346,7 +346,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "AI web application builder API for full-stack web software generation.",
     docUrl: "https://docs.lovable.dev",
     instructions: [
-      "Click 'Connect with OAuth' to connect your Lovable web app builder.",
+      "Enter the provider credentials to connect your Lovable web app builder.",
     ],
   },
 
@@ -363,7 +363,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Publish short-form videos, analyze video performance, and manage creator profile.",
     docUrl: "https://developers.tiktok.com/doc/overview",
     instructions: [
-      "Click 'Connect with OAuth' to log into TikTok for Business & Creator account.",
+      "Enter the provider credentials to log into TikTok for Business & Creator account.",
     ],
   },
   {
@@ -378,7 +378,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Publish Instagram Reels/Posts, reply to comments, and view engagement analytics.",
     docUrl: "https://developers.facebook.com/docs/instagram-api",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Instagram Graph API with Meta.",
+      "Enter the provider credentials to authorize Instagram Graph API with Meta.",
     ],
   },
   {
@@ -393,7 +393,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Upload YouTube videos/Shorts, manage channel metadata, and view video analytics.",
     docUrl: "https://developers.google.com/youtube/v3",
     instructions: [
-      "Click 'Connect with OAuth' to authorize YouTube Data API via Google account.",
+      "Enter the provider credentials to authorize YouTube Data API via Google account.",
     ],
   },
   {
@@ -408,7 +408,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Publish visual Pins, manage moodboards, and track drive-to-store traffic.",
     docUrl: "https://developers.pinterest.com/docs/api/v5",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Pinterest Business account.",
+      "Enter the provider credentials to authorize Pinterest Business account.",
     ],
   },
   {
@@ -423,7 +423,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Update bio links, featured product URLs, and analyze link click-through rates.",
     docUrl: "https://developer.linktr.ee/docs",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Linktree bio link manager.",
+      "Enter the provider credentials to authorize Linktree bio link manager.",
     ],
   },
 
@@ -440,7 +440,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Send automated WhatsApp order updates, support messages, and campaign broadcasts.",
     docUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
     instructions: [
-      "Click 'Connect with OAuth' to log into Meta WhatsApp Cloud API.",
+      "Enter the provider credentials to log into Meta WhatsApp Cloud API.",
     ],
   },
   {
@@ -455,7 +455,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Send team notifications, broadcast operational updates, and read channel messages.",
     docUrl: "https://api.slack.com/authentication/token-types#bot",
     instructions: [
-      "Click 'Connect with OAuth' to install Hanna Slack Bot to your workspace.",
+      "Enter the provider credentials to install Hanna Slack Bot to your workspace.",
     ],
   },
 
@@ -472,7 +472,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage repositories, create issues/pull requests, and trigger CI workflows.",
     docUrl: "https://docs.github.com/en/apps/oauth-apps",
     instructions: [
-      "Click 'Connect with OAuth' to authorize GitHub account permissions.",
+      "Enter the provider credentials to authorize GitHub account permissions.",
     ],
   },
   {
@@ -487,7 +487,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Deploy frontend applications, monitor build logs, and manage domain settings.",
     docUrl: "https://vercel.com/docs/rest-api",
     instructions: [
-      "Click 'Connect with OAuth' to link your Vercel deployment account.",
+      "Enter the provider credentials to link your Vercel deployment account.",
     ],
   },
   {
@@ -502,7 +502,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Access Google Docs, Sheets, Drive files, and Calendar schedule.",
     docUrl: "https://developers.google.com/workspace",
     instructions: [
-      "Click 'Connect with OAuth' to sign in with Google Workspace.",
+      "Enter the provider credentials to sign in with Google Workspace.",
     ],
   },
   {
@@ -517,7 +517,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Read, send, and manage Gmail messages for automated outreach and support workflows.",
     docUrl: "https://developers.google.com/gmail/api/guides",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Gmail access via Google OAuth.",
+      "Enter the provider credentials to authorize Gmail access via Google OAuth.",
     ],
   },
   {
@@ -532,7 +532,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Schedule events, search calendar availability, and manage meeting schedules.",
     docUrl: "https://developers.google.com/calendar",
     instructions: [
-      "Click 'Connect with OAuth' to link Google Calendar.",
+      "Enter the provider credentials to link Google Calendar.",
     ],
   },
   {
@@ -547,7 +547,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Geocode store locations, search nearby places, and calculate delivery routes.",
     docUrl: "https://developers.google.com/maps",
     instructions: [
-      "Click 'Connect with OAuth' to activate Google Maps services.",
+      "Enter the provider credentials to activate Google Maps services.",
     ],
   },
 
@@ -564,7 +564,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Structured database & workflow platform; query, analyze, and update authorized Airtable bases.",
     docUrl: "https://airtable.com/developers/web/api/introduction",
     instructions: [
-      "Click 'Connect with OAuth' to grant Hanna access to your Airtable bases.",
+      "Enter the provider credentials to grant Hanna access to your Airtable bases.",
     ],
   },
   {
@@ -579,7 +579,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage project tasks, team milestones, and cross-functional workflows.",
     docUrl: "https://developers.asana.com",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Asana project management.",
+      "Enter the provider credentials to authorize Asana project management.",
     ],
   },
   {
@@ -594,7 +594,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Design and content workflows through Canva's authorized connector capabilities.",
     docUrl: "https://www.canva.dev",
     instructions: [
-      "Click 'Connect with OAuth' to link your Canva Design suite.",
+      "Enter the provider credentials to link your Canva Design suite.",
     ],
   },
   {
@@ -609,7 +609,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "All-in-one productivity platform for tasks, docs, and goal tracking.",
     docUrl: "https://clickup.com/api",
     instructions: [
-      "Click 'Connect with OAuth' to authorize ClickUp workspace.",
+      "Enter the provider credentials to authorize ClickUp workspace.",
     ],
   },
   {
@@ -624,7 +624,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Cloudflare Workers, DNS records, security rules, and edge storage management.",
     docUrl: "https://developers.cloudflare.com",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Cloudflare account access.",
+      "Enter the provider credentials to authorize Cloudflare account access.",
     ],
   },
   {
@@ -639,7 +639,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Cloud storage for document search, image uploads, and shared files.",
     docUrl: "https://www.dropbox.com/developers",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Dropbox file storage.",
+      "Enter the provider credentials to authorize Dropbox file storage.",
     ],
   },
   {
@@ -654,7 +654,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Web scraping and structured content extraction engine for AI agents.",
     docUrl: "https://www.firecrawl.dev/docs",
     instructions: [
-      "Click 'Connect with OAuth' to activate Firecrawl web extraction MCP.",
+      "Enter the provider credentials to activate Firecrawl web extraction MCP.",
     ],
   },
   {
@@ -669,7 +669,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Open-source AI models, datasets, and inference endpoints.",
     docUrl: "https://huggingface.co/docs",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Hugging Face hub.",
+      "Enter the provider credentials to authorize Hugging Face hub.",
     ],
   },
   {
@@ -684,7 +684,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Issue tracking and project management for modern software development.",
     docUrl: "https://developers.linear.app",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Linear issue tracking.",
+      "Enter the provider credentials to authorize Linear issue tracking.",
     ],
   },
   {
@@ -699,7 +699,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Visual automation platform to connect web applications and API workflows.",
     docUrl: "https://www.make.com/en/api-documentation",
     instructions: [
-      "Click 'Connect with OAuth' to link your Make automation suite.",
+      "Enter the provider credentials to link your Make automation suite.",
     ],
   },
   {
@@ -714,7 +714,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Business intelligence and SQL dashboard analytics tool.",
     docUrl: "https://www.metabase.com/docs/latest/api-documentation",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Metabase BI dashboard.",
+      "Enter the provider credentials to authorize Metabase BI dashboard.",
     ],
   },
   {
@@ -729,7 +729,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Query Notion workspace databases, sync product specs, and generate wiki pages.",
     docUrl: "https://developers.notion.com/docs/getting-started",
     instructions: [
-      "Click 'Connect with OAuth' to select Notion workspace pages.",
+      "Enter the provider credentials to select Notion workspace pages.",
     ],
   },
   {
@@ -744,7 +744,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Unified AI model routing platform for LLMs and specialized AI endpoints.",
     docUrl: "https://openrouter.ai/docs",
     instructions: [
-      "Click 'Connect with OAuth' to link OpenRouter model routing.",
+      "Enter the provider credentials to link OpenRouter model routing.",
     ],
   },
   {
@@ -759,7 +759,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Merchant transactions, invoicing, and cross-border digital payments.",
     docUrl: "https://developer.paypal.com",
     instructions: [
-      "Click 'Connect with OAuth' to link your PayPal Merchant account.",
+      "Enter the provider credentials to link your PayPal Merchant account.",
     ],
   },
   {
@@ -774,7 +774,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Search-augmented AI model reasoning with live web source citation.",
     docUrl: "https://docs.perplexity.ai",
     instructions: [
-      "Click 'Connect with OAuth' to activate Perplexity deep search.",
+      "Enter the provider credentials to activate Perplexity deep search.",
     ],
   },
   {
@@ -789,7 +789,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Product analytics, session recording, feature flags, and conversion funnel auditing.",
     docUrl: "https://posthog.com/docs/api",
     instructions: [
-      "Click 'Connect with OAuth' to authorize PostHog product analytics.",
+      "Enter the provider credentials to authorize PostHog product analytics.",
     ],
   },
   {
@@ -804,7 +804,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Open-source Firebase alternative: Postgres database, authentication, and file storage.",
     docUrl: "https://supabase.com/docs",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Supabase Postgres projects.",
+      "Enter the provider credentials to authorize Supabase Postgres projects.",
     ],
   },
   {
@@ -819,7 +819,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Task checklist management, daily goal setting, and productivity tracking.",
     docUrl: "https://developer.todoist.com",
     instructions: [
-      "Click 'Connect with OAuth' to link your Todoist tasks.",
+      "Enter the provider credentials to link your Todoist tasks.",
     ],
   },
   {
@@ -834,7 +834,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Kanban boards for project organization and team task execution.",
     docUrl: "https://developer.atlassian.com/cloud/trello/",
     instructions: [
-      "Click 'Connect with OAuth' to link Trello Kanban workspace.",
+      "Enter the provider credentials to link Trello Kanban workspace.",
     ],
   },
   {
@@ -849,7 +849,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Visual web design, CMS collection publishing, and site deployment.",
     docUrl: "https://developers.webflow.com",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Webflow CMS sites.",
+      "Enter the provider credentials to authorize Webflow CMS sites.",
     ],
   },
   {
@@ -864,7 +864,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Content publishing, blog updates, and media library management for WordPress sites.",
     docUrl: "https://developer.wordpress.org/rest-api/",
     instructions: [
-      "Click 'Connect with OAuth' to authorize WordPress REST API.",
+      "Enter the provider credentials to authorize WordPress REST API.",
     ],
   },
   {
@@ -879,7 +879,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Cloud accounting software for small businesses and e-commerce stores.",
     docUrl: "https://developer.xero.com",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Xero accounting tenant.",
+      "Enter the provider credentials to authorize Xero accounting tenant.",
     ],
   },
   {
@@ -894,7 +894,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Connect over 5,000+ business web apps via Zapier Natural Language Actions API & MCP.",
     docUrl: "https://nla.zapier.com/docs/getting-started/",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Zapier NLA actions.",
+      "Enter the provider credentials to authorize Zapier NLA actions.",
     ],
   },
   {
@@ -909,7 +909,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Video conferencing, meeting scheduling, and cloud recording transcription.",
     docUrl: "https://developers.zoom.us",
     instructions: [
-      "Click 'Connect with OAuth' to link your Zoom workspace.",
+      "Enter the provider credentials to link your Zoom workspace.",
     ],
   },
   {
@@ -924,7 +924,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Work OS platform for managing tasks, CRM leads, and team workflows.",
     docUrl: "https://developer.monday.com",
     instructions: [
-      "Click 'Connect with OAuth' to authorize monday.com account.",
+      "Enter the provider credentials to authorize monday.com account.",
     ],
   },
   {
@@ -939,7 +939,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Fair-code workflow automation platform for custom technical integrations.",
     docUrl: "https://docs.n8n.io/api/",
     instructions: [
-      "Click 'Connect with OAuth' to authorize n8n workflow engine.",
+      "Enter the provider credentials to authorize n8n workflow engine.",
     ],
   },
   {
@@ -954,7 +954,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Web scraping, data extraction, and web automation actor platform.",
     docUrl: "https://docs.apify.com",
     instructions: [
-      "Click 'Connect with OAuth' to link Apify scraper actors.",
+      "Enter the provider credentials to link Apify scraper actors.",
     ],
   },
   {
@@ -969,7 +969,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "E-Commerce email & SMS marketing automation platform.",
     docUrl: "https://developers.klaviyo.com",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Klaviyo marketing hub.",
+      "Enter the provider credentials to authorize Klaviyo marketing hub.",
     ],
   },
   {
@@ -984,7 +984,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Conversational forms, surveys, and quiz response collection.",
     docUrl: "https://developer.typeform.com",
     instructions: [
-      "Click 'Connect with OAuth' to link Typeform surveys.",
+      "Enter the provider credentials to link Typeform surveys.",
     ],
   },
 
@@ -1001,7 +1001,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "HubSpot CRM & Marketing automation for managing customer deals, leads, and contacts.",
     docUrl: "https://developers.hubspot.com/docs/api/overview",
     instructions: [
-      "Click 'Connect with OAuth' to grant access to HubSpot CRM contacts and deals.",
+      "Enter the provider credentials to grant access to HubSpot CRM contacts and deals.",
     ],
   },
   {
@@ -1016,7 +1016,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage email subscriber lists, automated email campaigns, and customer newsletters.",
     docUrl: "https://mailchimp.com/developer/marketing/api/quick-start/",
     instructions: [
-      "Click 'Connect with OAuth' to link your Mailchimp account.",
+      "Enter the provider credentials to link your Mailchimp account.",
     ],
   },
   {
@@ -1031,7 +1031,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automate store payments, recurring subscriptions, and customer invoice tracking.",
     docUrl: "https://stripe.com/docs/api",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Stripe Connect for safe payment reads.",
+      "Enter the provider credentials to authorize Stripe Connect for safe payment reads.",
     ],
   },
   {
@@ -1046,7 +1046,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automate AI customer support responses, manage tickets, and read active user chats.",
     docUrl: "https://developers.intercom.com/docs",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Intercom customer desk.",
+      "Enter the provider credentials to authorize Intercom customer desk.",
     ],
   },
   {
@@ -1061,7 +1061,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage engineering bug tickets, agile sprints, and customer feedback tasks.",
     docUrl: "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Atlassian Jira Software.",
+      "Enter the provider credentials to authorize Atlassian Jira Software.",
     ],
   },
   {
@@ -1076,7 +1076,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Enterprise customer support ticket management and automated resolution workflows.",
     docUrl: "https://developer.zendesk.com/api-reference/",
     instructions: [
-      "Click 'Connect with OAuth' to link Zendesk Admin desk.",
+      "Enter the provider credentials to link Zendesk Admin desk.",
     ],
   },
   {
@@ -1091,7 +1091,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Enterprise CRM for managing lead pipelines, business accounts, and opportunities.",
     docUrl: "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_what_is_rest_api.htm",
     instructions: [
-      "Click 'Connect with OAuth' to sign in with Salesforce.",
+      "Enter the provider credentials to sign in with Salesforce.",
     ],
   },
   {
@@ -1106,7 +1106,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "E-Commerce accounting, automated invoice status tracking, and expense auditing.",
     docUrl: "https://developer.intuit.com/app/developer/qbo/docs/develop",
     instructions: [
-      "Click 'Connect with OAuth' to authorize Intuit QuickBooks online.",
+      "Enter the provider credentials to authorize Intuit QuickBooks online.",
     ],
   },
   {
@@ -1121,7 +1121,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Automated SMS customer notifications, OTP verification, and voice alerts.",
     docUrl: "https://www.twilio.com/docs/usage/api",
     instructions: [
-      "Click 'Connect with OAuth' to link your Twilio account.",
+      "Enter the provider credentials to link your Twilio account.",
     ],
   },
 
@@ -1137,7 +1137,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Access GPT-4o, DALL-E, Whisper, and the full OpenAI model suite.",
     docUrl: "https://platform.openai.com/api-keys",
     instructions: [
-      "Click 'Connect with OAuth' or enter your secret key starting with 'sk-'.",
+      "Enter the provider credentials or enter your secret key starting with 'sk-'.",
     ],
   },
   {
@@ -1151,7 +1151,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Access Claude models for advanced reasoning, coding, and long-context analysis.",
     docUrl: "https://docs.anthropic.com/en/api/getting-started",
     instructions: [
-      "Click 'Connect with OAuth' or enter your key starting with 'sk-ant-'.",
+      "Enter the provider credentials or enter your key starting with 'sk-ant-'.",
     ],
   },
   {
@@ -1165,7 +1165,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Access Gemini models for multimodal AI, long-context, and Google integration.",
     docUrl: "https://ai.google.dev/gemini-api/docs/api-key",
     instructions: [
-      "Click 'Connect with OAuth' or enter your key starting with 'AIzaSy...'.",
+      "Enter the provider credentials or enter your key starting with 'AIzaSy...'.",
     ],
   },
 
@@ -1182,7 +1182,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage Facebook and Instagram ad campaigns, audiences, and performance reporting.",
     docUrl: "https://developers.facebook.com/docs/marketing-apis",
     instructions: [
-      "Click 'Connect with OAuth' to log into Meta Ads Manager.",
+      "Enter the provider credentials to log into Meta Ads Manager.",
     ],
   },
   {
@@ -1197,7 +1197,7 @@ export const integrations: IntegrationDefinition[] = [
     description: "Manage Google Search and Display ad campaigns with performance reporting.",
     docUrl: "https://developers.google.com/google-ads/api/docs/first-call/overview",
     instructions: [
-      "Click 'Connect with OAuth' to grant Google Ads API access.",
+      "Enter the provider credentials to grant Google Ads API access.",
     ],
   },
 

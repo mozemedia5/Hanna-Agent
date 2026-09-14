@@ -84,6 +84,40 @@ function SimpleBrandIcon({ icon, size = 20, className = "" }: IconProps & { icon
   );
 }
 
+function ConnectorAssetIcon({ src, size = 20, className = "" }: IconProps & { src: string }) {
+  return (
+    <img
+      src={`/plugin-icons/${src}`}
+      width={size}
+      height={size}
+      className={className}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+    />
+  );
+}
+
+const CANONICAL_ASSET_MATCHES = [
+  { match: (name: string) => name.includes("shopify"), src: "shopify.svg" },
+  { match: (name: string) => name.includes("slack"), src: "slack.svg" },
+  { match: (name: string) => name.includes("github"), src: "github.svg" },
+  { match: (name: string) => name.includes("google workspace"), src: "google-workspace.svg" },
+  { match: (name: string) => name.includes("gmail"), src: "gmail.svg" },
+  { match: (name: string) => name.includes("heygen"), src: "heygen.png" },
+  { match: (name: string) => name.includes("instagram"), src: "instagram.svg" },
+  { match: (name: string) => name.includes("tiktok"), src: "tiktok.svg" },
+  { match: (name: string) => name.includes("meta ads"), src: "meta-ads.svg" },
+  { match: (name: string) => name.includes("vercel"), src: "vercel.svg" },
+  { match: (name: string) => name.includes("elevenlabs"), src: "elevenlabs.svg" },
+] as const;
+
+function canonicalAssetIcon(name: string, size: number, className: string) {
+  const match = CANONICAL_ASSET_MATCHES.find(item => item.match(name.toLowerCase()));
+  return match ? <ConnectorAssetIcon src={match.src} size={size} className={className} /> : null;
+}
+
 // ── Google & Gemini ──
 export function GoogleIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siGoogle} size={size} className={className} />;
@@ -548,6 +582,8 @@ export function renderBrandIcon(
   className = ""
 ): React.ReactElement {
   const lower = name.toLowerCase();
+  const canonicalAsset = canonicalAssetIcon(lower, size, className);
+  if (canonicalAsset) return canonicalAsset;
 
   // Major AI models
   if (lower.includes("gemini")) return <GeminiIcon size={size} className={className} />;

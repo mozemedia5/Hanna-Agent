@@ -8,9 +8,21 @@ import {
   providerCatalog,
   upsertProviderCredential,
 } from "./providerDb";
-import { invokeUserProvider } from "./providerAdapters";
+import {
+  invokeGeminiAgentTurn,
+  invokeUserProvider,
+  type ProviderToolDefinition,
+} from "./providerAdapters";
 import { getWorkspaceSettings, updateWorkspaceSettings } from "./settingsDb";
-import { runAgentCore, synthesizeFallbackResponse } from "./agentCore";
+import {
+  buildAgentPlan,
+  buildAgentTrace,
+  createDefaultToolRegistry,
+  DynamicToolRegistry,
+  runAgentLoop,
+  synthesizeFallbackResponse,
+  type AgentTool,
+} from "./agentCore";
 import { integrations } from "../shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import {
@@ -23,6 +35,7 @@ import {
   listConnectorCredentials,
   saveConnectorCredential,
   type ConnectorAction,
+  type ConnectorCredential,
   type ConnectorId,
 } from "./connectorDb";
 import {
@@ -45,6 +58,68 @@ import {
 
 import { TRPCError } from "@trpc/server";
 
+type AgentConnectorTool = {
+  connector: ConnectorId;
+  action: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  requiresApproval: boolean;
+};
+
+const REAL_CONNECTOR_TOOLS: AgentConnectorTool[] = [
+  { connector: "shopify", action: "list_products", description: "List products from the connected Shopify Admin API.", parameters: { type: "object", properties: { first: { type: "number", description: "Maximum number of products." }, query: { type: "string", description: "Optional Shopify search query." } } }, requiresApproval: false },
+  { connector: "shopify", action: "search_products", description: "Search products in the connected Shopify Admin API.", parameters: { type: "object", properties: { first: { type: "number" }, query: { type: "string" } } }, requiresApproval: false },
+  { connector: "shopify", action: "get_product", description: "Retrieve a Shopify product by its GraphQL ID.", parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] }, requiresApproval: false },
+  { connector: "shopify", action: "best_sellers", description: "Retrieve Shopify products for best-seller analysis.", parameters: { type: "object", properties: { first: { type: "number" }, query: { type: "string" } } }, requiresApproval: false },
+  { connector: "shopify", action: "low_inventory", description: "Find Shopify products below an inventory threshold.", parameters: { type: "object", properties: { first: { type: "number" }, inventoryThreshold: { type: "number" } } }, requiresApproval: false },
+  { connector: "shopify", action: "update_product_title", description: "Update a Shopify product title after explicit user confirmation.", parameters: { type: "object", properties: { productId: { type: "string" }, title: { type: "string" } }, required: ["productId", "title"] }, requiresApproval: true },
+  { connector: "slack", action: "list_channels", description: "List channels from the connected Slack workspace.", parameters: { type: "object", properties: { limit: { type: "number" } } }, requiresApproval: false },
+  { connector: "slack", action: "send_message", description: "Send a Slack message after explicit user confirmation.", parameters: { type: "object", properties: { channel: { type: "string" }, text: { type: "string" }, threadTs: { type: "string" } }, required: ["channel", "text"] }, requiresApproval: true },
+];
+
+function buildConnectedAgentRegistry(credentials: ConnectorCredential[]): DynamicToolRegistry {
+  const registry = createDefaultToolRegistry();
+  for (const definition of REAL_CONNECTOR_TOOLS) {
+    if (!credentials.some(credential => credential.connector === definition.connector)) continue;
+    const toolId = `connector_${definition.connector}_${definition.action}`;
+    registry.register({
+      id: toolId,
+      label: `${definition.connector} ${definition.action.replaceAll("_", " ")}`,
+      description: definition.description,
+      category: "connector",
+      provider: definition.connector,
+      capabilities: [definition.action],
+      inputSchema: definition.parameters,
+      requiresApproval: definition.requiresApproval,
+      scopes: [`${definition.connector}:${definition.action}`],
+      riskLevel: definition.requiresApproval ? "high" : "low",
+      availability: "available",
+      readOnly: !definition.requiresApproval,
+      mutatesData: definition.requiresApproval,
+      execute: async (arguments_) => {
+        const credential = credentials.find(item => item.connector === definition.connector);
+        if (!credential) throw new Error(`${definition.connector} is not connected.`);
+        return executeConnectorAction(credential, {
+          connector: definition.connector,
+          action: definition.action,
+          parameters: arguments_,
+        } as ConnectorAction);
+      },
+    });
+  }
+  return registry;
+}
+
+function providerToolDefinitions(registry: DynamicToolRegistry): ProviderToolDefinition[] {
+  return registry.list()
+    .filter(tool => Boolean(tool.execute))
+    .map(tool => ({
+      name: tool.id,
+      description: tool.description,
+      parameters: (tool.inputSchema ?? { type: "object", properties: {} }) as Record<string, unknown>,
+    }));
+}
+
 export async function executeHannaRequest(
   prompt: string,
   context?: string,
@@ -54,78 +129,110 @@ export async function executeHannaRequest(
   agenticMode: boolean = false
 ) {
   if (agenticMode) {
+    const approvalPlan = buildAgentPlan(prompt);
+    if (approvalPlan.approvalRequired) {
+      return {
+        text: "I prepared the requested external action, but I need your approval before changing an external system.",
+        model: approvalPlan.route.model,
+        capability: approvalPlan.route.capability,
+        plan: approvalPlan,
+        trace: buildAgentTrace(approvalPlan),
+        responseType: "MODEL_RESPONSE" as const,
+      };
+    }
     try {
-      return await runAgentCore(
+      const provider = await getProviderCredentialForRequest(
+        userId,
         prompt,
-        context,
-        async ({ context: requestContext, plan }) => {
-          const provider = await getProviderCredentialForRequest(
-            userId,
-            prompt,
-            requestedModel
-          );
-
-          const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-          const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
-          const quota = consumeDailyTokens(
-            quotaKey,
-            Math.ceil(prompt.length / 4),
-            tier
-          );
-
-          if (!quota.allowed) {
-            throw new Error(
-              userId
-                ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
-                : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
-            );
-          }
-          if (!provider.apiKey)
-            throw new Error(
-              "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
-            );
-
-          let enrichedContext = requestContext || "";
-          if (userId) {
-            const connectedProviders = await listProviderCredentials(userId);
-            const connectedConnectors = await listConnectorCredentials(userId);
-            const userProfile = await getProfile(String(userId)).catch(() => null);
-
-            const providerNames = connectedProviders.map(
-              p => p.displayName || p.provider
-            );
-            const connectorSummaries = connectedConnectors.map(c => {
-              const def = integrations.find(i => i.id === c.connector);
-              return `${c.connector}${def ? ` [Capabilities: ${def.capabilities.join(", ")}]` : ""}`;
-            });
-            const extraLines: string[] = [];
-
-            if (userProfile?.customInstructions?.trim()) {
-              extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
-            }
-
-            if (providerNames.length > 0 || connectorSummaries.length > 0) {
-              extraLines.push(
-                `[Active Capabilities & Connected Plugin Tools:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Active Connected Plugins & Tools: ${connectorSummaries.length > 0 ? connectorSummaries.join("; ") : "None"}]`
-              );
-            }
-
-            if (extraLines.length > 0) {
-              const extraSummary = extraLines.join("\n\n");
-              enrichedContext = enrichedContext
-                ? `${enrichedContext}\n\n${extraSummary}`
-                : extraSummary;
-            }
-          }
-
-          const text = await invokeUserProvider({
-            ...provider,
-            prompt: `${plan.steps.join("\n")}\n\n${prompt}`,
-            context: enrichedContext,
-          });
-          return { text, model: `${provider.provider} · ${provider.model}` };
-        }
+        requestedModel
       );
+      const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
+      const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
+      const quota = consumeDailyTokens(quotaKey, Math.ceil(prompt.length / 4), tier);
+      if (!quota.allowed) {
+        throw new Error(
+          userId
+            ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
+            : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
+        );
+      }
+      if (!provider.apiKey) {
+        throw new Error(
+          "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
+        );
+      }
+
+      const connectedSummaries = userId ? await listConnectorCredentials(userId) : [];
+      const connectedCredentials = userId
+        ? (await Promise.all(
+            connectedSummaries.map(summary => getConnectorCredential(userId, summary.connector))
+          )).filter((credential): credential is ConnectorCredential => Boolean(credential))
+        : [];
+      const registry = buildConnectedAgentRegistry(connectedCredentials);
+      const basePlan = buildAgentPlan(prompt);
+      const enrichedContext = [
+        context?.trim(),
+        connectedSummaries.length
+          ? `[Connected plugins: ${connectedSummaries.map(item => item.connector).join(", ")}]`
+          : "[Connected plugins: none]",
+        "[Execution policy: only tools exposed by a connected, implemented adapter may run. Unimplemented catalog entries are never reported as executed.]",
+      ].filter(Boolean).join("\\n\\n");
+
+      const execution = await runAgentLoop(
+        {
+          userMessage: prompt,
+          history: context ? [context] : [],
+          requestId: `hanna_${Date.now()}`,
+          userId,
+        },
+        async state => {
+          const toolResults = state.toolResults.length
+            ? `\\n\\nVerified tool results:\\n${state.toolResults.map(result => JSON.stringify({ status: result.status, tool: result.metadata.tool, data: result.data, error: result.error })).join("\\n")}`
+            : "";
+          const turn = await invokeGeminiAgentTurn({
+            ...provider,
+            prompt: `${prompt}
+
+Agent step ${state.step + 1}. Choose one available tool only when it is required. After verified results are available, synthesize the final answer. Do not claim an external action succeeded unless a verified tool result says it succeeded.${toolResults}`,
+            context: enrichedContext,
+            tools: providerToolDefinitions(registry),
+          });
+          if (turn.functionCall) {
+            return {
+              type: "tool_call" as const,
+              toolId: turn.functionCall.name,
+              arguments: turn.functionCall.args,
+            };
+          }
+          return {
+            type: "final" as const,
+            response: turn.text || "I’m ready to help. Could you clarify the outcome you want?",
+          };
+        },
+        registry,
+        { maxSteps: 8, maxToolCalls: 6, timeoutMs: 50_000 }
+      );
+
+      const waitingForConfirmation = execution.status === "waiting_for_confirmation";
+      const responseText = waitingForConfirmation
+        ? "I prepared the requested external action, but I need your explicit confirmation before making a change."
+        : execution.response || (execution.status === "failed"
+          ? "I could not complete the requested tool workflow. No external action was reported as successful."
+          : "I completed the requested workflow and verified its tool results.");
+      const plan = {
+        ...basePlan,
+        tools: registry.list(),
+        approvalRequired: waitingForConfirmation,
+      };
+      return {
+        text: responseText,
+        model: `${provider.provider} · ${provider.model}`,
+        capability: basePlan.route.capability,
+        plan,
+        trace: buildAgentTrace(plan, execution.status === "failed"),
+        providerError: false,
+        responseType: "MODEL_RESPONSE" as const,
+      };
     } catch (error) {
       const fallbackText = synthesizeFallbackResponse(prompt, context);
       return {

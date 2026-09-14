@@ -7,6 +7,18 @@ export type ProviderRequest = {
   prompt: string;
   context?: string;
   endpoint?: string;
+  tools?: ProviderToolDefinition[];
+};
+
+export type ProviderToolDefinition = {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+};
+
+export type ProviderAgentTurn = {
+  text?: string;
+  functionCall?: { name: string; args: Record<string, unknown> };
 };
 
 const HANNA_SYSTEM_PROMPT = `You are Hanna, an advanced AI workspace orchestrator and tutor.
@@ -38,6 +50,18 @@ function userMessage(request: ProviderRequest) {
   return request.context
     ? `Workspace context: ${request.context}\n\nUser request: ${request.prompt}`
     : request.prompt;
+}
+
+function geminiCandidateModels(requestedModel?: string) {
+  const rawModel = (requestedModel || process.env.GEMINI_MODEL || "gemini-2.5-flash").trim();
+  let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
+  if (primaryModel.includes("3.6")) primaryModel = "gemini-2.5-flash";
+  else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
+  else if (primaryModel.includes("2.5")) primaryModel = "gemini-2.5-flash";
+  else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
+  else if (primaryModel.includes("1.5-pro")) primaryModel = "gemini-1.5-pro";
+  else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
+  return Array.from(new Set([primaryModel, ...GEMINI_FALLBACK_MODELS]));
 }
 
 export async function invokeUserProvider(
@@ -92,23 +116,7 @@ export async function invokeUserProvider(
   }
 
   if (request.provider === "gemini") {
-    const rawModel = (
-      request.model ||
-      process.env.GEMINI_MODEL ||
-      "gemini-2.5-flash"
-    ).trim();
-
-    let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
-    if (primaryModel.includes("3.6")) primaryModel = "gemini-2.5-flash";
-    else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
-    else if (primaryModel.includes("2.5")) primaryModel = "gemini-2.5-flash";
-    else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
-    else if (primaryModel.includes("1.5-pro")) primaryModel = "gemini-1.5-pro";
-    else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
-
-    const candidateModels = Array.from(
-      new Set([primaryModel, ...GEMINI_FALLBACK_MODELS])
-    );
+    const candidateModels = geminiCandidateModels(request.model);
 
     let lastError = "";
     for (const modelName of candidateModels) {
@@ -227,4 +235,80 @@ export async function invokeUserProvider(
     data.choices?.[0]?.message?.content ??
     "I’m ready to help. Could you rephrase that request?"
   );
+}
+
+
+export async function invokeGeminiAgentTurn(
+  request: ProviderRequest
+): Promise<ProviderAgentTurn> {
+  if (request.provider !== "gemini") {
+    return { text: await invokeUserProvider(request) };
+  }
+  if (!request.apiKey || !request.apiKey.trim()) {
+    throw new Error("Gemini API key is missing or not configured.");
+  }
+
+  const tools = request.tools?.length
+    ? [{ functionDeclarations: request.tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      })) }]
+    : undefined;
+  let lastError = "";
+
+  for (const modelName of geminiCandidateModels(request.model)) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(request.apiKey.trim())}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: userMessage(request) }] }],
+            ...(tools ? { tools } : {}),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const safeText = sanitizeError(await getResponseText(response));
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Gemini provider returned an authentication error.");
+        }
+        if (response.status === 429) {
+          throw new Error("Gemini provider returned 429: Rate limit or quota exceeded.");
+        }
+        if (response.status === 404) {
+          lastError = `Gemini model ${modelName} unavailable (404).`;
+          continue;
+        }
+        throw new Error(`Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`);
+      }
+
+      const data = (await response.json().catch(() => null)) as {
+        candidates?: Array<{
+          content?: { parts?: Array<{ text?: string; functionCall?: { name?: string; args?: Record<string, unknown> } }> };
+        }>;
+      } | null;
+      const parts = data?.candidates?.[0]?.content?.parts ?? [];
+      const functionCall = parts.find(part => part.functionCall?.name)?.functionCall;
+      if (functionCall?.name) {
+        return { functionCall: { name: functionCall.name, args: functionCall.args ?? {} } };
+      }
+      const text = parts.map(part => part.text ?? "").join("").trim();
+      if (text) return { text };
+      throw new Error("Gemini returned an empty response.");
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("authentication") || error.message.includes("429")) throw error;
+        lastError = error.message;
+        if (error.message.includes("404")) continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error(lastError || "Gemini could not complete the tool-calling request.");
 }
