@@ -117,8 +117,8 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
         <h3 style={{ margin: "0 0 14px", fontSize: "16px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
           <Users size={18} style={{ color: "var(--gemini-accent)" }} /> Invite New Contributor
         </h3>
-        <form onSubmit={handleInvite} style={{ display: "grid", gridTemplateColumns: "1fr 140px 140px auto", gap: "12px", alignItems: "end" }}>
-          <div>
+        <form onSubmit={handleInvite} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", alignItems: "end" }}>
+          <div style={{ flex: "1 1 200px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
               Contributor Email
             </label>
@@ -131,7 +131,7 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
               style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px", color: "var(--text-primary)", fontSize: "13px" }}
             />
           </div>
-          <div>
+          <div style={{ minWidth: "130px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
               Role
             </label>
@@ -144,7 +144,7 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div>
+          <div style={{ minWidth: "130px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
               Monthly Credits
             </label>
@@ -156,9 +156,11 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
               style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px", color: "var(--text-primary)", fontSize: "13px" }}
             />
           </div>
-          <Button type="submit" style={{ background: "var(--gemini-accent)", color: "#ffffff", borderRadius: "10px", padding: "10px 18px", fontWeight: "600" }}>
-            <Plus size={16} style={{ marginRight: "6px" }} /> Send Invite
-          </Button>
+          <div style={{ minWidth: "140px" }}>
+            <Button type="submit" style={{ width: "100%", background: "var(--gemini-accent)", color: "#ffffff", borderRadius: "10px", padding: "10px 18px", fontWeight: "600" }}>
+              <Plus size={16} style={{ marginRight: "6px" }} /> Send Invite
+            </Button>
+          </div>
         </form>
       </div>
 
@@ -169,8 +171,8 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
         </h3>
         <div style={{ display: "grid", gap: "12px" }}>
           {contributors.map(c => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", padding: "14px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div key={c.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", padding: "14px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: "220px" }}>
                 <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "var(--surface-raised)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", color: "var(--gemini-accent)" }}>
                   {c.name.slice(0, 1).toUpperCase()}
                 </div>
@@ -180,7 +182,7 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", padding: "4px 10px", borderRadius: "999px", background: c.role === "head" ? "rgba(26,115,232,0.15)" : "var(--surface-raised)", color: c.role === "head" ? "var(--gemini-accent)" : "var(--text-secondary)" }}>
                   {c.role}
                 </span>

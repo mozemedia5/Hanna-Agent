@@ -50,97 +50,179 @@ export async function executeHannaRequest(
   context?: string,
   userId?: number,
   requestedModel?: string,
-  clientIp?: string
+  clientIp?: string,
+  agenticMode: boolean = false
 ) {
-  try {
-    return await runAgentCore(
-      prompt,
-      context,
-      async ({ context: requestContext, plan }) => {
-        const provider = await getProviderCredentialForRequest(
-          userId,
-          prompt,
-          requestedModel
-        );
-
-        const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-        const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
-        const quota = consumeDailyTokens(
-          quotaKey,
-          Math.ceil(prompt.length / 4),
-          tier
-        );
-
-        if (!quota.allowed) {
-          throw new Error(
-            userId
-              ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
-              : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
-          );
-        }
-        if (!provider.apiKey)
-          throw new Error(
-            "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
+  if (agenticMode) {
+    try {
+      return await runAgentCore(
+        prompt,
+        context,
+        async ({ context: requestContext, plan }) => {
+          const provider = await getProviderCredentialForRequest(
+            userId,
+            prompt,
+            requestedModel
           );
 
-        // Enrich context with list of connected API keys, connectors, and personalization instructions
-        let enrichedContext = requestContext || "";
-        if (userId) {
-          const connectedProviders = await listProviderCredentials(userId);
-          const connectedConnectors = await listConnectorCredentials(userId);
-          const userProfile = await getProfile(String(userId)).catch(() => null);
-
-          const providerNames = connectedProviders.map(
-            p => p.displayName || p.provider
+          const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
+          const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
+          const quota = consumeDailyTokens(
+            quotaKey,
+            Math.ceil(prompt.length / 4),
+            tier
           );
-          const connectorSummaries = connectedConnectors.map(c => {
-            const def = integrations.find(i => i.id === c.connector);
-            return `${c.connector}${def ? ` [Capabilities: ${def.capabilities.join(", ")}]` : ""}`;
-          });
-          const extraLines: string[] = [];
 
-          if (userProfile?.customInstructions?.trim()) {
-            extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
-          }
-
-          if (providerNames.length > 0 || connectorSummaries.length > 0) {
-            extraLines.push(
-              `[Active Capabilities & Connected Plugin Tools:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Active Connected Plugins & Tools: ${connectorSummaries.length > 0 ? connectorSummaries.join("; ") : "None"}]`
+          if (!quota.allowed) {
+            throw new Error(
+              userId
+                ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
+                : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
             );
           }
+          if (!provider.apiKey)
+            throw new Error(
+              "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
+            );
 
-          if (extraLines.length > 0) {
-            const extraSummary = extraLines.join("\n\n");
-            enrichedContext = enrichedContext
-              ? `${enrichedContext}\n\n${extraSummary}`
-              : extraSummary;
+          let enrichedContext = requestContext || "";
+          if (userId) {
+            const connectedProviders = await listProviderCredentials(userId);
+            const connectedConnectors = await listConnectorCredentials(userId);
+            const userProfile = await getProfile(String(userId)).catch(() => null);
+
+            const providerNames = connectedProviders.map(
+              p => p.displayName || p.provider
+            );
+            const connectorSummaries = connectedConnectors.map(c => {
+              const def = integrations.find(i => i.id === c.connector);
+              return `${c.connector}${def ? ` [Capabilities: ${def.capabilities.join(", ")}]` : ""}`;
+            });
+            const extraLines: string[] = [];
+
+            if (userProfile?.customInstructions?.trim()) {
+              extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
+            }
+
+            if (providerNames.length > 0 || connectorSummaries.length > 0) {
+              extraLines.push(
+                `[Active Capabilities & Connected Plugin Tools:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Active Connected Plugins & Tools: ${connectorSummaries.length > 0 ? connectorSummaries.join("; ") : "None"}]`
+              );
+            }
+
+            if (extraLines.length > 0) {
+              const extraSummary = extraLines.join("\n\n");
+              enrichedContext = enrichedContext
+                ? `${enrichedContext}\n\n${extraSummary}`
+                : extraSummary;
+            }
           }
-        }
 
-        const text = await invokeUserProvider({
-          ...provider,
-          prompt: `${plan.steps.join("\n")}\n\n${prompt}`,
-          context: enrichedContext,
-        });
-        return { text, model: `${provider.provider} · ${provider.model}` };
-      }
+          const text = await invokeUserProvider({
+            ...provider,
+            prompt: `${plan.steps.join("\n")}\n\n${prompt}`,
+            context: enrichedContext,
+          });
+          return { text, model: `${provider.provider} · ${provider.model}` };
+        }
+      );
+    } catch (error) {
+      const fallbackText = synthesizeFallbackResponse(prompt, context);
+      return {
+        text: fallbackText,
+        model: "hanna-fallback",
+        capability: "Error recovery",
+        plan: {
+          intent: prompt,
+          route: { model: "fallback", capability: "Error", reason: "error" },
+          tools: [],
+          approvalRequired: false,
+          steps: [],
+        },
+        trace: [],
+        providerError: true,
+        responseType: "PROVIDER_ERROR" as const,
+      };
+    }
+  }
+
+  // Normal Direct Chat Mode (bypasses agent execution loop completely)
+  try {
+    const provider = await getProviderCredentialForRequest(
+      userId,
+      prompt,
+      requestedModel
     );
+
+    const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
+    const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
+    const quota = consumeDailyTokens(
+      quotaKey,
+      Math.ceil(prompt.length / 4),
+      tier
+    );
+
+    if (!quota.allowed) {
+      throw new Error(
+        userId
+          ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
+          : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
+      );
+    }
+    if (!provider.apiKey)
+      throw new Error(
+        "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
+      );
+
+    let enrichedContext = context || "";
+    if (userId) {
+      const connectedProviders = await listProviderCredentials(userId);
+      const connectedConnectors = await listConnectorCredentials(userId);
+      const userProfile = await getProfile(String(userId)).catch(() => null);
+
+      const providerNames = connectedProviders.map(
+        p => p.displayName || p.provider
+      );
+      const connectorSummaries = connectedConnectors.map(c => {
+        const def = integrations.find(i => i.id === c.connector);
+        return `${c.connector}${def ? ` [Capabilities: ${def.capabilities.join(", ")}]` : ""}`;
+      });
+      const extraLines: string[] = [];
+
+      if (userProfile?.customInstructions?.trim()) {
+        extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
+      }
+
+      if (providerNames.length > 0 || connectorSummaries.length > 0) {
+        extraLines.push(
+          `[Active Capabilities & Connected Plugin Tools:\n- Connected AI Provider Keys: ${providerNames.length > 0 ? providerNames.join(", ") : "None"}\n- Active Connected Plugins & Tools: ${connectorSummaries.length > 0 ? connectorSummaries.join("; ") : "None"}]`
+        );
+      }
+
+      if (extraLines.length > 0) {
+        const extraSummary = extraLines.join("\n\n");
+        enrichedContext = enrichedContext
+          ? `${enrichedContext}\n\n${extraSummary}`
+          : extraSummary;
+      }
+    }
+
+    const text = await invokeUserProvider({
+      ...provider,
+      prompt,
+      context: enrichedContext,
+    });
+    return {
+      text,
+      model: `${provider.provider} · ${provider.model}`,
+      providerError: false,
+    };
   } catch (error) {
     const fallbackText = synthesizeFallbackResponse(prompt, context);
     return {
       text: fallbackText,
-      model: "hanna-fallback",
-      capability: "Error recovery",
-      plan: {
-        intent: prompt,
-        route: { model: "fallback", capability: "Error", reason: "error" },
-        tools: [],
-        approvalRequired: false,
-        steps: [],
-      },
-      trace: [],
+      model: requestedModel === "Hanna Pro" ? "gemini-3.6-flash" : "gemini-2.5-flash",
       providerError: true,
-      responseType: "PROVIDER_ERROR" as const,
     };
   }
 }
@@ -405,6 +487,7 @@ export const appRouter = router({
           prompt: z.string().min(1).max(6000),
           context: z.string().optional(),
           model: z.string().max(120).optional(),
+          agenticMode: z.boolean().optional(),
         })
       )
       .mutation(({ ctx, input }) => {
@@ -428,7 +511,8 @@ export const appRouter = router({
           input.context,
           ctx.user?.id,
           input.model,
-          clientIp
+          clientIp,
+          input.agenticMode
         );
       }),
     healthCheck: publicProcedure
