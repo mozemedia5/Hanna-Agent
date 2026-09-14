@@ -2,14 +2,14 @@ import express from "express";
 import crypto from "node:crypto";
 import type { RequestHandler } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { createContext } from "../server/_core/context";
-import { appRouter } from "../server/routers";
-import { performAiHealthCheck } from "../server/aiHealth";
+import { createContext } from "./_core/context";
+import { appRouter } from "./routers";
+import { performAiHealthCheck } from "./aiHealth";
 import {
   getFirebasePublicConfig,
   missingFirebaseConfigFields,
-} from "../server/firebaseConfig";
-import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
+} from "./firebaseConfig";
+import { handleMcpRequest, listMcpTools } from "./mcpServer";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));

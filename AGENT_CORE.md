@@ -46,7 +46,7 @@ Shopify, GitHub, Vercel, Render, Cloudinary, Google, Gmail, Instagram, TikTok, a
 
 ## Deployment
 
-The Vercel function entrypoint is `api/index.ts`, while `server/_core/index.ts` remains the local listener. Server-only secrets must be configured in Vercel project environment variables. In particular, `HANNA_ENCRYPTION_KEY` is required before storing credentials; provider and integration secrets must not use `VITE_*` variables or be committed to Git.
+The Vercel function entrypoint source is `server/api.ts` (bundled to `api/index.js`), while `server/_core/index.ts` remains the local listener. Server-only secrets must be configured in Vercel project environment variables. In particular, `HANNA_ENCRYPTION_KEY` is required before storing credentials; provider and integration secrets must not use `VITE_*` variables or be committed to Git.
 
 The current credential stores are development-only process-local seams pending the Firebase/Firestore adapter. They are intentionally not presented as durable production persistence. Replace those methods with a user/workspace-scoped database adapter before relying on credentials across serverless invocations.
 

@@ -1,6 +1,6 @@
 # Vercel deployment notes
 
-Hanna’s Vercel entrypoint is `api/index.ts`. It creates the Express application without opening a port and exports the request handler expected by Vercel Functions. The local development bootstrap remains in `server/_core/index.ts`, where the development server starts on the platform-provided port.
+Hanna’s Vercel entrypoint source is `server/api.ts`, which esbuild bundles into `api/index.js`. It creates the Express application without opening a port and exports the request handler expected by Vercel Functions. The local development bootstrap remains in `server/_core/index.ts`, where the development server starts on the platform-provided port.
 
 `vercel.json` routes `/api/*` requests to the serverless handler and serves the Vite output from `dist/public`. The handler exposes the tRPC API under `/api/trpc`.
 
@@ -17,4 +17,4 @@ All API endpoints on Vercel must return structured JSON rather than generic Verc
 - `GET /api/config` -> Public Firebase client configuration object or 503 status
 - `GET /api/mcp` -> MCP server protocol manifest with available tools
 
-If Vercel reports a failure, capture both the deployment **Build Logs** and runtime **Function Logs**. Validate the handler with requests to `/api` and `/api/health`, verify that server-only environment variables are present, and confirm that the deployed build uses the current `api/index.ts` entrypoint.
+If Vercel reports a failure, capture both the deployment **Build Logs** and runtime **Function Logs**. Validate the handler with requests to `/api` and `/api/health`, verify that server-only environment variables are present, and confirm that the deployed build uses the current `server/api.ts` entrypoint source bundled to `api/index.js`.
