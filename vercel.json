@@ -3,9 +3,6 @@
   "buildCommand": "pnpm vercel-build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.js": {
-      "maxDuration": 60
-    },
     "api/config.ts": {
       "maxDuration": 10
     }
