@@ -1198,11 +1198,19 @@ kbd {
   font-size: 14px;
   padding: 6px 4px;
   border: 0;
-  outline: 0;
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent;
   color: var(--text-primary);
   resize: none;
   font-family: inherit;
+}
+
+.command-textarea:focus,
+.command-textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
 }
 
 .command-textarea::placeholder {
