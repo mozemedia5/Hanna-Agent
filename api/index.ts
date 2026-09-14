@@ -1,3 +1,10 @@
+import { performAiHealthCheck } from "../server/aiHealth";
+import { getFirebasePublicConfig, missingFirebaseConfigFields } from "../server/firebaseConfig";
+import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
+import { createContext } from "../server/_core/context";
+import { appRouter } from "../server/routers";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+
 type RequestLike = {
   method?: string;
   url?: string;
@@ -47,7 +54,6 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
 
     if (path === "/api/config" || path === "/config") {
       if (method !== "GET") return respond(res, 405, { error: "Method not allowed." });
-      const { getFirebasePublicConfig, missingFirebaseConfigFields } = await import("../server/firebaseConfig");
       const config = getFirebasePublicConfig();
       const missing = missingFirebaseConfigFields(config);
       if (missing.length) return respond(res, 503, { error: "Firebase configuration is incomplete.", missing });
@@ -57,7 +63,6 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
 
     if (path === "/api/health" || path === "/health") {
       if (method !== "GET") return respond(res, 405, { error: "Method not allowed." });
-      const { performAiHealthCheck } = await import("../server/aiHealth");
       const query = new URLSearchParams((req.url || "").split("?")[1] || "");
       const model = query.get("model") || undefined;
       const provider = query.get("provider") || undefined;
@@ -66,7 +71,6 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     }
 
     if (path === "/api/mcp" || path === "/mcp") {
-      const { handleMcpRequest, listMcpTools } = await import("../server/mcpServer");
       if (method === "GET") {
         return respond(res, 200, {
           name: "hanna-mcp-server",
@@ -80,11 +84,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
 
     if (path.startsWith("/api/trpc/") || path.startsWith("/trpc/")) {
       const express = (await import("express")).default;
-      const { createExpressMiddleware } = await import("@trpc/server/adapters/express");
-      const [{ createContext }, { appRouter }] = await Promise.all([
-        import("../server/_core/context"),
-        import("../server/routers"),
-      ]);
+      
       const app = express();
       app.use(express.json({ limit: "50mb" }));
       app.use(express.urlencoded({ limit: "50mb", extended: true }));
