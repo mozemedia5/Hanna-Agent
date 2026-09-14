@@ -8,18 +8,23 @@ import {
   ArrowUp,
   Bell,
   BookOpen,
+  Brain,
+  Camera,
   Check,
   ChevronDown,
   ChevronRight,
   Code2,
   FileText,
+  FolderUp,
   Globe2,
+  GraduationCap,
   ImageIcon,
   Layers3,
   LogOut,
   Megaphone,
   Menu,
   Mic,
+  MoreVertical,
   Paperclip,
   PlugZap,
   Plus,
@@ -27,6 +32,7 @@ import {
   Send,
   Settings,
   Sparkles,
+  Square,
   Store,
   X,
   Zap,
@@ -146,10 +152,17 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const [webSearchMode, setWebSearchMode] = useState(false);
+  const [deepThinkMode, setDeepThinkMode] = useState(false);
+  const [studyMode, setStudyMode] = useState(false);
   const [shareEmails, setShareEmails] = useState("");
   const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
   const [apiStatusMsg, setApiStatusMsg] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId) ?? chats[0], [activeChatId, chats]);
@@ -201,10 +214,16 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       if (showProfilePopup && !(e.target as HTMLElement).closest(".profile-popup-wrapper")) {
         setShowProfilePopup(false);
       }
+      if (headerMenuOpen && !(e.target as HTMLElement).closest(".header-menu-container")) {
+        setHeaderMenuOpen(false);
+      }
+      if (plusMenuOpen && !(e.target as HTMLElement).closest(".plus-menu-container")) {
+        setPlusMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [showProfilePopup]);
+  }, [showProfilePopup, headerMenuOpen, plusMenuOpen]);
 
   const showToast = (m: string) => setToast(m);
 
@@ -543,58 +562,170 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
       </div>
       <div className="composer-region">
-        <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept="image/*,application/pdf,video/*" />
+        {/* Hidden inputs for File, Document, and Camera uploads */}
+        <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept="image/*,audio/*,video/*" />
+        <input type="file" ref={docInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept=".pdf,.csv,.doc,.docx,.txt,.json,.md" />
+        <input type="file" ref={cameraInputRef} style={{ display: "none" }} onChange={handleFileUpload} capture="environment" accept="image/*" />
+
         {apiHealthy === false && (
           <div style={{ background: "rgba(234, 67, 53, 0.12)", border: "1px solid rgba(234, 67, 53, 0.3)", color: "#ea4335", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", marginBottom: "8px", textAlign: "center" }}>
             {apiStatusMsg || "Hanna API unavailable."} Prompt submission disabled.
           </div>
         )}
-        <div className="composer-shell">
-          <div className="composer-topline">
-            <span className="composer-context">
-              <span className="status-dot" /> {selectedTools.length ? `${selectedTools.length} tools ready` : attachments.length ? `${attachments.length} attachment(s) ready` : "Ask Hanna anything"}
-            </span>
-            <span className="composer-hint"><kbd>Enter</kbd> to send</span>
-          </div>
+
+        <div className="command-center-container">
           {attachments.length > 0 && (
             <div className="composer-attachments-preview">
               {attachments.map(file => (
                 <div key={file.id} className="attachment-chip">
                   {file.type === "image" ? <ImageIcon size={13} /> : file.type === "pdf" ? <FileText size={13} /> : <Paperclip size={13} />}
-                  <span>{file.name}</span>
-                  <button type="button" onClick={() => removeAttachment(file.id)} aria-label="Remove attachment"><X size={13} /></button>
+                  <span className="attachment-chip-name">{file.name}</span>
+                  <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" aria-label="Remove attachment"><X size={12} /></button>
                 </div>
               ))}
             </div>
           )}
-          <textarea ref={composerRef} value={composer} onChange={e => setComposer(e.target.value)} onKeyDown={handleComposerKeyDown} placeholder="Message Hanna..." rows={1} aria-label="Message Hanna" />
-          <div className="composer-footer">
-            <div className="composer-tools">
-              <button className="attach-button" onClick={() => fileInputRef.current?.click()} aria-label="Attach files"><Paperclip size={16} /></button>
+
+          <div className="command-center-inner">
+            {/* Left Action: Plus Menu Popover */}
+            <div className="plus-menu-container">
               <button
                 type="button"
-                className={`tool-chip ${agenticMode ? "is-active" : ""}`}
-                onClick={() => setAgenticMode(a => !a)}
-                aria-pressed={agenticMode}
-                title="Agentic Mode executes multi-step planning and connector actions"
-                style={{
-                  background: agenticMode ? "rgba(26, 115, 232, 0.15)" : undefined,
-                  borderColor: agenticMode ? "var(--gemini-accent)" : undefined,
-                  color: agenticMode ? "var(--gemini-accent)" : undefined,
-                  fontWeight: 600,
-                }}
+                className={`plus-circle-button ${plusMenuOpen ? "is-active" : ""}`}
+                onClick={() => setPlusMenuOpen(o => !o)}
+                aria-label="Add file or tool option"
               >
-                <Zap size={14} strokeWidth={2} />
-                <span>Agentic Mode</span>
+                <Plus size={18} />
               </button>
-              {toolConfigs.map(tool => (
-                <ToolChip key={tool.label} {...tool} active={selectedTools.includes(tool.label)}
-                  onClick={() => tool.label === "Image Input" ? fileInputRef.current?.click() : toggleTool(tool.label)} />
-              ))}
+
+              {plusMenuOpen && (
+                <div className="plus-popover-menu">
+                  <div className="plus-menu-group-title">Media & Documents</div>
+                  <button
+                    type="button"
+                    className="plus-menu-item"
+                    onClick={() => { setPlusMenuOpen(false); cameraInputRef.current?.click(); }}
+                  >
+                    <Camera size={16} /> <span>Camera</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="plus-menu-item"
+                    onClick={() => { setPlusMenuOpen(false); fileInputRef.current?.click(); }}
+                  >
+                    <FolderUp size={16} /> <span>Upload Files</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="plus-menu-item"
+                    onClick={() => { setPlusMenuOpen(false); docInputRef.current?.click(); }}
+                  >
+                    <FileText size={16} /> <span>Upload Documents</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="plus-menu-item"
+                    onClick={() => { setPlusMenuOpen(false); navigate("integrations"); }}
+                  >
+                    <PlugZap size={16} /> <span>Plugins / Extensions</span>
+                  </button>
+
+                  <div className="plus-menu-divider" />
+                  <div className="plus-menu-group-title">Intelligence Modes</div>
+
+                  <button
+                    type="button"
+                    className={`plus-menu-item toggle-item ${webSearchMode ? "is-enabled" : ""}`}
+                    onClick={() => {
+                      setWebSearchMode(w => !w);
+                      toggleTool("Web Search");
+                    }}
+                  >
+                    <Globe2 size={16} />
+                    <span>Web Search</span>
+                    <span className="toggle-indicator">{webSearchMode ? "ON" : "OFF"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`plus-menu-item toggle-item ${deepThinkMode ? "is-enabled" : ""}`}
+                    onClick={() => {
+                      setDeepThinkMode(d => !d);
+                      toggleTool("Deep Research");
+                    }}
+                  >
+                    <Brain size={16} />
+                    <span>Deep Think</span>
+                    <span className="toggle-indicator">{deepThinkMode ? "ON" : "OFF"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`plus-menu-item toggle-item ${studyMode ? "is-enabled" : ""}`}
+                    onClick={() => {
+                      setStudyMode(s => !s);
+                      toggleTool("Study");
+                    }}
+                  >
+                    <GraduationCap size={16} />
+                    <span>Study Mode</span>
+                    <span className="toggle-indicator">{studyMode ? "ON" : "OFF"}</span>
+                  </button>
+                </div>
+              )}
             </div>
-            <Button className="send-button" onClick={submitMessage} disabled={(!composer.trim() && attachments.length === 0) || isThinking || apiHealthy === false} aria-label="Send message">
-              <Send size={16} />
-            </Button>
+
+            {/* Input Textarea Area */}
+            <textarea
+              ref={composerRef}
+              value={composer}
+              onChange={e => {
+                setComposer(e.target.value);
+                // Auto-adjust height up to max 6 lines (~144px)
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 144)}px`;
+              }}
+              onKeyDown={handleComposerKeyDown}
+              placeholder="Ask Hanna anything..."
+              rows={1}
+              className="command-textarea custom-scroll"
+              aria-label="Message Hanna"
+            />
+
+            {/* Right Action: Submit / Stop Button */}
+            <div className="command-right-actions">
+              {isThinking ? (
+                <button
+                  type="button"
+                  className="command-submit-button state-generating"
+                  onClick={() => {
+                    setIsThinking(false);
+                    showToast("Generation stopped");
+                  }}
+                  title="Stop generating"
+                  aria-label="Stop response"
+                >
+                  <Square size={14} fill="currentColor" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`command-submit-button ${
+                    (composer.trim() || attachments.length > 0) && apiHealthy !== false
+                      ? "state-active"
+                      : "state-idle"
+                  }`}
+                  onClick={submitMessage}
+                  disabled={(!composer.trim() && attachments.length === 0) || apiHealthy === false}
+                  aria-label="Send message"
+                >
+                  <ArrowUp size={16} strokeWidth={2.4} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <div className="composer-disclaimer">Hanna can make mistakes. Check important information.</div>
