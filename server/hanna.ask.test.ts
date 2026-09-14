@@ -41,7 +41,7 @@ describe("hanna.ask", () => {
     });
     expect(result.text).toContain("three useful themes");
     expect(result.model).toContain("openai");
-    expect(result.plan.trace).toBeUndefined();
+    expect(result.plan?.trace).toBeUndefined();
   });
 
   it("routes to Hanna Default Gemini 2.5 Flash when default model is selected", async () => {
@@ -89,7 +89,10 @@ describe("hanna.ask", () => {
       const result = await executeHannaRequest(
         "Publish this post to Instagram",
         undefined,
-        user.id
+        user.id,
+        undefined,
+        undefined,
+        true
       );
       expect(result.text).toContain("need your approval");
       expect(invokeUserProvider).not.toHaveBeenCalled();

@@ -85,31 +85,13 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
         <div className="billing-toggle-wrapper" style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: "12px",
+          gap: "6px",
           marginTop: "24px",
           background: "var(--surface-raised)",
-          padding: "6px 8px",
+          padding: "5px",
           borderRadius: "999px",
           border: "1px solid var(--border)"
         }}>
-          <button
-            className={`billing-toggle-btn ${!isAnnual ? "is-active" : ""}`}
-            onClick={() => setIsAnnual(false)}
-            style={{
-              padding: "8px 18px",
-              borderRadius: "999px",
-              fontSize: "13px",
-              fontWeight: "600",
-              border: "none",
-              background: !isAnnual ? "var(--surface)" : "transparent",
-              color: !isAnnual ? "var(--text-primary)" : "var(--text-secondary)",
-              boxShadow: !isAnnual ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
-              cursor: "pointer",
-              transition: "all 0.2s ease"
-            }}
-          >
-            Monthly Billing
-          </button>
           <button
             className={`billing-toggle-btn ${isAnnual ? "is-active" : ""}`}
             onClick={() => setIsAnnual(true)}
@@ -121,7 +103,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
               border: "none",
               background: isAnnual ? "var(--surface)" : "transparent",
               color: isAnnual ? "var(--text-primary)" : "var(--text-secondary)",
-              boxShadow: isAnnual ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+              boxShadow: isAnnual ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
               cursor: "pointer",
               transition: "all 0.2s ease",
               display: "flex",
@@ -141,6 +123,24 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
             }}>
               Save 15%
             </span>
+          </button>
+          <button
+            className={`billing-toggle-btn ${!isAnnual ? "is-active" : ""}`}
+            onClick={() => setIsAnnual(false)}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "999px",
+              fontSize: "13px",
+              fontWeight: "600",
+              border: "none",
+              background: !isAnnual ? "var(--surface)" : "transparent",
+              color: !isAnnual ? "var(--text-primary)" : "var(--text-secondary)",
+              boxShadow: !isAnnual ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+              cursor: "pointer",
+              transition: "all 0.2s ease"
+            }}
+          >
+            Monthly Billing
           </button>
         </div>
       </div>

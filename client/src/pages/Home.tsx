@@ -134,6 +134,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [chats, setChats] = useState<Chat[]>(seedChats);
   const [activeChatId, setActiveChatId] = useState(0);
   const [composer, setComposer] = useState("");
+  const [agenticMode, setAgenticMode] = useState(false);
   const [selectedTools, setSelectedTools] = useState<ToolKey[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
@@ -299,7 +300,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const response = await fetch("/api/trpc/hanna.ask?batch=1", {
         method: "POST", credentials: "include",
         headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ 0: { json: { prompt: fullPrompt, model: model === "Custom" ? "custom" : model } } }),
+        body: JSON.stringify({ 0: { json: { prompt: fullPrompt, model: model === "Custom" ? "custom" : model, agenticMode } } }),
       });
       const responseText = await response.text();
       let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string; providerError?: boolean } } }; error?: { json?: { message?: string } } }> | null = null;
@@ -570,6 +571,22 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <div className="composer-footer">
             <div className="composer-tools">
               <button className="attach-button" onClick={() => fileInputRef.current?.click()} aria-label="Attach files"><Paperclip size={16} /></button>
+              <button
+                type="button"
+                className={`tool-chip ${agenticMode ? "is-active" : ""}`}
+                onClick={() => setAgenticMode(a => !a)}
+                aria-pressed={agenticMode}
+                title="Agentic Mode executes multi-step planning and connector actions"
+                style={{
+                  background: agenticMode ? "rgba(26, 115, 232, 0.15)" : undefined,
+                  borderColor: agenticMode ? "var(--gemini-accent)" : undefined,
+                  color: agenticMode ? "var(--gemini-accent)" : undefined,
+                  fontWeight: 600,
+                }}
+              >
+                <Zap size={14} strokeWidth={2} />
+                <span>Agentic Mode</span>
+              </button>
               {toolConfigs.map(tool => (
                 <ToolChip key={tool.label} {...tool} active={selectedTools.includes(tool.label)}
                   onClick={() => tool.label === "Image Input" ? fileInputRef.current?.click() : toggleTool(tool.label)} />
@@ -713,35 +730,120 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       )}
       {showShareModal && (
         <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
-          <div className="modal-content" style={{ maxWidth: "460px" }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: "480px" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
-                <Share2 size={18} style={{ color: "var(--gemini-accent)" }} /> Share Conversation with Contributors
+                <Share2 size={18} style={{ color: "var(--gemini-accent)" }} /> Share Conversation
               </h3>
               <button onClick={() => setShowShareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={18} /></button>
             </div>
             <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Grant contributors access to collaborate on <strong>"{activeChat.title}"</strong>.
+              Share <strong>"{activeChat.title}"</strong> directly to messaging apps or with workspace contributors.
             </p>
-            <div style={{ marginBottom: "16px" }}>
+
+            {/* Direct Messaging Apps Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginBottom: "18px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const shareText = encodeURIComponent(`Check out this Hanna conversation: "${activeChat.title}"\n${window.location.href}`);
+                  window.open(`https://wa.me/?text=${shareText}`, "_blank");
+                  showToast("Opening WhatsApp...");
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#25D366", color: "#ffffff", padding: "10px 14px", borderRadius: "10px", border: "none", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+              >
+                <span>WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const url = encodeURIComponent(window.location.href);
+                  const text = encodeURIComponent(`Hanna Chat: "${activeChat.title}"`);
+                  window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank");
+                  showToast("Opening Telegram...");
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#0088cc", color: "#ffffff", padding: "10px 14px", borderRadius: "10px", border: "none", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+              >
+                <span>Telegram</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const text = encodeURIComponent(`Exploring "${activeChat.title}" with Hanna AI Commerce Operator!`);
+                  const url = encodeURIComponent(window.location.href);
+                  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
+                  showToast("Opening X (Twitter)...");
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#000000", color: "#ffffff", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+              >
+                <span>X / Twitter</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const subject = encodeURIComponent(`Hanna Conversation: ${activeChat.title}`);
+                  const body = encodeURIComponent(`Take a look at this conversation:\n\nTitle: ${activeChat.title}\nLink: ${window.location.href}`);
+                  window.open(`mailto:?subject=${subject}&body=${body}`);
+                  showToast("Opening Mail app...");
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--surface-raised)", color: "var(--text-primary)", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+              >
+                <span>Email</span>
+              </button>
+            </div>
+
+            {/* Quick Copy Link & Native Web Share */}
+            <div style={{ display: "flex", gap: "8px", marginBottom: "18px" }}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  showToast("Conversation link copied!");
+                }}
+                style={{ fontSize: "12px", borderRadius: "10px" }}
+              >
+                Copy Link
+              </Button>
+              {typeof navigator !== "undefined" && navigator.share && (
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    navigator.share({
+                      title: activeChat.title,
+                      text: `Hanna Conversation: ${activeChat.title}`,
+                      url: window.location.href,
+                    }).catch(() => undefined);
+                  }}
+                  style={{ background: "var(--gemini-accent)", color: "#ffffff", fontSize: "12px", borderRadius: "10px" }}
+                >
+                  Native Share
+                </Button>
+              )}
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "14px", marginBottom: "14px" }}>
               <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
-                Contributor Emails (comma separated)
+                Share directly with Workspace Contributors
               </label>
               <textarea
                 value={shareEmails}
                 onChange={e => setShareEmails(e.target.value)}
                 placeholder="colleague1@company.com, colleague2@company.com"
-                rows={3}
+                rows={2}
                 style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px", color: "var(--text-primary)", fontSize: "13px" }}
               />
             </div>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <Button variant="outline" onClick={() => setShowShareModal(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowShareModal(false)}>Close</Button>
               <Button onClick={() => {
                 setShowShareModal(false);
                 setShareEmails("");
                 showToast("Chat access shared with contributors!");
-              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Share Chat Access</Button>
+              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Grant Access</Button>
             </div>
           </div>
         </div>
