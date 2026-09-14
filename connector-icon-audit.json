@@ -1,0 +1,2235 @@
+{
+  "recordCount": 390,
+  "uniqueNameCount": 388,
+  "matchedCount": 114,
+  "unmatched": [
+    "1inch",
+    "AWS Knowledge",
+    "AWS Marketplace",
+    "AWeber",
+    "ActiveCampaign",
+    "Adzviser",
+    "Agent Opus",
+    "AgentMail",
+    "Ahrefs",
+    "Ahrefs API",
+    "AirOps",
+    "Alma Food",
+    "Alpaca",
+    "Alpha Vantage",
+    "Amplemarket",
+    "Amplitude",
+    "Anchor Browser",
+    "Antimetal",
+    "Apify",
+    "Apify",
+    "Apollo",
+    "Apollo API",
+    "Ashby",
+    "Atlan",
+    "Attio",
+    "Aurora",
+    "Ayrshare",
+    "Base",
+    "Bigdata.com",
+    "Blockscout",
+    "Blotato",
+    "Brand24",
+    "Braze",
+    "Bright Data",
+    "COROS",
+    "Cafe24",
+    "CalendarBridge",
+    "Carta CRM",
+    "Circleback",
+    "Clarify",
+    "Clay",
+    "Close",
+    "Cloudflare Worker Bindings",
+    "Cloudinary Asset",
+    "Clover API",
+    "CockroachDB Cloud",
+    "Cohere",
+    "CoinDesk",
+    "CoinGecko",
+    "Comfy Cloud",
+    "Common Room",
+    "Consensus",
+    "Contentsquare",
+    "Context7",
+    "Coralogix",
+    "Craft",
+    "Crossbeam",
+    "Crypto.com",
+    "Customer.io",
+    "DataFast",
+    "DataForSEO",
+    "Day AI",
+    "Deel",
+    "Demodesk",
+    "Descript",
+    "DevRev",
+    "Dex",
+    "Dice",
+    "Dify",
+    "Digits",
+    "Dupe",
+    "Elastic Email",
+    "Elicit",
+    "Enterpret",
+    "Era Context",
+    "Exa",
+    "Explorium",
+    "FactSet",
+    "Fellow",
+    "Ferryhopper",
+    "Fever",
+    "Fibery",
+    "Financial Datasets",
+    "Financial Modeling Prep",
+    "FireHydrant",
+    "Firecrawl",
+    "Fireflies",
+    "Fiscal",
+    "Fitbod",
+    "Flightradar24",
+    "Flux API",
+    "FullEnrich",
+    "Gamma",
+    "GitHits",
+    "GoCardless",
+    "Google Workspace",
+    "Grain",
+    "Granola",
+    "Granted",
+    "Grok",
+    "Guru",
+    "Habitify",
+    "Harmonic",
+    "Harness",
+    "Helium 10",
+    "Heptabase",
+    "Hex",
+    "HeyGen",
+    "HeyGen API",
+    "Higgsfield",
+    "HighLevel LeadConnector",
+    "Honeycomb",
+    "Hume",
+    "Hunter",
+    "IcePanel",
+    "Instantly",
+    "Interactive Brokers",
+    "Iterable",
+    "JSONBin.io",
+    "Jam",
+    "Jentic",
+    "Jinko",
+    "Jotform",
+    "Ketryx",
+    "Kiwi.com",
+    "Klaviyo",
+    "Kling",
+    "Krisp",
+    "Lambus",
+    "LaunchDarkly",
+    "Learning Commons",
+    "Leonardo",
+    "Lightfield",
+    "Linkly",
+    "Listen Labs",
+    "LiveKit Docs",
+    "Local Falcon",
+    "Lumin PDF",
+    "LunarCrush",
+    "Magic Patterns",
+    "Magnific",
+    "MailerLite",
+    "MarcoPolo",
+    "Mem",
+    "Mercury",
+    "Mermaid Chart",
+    "Metaview",
+    "Metricool",
+    "Microsoft Clarity",
+    "Microsoft Learn",
+    "Mindbody API",
+    "Mobbin",
+    "Monte Carlo",
+    "Morningstar",
+    "MotherDuck",
+    "My Browser",
+    "Nango",
+    "Navan",
+    "Neimo",
+    "Neon",
+    "NocoDB",
+    "Numeric",
+    "Oath",
+    "Omni Analytics",
+    "OneSignal",
+    "Open Targets",
+    "OpticOdds",
+    "Orion",
+    "Otter.ai",
+    "Outlook Calendar",
+    "Outlook Mail",
+    "PandaDoc",
+    "Parallel",
+    "Particl",
+    "Pazy",
+    "Peec AI",
+    "Pendo",
+    "Plain",
+    "Plaud",
+    "Playwright",
+    "Pletor",
+    "Podio",
+    "Polar Analytics",
+    "PopHIVE",
+    "Postiz",
+    "Prisma Postgres",
+    "Privacy.com",
+    "Productboard",
+    "Profound",
+    "Publer API",
+    "Publora",
+    "Pylon",
+    "QuiverAI",
+    "Raindrop",
+    "Raisely",
+    "Rally",
+    "Ramp",
+    "Read AI",
+    "Readwise",
+    "Red Sift",
+    "Regal",
+    "Resolve",
+    "Responsive",
+    "Revise",
+    "Rhizome AI",
+    "Rhythm",
+    "Ribbon AI",
+    "Rillet",
+    "Roam",
+    "Rootly",
+    "Runway",
+    "S&P Global",
+    "Salesloft",
+    "Scite",
+    "SendMux",
+    "Serena",
+    "Serpstat",
+    "Shapes",
+    "Sigma",
+    "SignNow",
+    "SmartSpectra",
+    "Smartsheet",
+    "Sonatype Guide",
+    "Sourcegraph",
+    "Splice",
+    "Statsig",
+    "Stytch",
+    "SubscriptionFlow",
+    "Sumble",
+    "Superhuman Mail",
+    "Supermetrics",
+    "Sybill",
+    "Synthesize Bio",
+    "Tableau",
+    "Tally",
+    "Tango",
+    "Taplio",
+    "Taskade",
+    "Tavily",
+    "Ticket Tailor",
+    "TierZero",
+    "TikTok for Business",
+    "Tines",
+    "Toast API",
+    "TomTom Maps",
+    "Trendtrack",
+    "Tripo AI",
+    "Truthifi",
+    "Ubersuggest",
+    "Unthread",
+    "Unusual Whales",
+    "Unwrap",
+    "Vantage",
+    "Viator",
+    "Vibe Prospecting",
+    "Wave API",
+    "Whimsical",
+    "Whop",
+    "Windsor.ai",
+    "Wireflow",
+    "Wispr Flow",
+    "WorkOS",
+    "Workable",
+    "Wrike",
+    "Zernio",
+    "Zocks",
+    "beehiiv",
+    "doola",
+    "fal.ai",
+    "freee",
+    "ilert",
+    "incident.io",
+    "monday.com",
+    "n8n API",
+    "tl;dv",
+    "vidIQ"
+  ],
+  "matches": [
+    {
+      "name": "1inch",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "AWS Knowledge",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "AWS Marketplace",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "AWeber",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "ActiveCampaign",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Adzviser",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Agent Opus",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "AgentMail",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ahrefs",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ahrefs API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "AirOps",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Airtable",
+      "key": "siAirtable",
+      "slug": "Airtable"
+    },
+    {
+      "name": "AllTrails",
+      "key": "siAlltrails",
+      "slug": "Alltrails"
+    },
+    {
+      "name": "Alma Food",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Alpaca",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Alpha Vantage",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Amplemarket",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Amplitude",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Anchor Browser",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Anthropic",
+      "key": "siAnthropic",
+      "slug": "Anthropic"
+    },
+    {
+      "name": "Antimetal",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Apify",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Apify",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Apollo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Apollo API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Asana",
+      "key": "siAsana",
+      "slug": "Asana"
+    },
+    {
+      "name": "Ashby",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Atlan",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Atlassian",
+      "key": "siAtlassian",
+      "slug": "Atlassian"
+    },
+    {
+      "name": "Attio",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Aurora",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ayrshare",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Base",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Bigdata.com",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Bitly",
+      "key": "siBitly",
+      "slug": "Bitly"
+    },
+    {
+      "name": "Blockscout",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Blotato",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Box",
+      "key": "siBox",
+      "slug": "Box"
+    },
+    {
+      "name": "Braintrust",
+      "key": "siBraintrust",
+      "slug": "Braintrust"
+    },
+    {
+      "name": "Brand24",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Brandfetch",
+      "key": "siBrandfetch",
+      "slug": "Brandfetch"
+    },
+    {
+      "name": "Braze",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Brex",
+      "key": "siBrex",
+      "slug": "Brex"
+    },
+    {
+      "name": "Bright Data",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Buffer",
+      "key": "siBuffer",
+      "slug": "Buffer"
+    },
+    {
+      "name": "Buildkite",
+      "key": "siBuildkite",
+      "slug": "Buildkite"
+    },
+    {
+      "name": "COROS",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Cafe24",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Cal.com",
+      "key": "siCaldotcom",
+      "slug": "Caldotcom"
+    },
+    {
+      "name": "CalendarBridge",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Calendly",
+      "key": "siCalendly",
+      "slug": "Calendly"
+    },
+    {
+      "name": "Canva",
+      "key": "siCanva",
+      "slug": "Canva"
+    },
+    {
+      "name": "Carta CRM",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "ChartMogul",
+      "key": "siChartmogul",
+      "slug": "Chartmogul"
+    },
+    {
+      "name": "Circleback",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Clarify",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Clay",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Clerk",
+      "key": "siClerk",
+      "slug": "Clerk"
+    },
+    {
+      "name": "ClickHouse",
+      "key": "siClickhouse",
+      "slug": "Clickhouse"
+    },
+    {
+      "name": "ClickUp",
+      "key": "siClickup",
+      "slug": "Clickup"
+    },
+    {
+      "name": "Close",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Cloudflare",
+      "key": "siCloudflare",
+      "slug": "Cloudflare"
+    },
+    {
+      "name": "Cloudflare API",
+      "key": "siCloudflare",
+      "slug": "Cloudflare"
+    },
+    {
+      "name": "Cloudflare Worker Bindings",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Cloudinary Asset",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Clover API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "CockroachDB Cloud",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Coda",
+      "key": "siCoda",
+      "slug": "Coda"
+    },
+    {
+      "name": "Cohere",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "CoinDesk",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "CoinGecko",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "CoinMarketCap",
+      "key": "siCoinmarketcap",
+      "slug": "Coinmarketcap"
+    },
+    {
+      "name": "Comfy Cloud",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Common Room",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Consensus",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Contentsquare",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Context7",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Coralogix",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Craft",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Crossbeam",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Crypto.com",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Customer.io",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "DataFast",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "DataForSEO",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Databricks",
+      "key": "siDatabricks",
+      "slug": "Databricks"
+    },
+    {
+      "name": "Day AI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Deel",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Deepnote",
+      "key": "siDeepnote",
+      "slug": "Deepnote"
+    },
+    {
+      "name": "Demodesk",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Descript",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "DevRev",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Dex",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Dice",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Dify",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Digits",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Dovetail",
+      "key": "siDovetail",
+      "slug": "Dovetail"
+    },
+    {
+      "name": "Dropbox",
+      "key": "siDropbox",
+      "slug": "Dropbox"
+    },
+    {
+      "name": "Dropbox API",
+      "key": "siDropbox",
+      "slug": "Dropbox"
+    },
+    {
+      "name": "Dupe",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Egnyte",
+      "key": "siEgnyte",
+      "slug": "Egnyte"
+    },
+    {
+      "name": "Elastic Email",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "ElevenLabs",
+      "key": "siElevenlabs",
+      "slug": "Elevenlabs"
+    },
+    {
+      "name": "ElevenLabs API",
+      "key": "siElevenlabs",
+      "slug": "Elevenlabs"
+    },
+    {
+      "name": "Elicit",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Enterpret",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Era Context",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Eraser",
+      "key": "siEraser",
+      "slug": "Eraser"
+    },
+    {
+      "name": "Etsy",
+      "key": "siEtsy",
+      "slug": "Etsy"
+    },
+    {
+      "name": "Exa",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Excalidraw",
+      "key": "siExcalidraw",
+      "slug": "Excalidraw"
+    },
+    {
+      "name": "Explorium",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "FactSet",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Fathom",
+      "key": "siFathom",
+      "slug": "Fathom"
+    },
+    {
+      "name": "Fellow",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ferryhopper",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Fever",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Fibery",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Financial Datasets",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Financial Modeling Prep",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "FireHydrant",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Firecrawl",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Fireflies",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Fiscal",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Fitbod",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Flightradar24",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Flux",
+      "key": "siFlux",
+      "slug": "Flux"
+    },
+    {
+      "name": "Flux API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "FullEnrich",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Gamma",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "GitBook",
+      "key": "siGitbook",
+      "slug": "Gitbook"
+    },
+    {
+      "name": "GitHits",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "GitHub",
+      "key": "siGithub",
+      "slug": "Github"
+    },
+    {
+      "name": "Gmail",
+      "key": "siGmail",
+      "slug": "Gmail"
+    },
+    {
+      "name": "GoCardless",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "GoDaddy",
+      "key": "siGodaddy",
+      "slug": "Godaddy"
+    },
+    {
+      "name": "Google Ads",
+      "key": "siGoogleads",
+      "slug": "Googleads"
+    },
+    {
+      "name": "Google Calendar",
+      "key": "siGooglecalendar",
+      "slug": "Googlecalendar"
+    },
+    {
+      "name": "Google Gemini",
+      "key": "siGooglegemini",
+      "slug": "Googlegemini"
+    },
+    {
+      "name": "Google Maps",
+      "key": "siGooglemaps",
+      "slug": "Googlemaps"
+    },
+    {
+      "name": "Google Workspace",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Grafana",
+      "key": "siGrafana",
+      "slug": "Grafana"
+    },
+    {
+      "name": "Grain",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Granola",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Granted",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Grok",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Guru",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Gusto",
+      "key": "siGusto",
+      "slug": "Gusto"
+    },
+    {
+      "name": "Habitify",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Harmonic",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Harness",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Helium 10",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Heptabase",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Hex",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "HeyGen",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "HeyGen API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Higgsfield",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "HighLevel LeadConnector",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Honeycomb",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "HubSpot",
+      "key": "siHubspot",
+      "slug": "Hubspot"
+    },
+    {
+      "name": "Hugging Face",
+      "key": "siHuggingface",
+      "slug": "Huggingface"
+    },
+    {
+      "name": "Hume",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Hunter",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "IcePanel",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Instacart",
+      "key": "siInstacart",
+      "slug": "Instacart"
+    },
+    {
+      "name": "Instagram",
+      "key": "siInstagram",
+      "slug": "Instagram"
+    },
+    {
+      "name": "Instagram Creator Marketplace",
+      "key": "siInstagram",
+      "slug": "Instagram"
+    },
+    {
+      "name": "Instantly",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Interactive Brokers",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Intercom",
+      "key": "siIntercom",
+      "slug": "Intercom"
+    },
+    {
+      "name": "Iterable",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "JSONBin.io",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Jam",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Jentic",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Jinko",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Jotform",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ketryx",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Kiwi.com",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Klaviyo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Kling",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Krisp",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "LINE",
+      "key": "siLine",
+      "slug": "Line"
+    },
+    {
+      "name": "Lambus",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "LaunchDarkly",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Learning Commons",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Leonardo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Lightfield",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Linear",
+      "key": "siLinear",
+      "slug": "Linear"
+    },
+    {
+      "name": "Linkly",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Listen Labs",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "LiveKit Docs",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Local Falcon",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Lucid",
+      "key": "siLucid",
+      "slug": "Lucid"
+    },
+    {
+      "name": "Lumin PDF",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "LunarCrush",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Magic Patterns",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Magnific",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Mailchimp Marketing",
+      "key": "siMailchimp",
+      "slug": "Mailchimp"
+    },
+    {
+      "name": "MailerLite",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Make",
+      "key": "siMake",
+      "slug": "Make"
+    },
+    {
+      "name": "Mapbox",
+      "key": "siMapbox",
+      "slug": "Mapbox"
+    },
+    {
+      "name": "MarcoPolo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Mem",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Mercury",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Mermaid Chart",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Meta Ads Manager",
+      "key": "siMeta",
+      "slug": "Meta"
+    },
+    {
+      "name": "Metabase",
+      "key": "siMetabase",
+      "slug": "Metabase"
+    },
+    {
+      "name": "Metaview",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Metricool",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Microsoft Clarity",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Microsoft Learn",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Mindbody API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "MiniMax",
+      "key": "siMinimax",
+      "slug": "Minimax"
+    },
+    {
+      "name": "Mintlify",
+      "key": "siMintlify",
+      "slug": "Mintlify"
+    },
+    {
+      "name": "Miro",
+      "key": "siMiro",
+      "slug": "Miro"
+    },
+    {
+      "name": "Mixpanel",
+      "key": "siMixpanel",
+      "slug": "Mixpanel"
+    },
+    {
+      "name": "Mobbin",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Monte Carlo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Morningstar",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "MotherDuck",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "My Browser",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Nango",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Navan",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Neimo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Neon",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Netlify",
+      "key": "siNetlify",
+      "slug": "Netlify"
+    },
+    {
+      "name": "NocoDB",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Notion",
+      "key": "siNotion",
+      "slug": "Notion"
+    },
+    {
+      "name": "Numeric",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Oath",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Omni Analytics",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "OneSignal",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Open Targets",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "OpenAI",
+      "key": "siOpenai",
+      "slug": "Openai"
+    },
+    {
+      "name": "OpenRouter",
+      "key": "siOpenrouter",
+      "slug": "Openrouter"
+    },
+    {
+      "name": "OpenRouter API",
+      "key": "siOpenrouter",
+      "slug": "Openrouter"
+    },
+    {
+      "name": "OpticOdds",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Orion",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Otter.ai",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Outlook Calendar",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Outlook Mail",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "PagerDuty",
+      "key": "siPagerduty",
+      "slug": "Pagerduty"
+    },
+    {
+      "name": "PandaDoc",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Parallel",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Particl",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "PayPal for Business",
+      "key": "siPaypal",
+      "slug": "Paypal"
+    },
+    {
+      "name": "Pazy",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Peec AI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Pendo",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Perplexity",
+      "key": "siPerplexity",
+      "slug": "Perplexity"
+    },
+    {
+      "name": "Plain",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "PlanetScale",
+      "key": "siPlanetscale",
+      "slug": "Planetscale"
+    },
+    {
+      "name": "Plaud",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Playwright",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Pletor",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Podio",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Polar Analytics",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "PopHIVE",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "PostHog",
+      "key": "siPosthog",
+      "slug": "Posthog"
+    },
+    {
+      "name": "Postiz",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Postman",
+      "key": "siPostman",
+      "slug": "Postman"
+    },
+    {
+      "name": "Prisma Postgres",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Privacy.com",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Productboard",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Profound",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Publer API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Publora",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Pylon",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "QuiverAI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Raindrop",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Raisely",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Rally",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ramp",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Razorpay",
+      "key": "siRazorpay",
+      "slug": "Razorpay"
+    },
+    {
+      "name": "Read AI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Readwise",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Red Sift",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Regal",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Render",
+      "key": "siRender",
+      "slug": "Render"
+    },
+    {
+      "name": "Replicate",
+      "key": "siReplicate",
+      "slug": "Replicate"
+    },
+    {
+      "name": "Resend",
+      "key": "siResend",
+      "slug": "Resend"
+    },
+    {
+      "name": "Resolve",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Responsive",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "RevenueCat",
+      "key": "siRevenuecat",
+      "slug": "Revenuecat"
+    },
+    {
+      "name": "Revise",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Rhizome AI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Rhythm",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ribbon AI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Rillet",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Roam",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Roboflow",
+      "key": "siRoboflow",
+      "slug": "Roboflow"
+    },
+    {
+      "name": "Rootly",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Runway",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "S&P Global",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Salesloft",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Sanity",
+      "key": "siSanity",
+      "slug": "Sanity"
+    },
+    {
+      "name": "Scite",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Semrush",
+      "key": "siSemrush",
+      "slug": "Semrush"
+    },
+    {
+      "name": "SendMux",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Sentry",
+      "key": "siSentry",
+      "slug": "Sentry"
+    },
+    {
+      "name": "Serena",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Serpstat",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Shapes",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Shopify",
+      "key": "siShopify",
+      "slug": "Shopify"
+    },
+    {
+      "name": "Sigma",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "SignNow",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Similarweb",
+      "key": "siSimilarweb",
+      "slug": "Similarweb"
+    },
+    {
+      "name": "Similarweb API",
+      "key": "siSimilarweb",
+      "slug": "Similarweb"
+    },
+    {
+      "name": "Slack",
+      "key": "siSlack",
+      "slug": "Slack"
+    },
+    {
+      "name": "SmartSpectra",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Smartsheet",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Snowflake",
+      "key": "siSnowflake",
+      "slug": "Snowflake"
+    },
+    {
+      "name": "Sonatype Guide",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Sourcegraph",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Splice",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Square",
+      "key": "siSquare",
+      "slug": "Square"
+    },
+    {
+      "name": "Statsig",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Stripe",
+      "key": "siStripe",
+      "slug": "Stripe"
+    },
+    {
+      "name": "Stripe API",
+      "key": "siStripe",
+      "slug": "Stripe"
+    },
+    {
+      "name": "Stytch",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "SubscriptionFlow",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Sumble",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Supabase",
+      "key": "siSupabase",
+      "slug": "Supabase"
+    },
+    {
+      "name": "Supabase API",
+      "key": "siSupabase",
+      "slug": "Supabase"
+    },
+    {
+      "name": "Superhuman Mail",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Supermetrics",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "SurveyMonkey",
+      "key": "siSurveymonkey",
+      "slug": "Surveymonkey"
+    },
+    {
+      "name": "Sybill",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Synthesize Bio",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Tableau",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Tally",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Tango",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Taplio",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Taskade",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Tavily",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Ticket Tailor",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "TierZero",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "TikTok for Business",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Tines",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Toast API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Todoist",
+      "key": "siTodoist",
+      "slug": "Todoist"
+    },
+    {
+      "name": "TomTom Maps",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Trello",
+      "key": "siTrello",
+      "slug": "Trello"
+    },
+    {
+      "name": "Trendtrack",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Tripo AI",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Trivago",
+      "key": "siTrivago",
+      "slug": "Trivago"
+    },
+    {
+      "name": "Truthifi",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Twilio Documentation",
+      "key": "siTwilio",
+      "slug": "Twilio"
+    },
+    {
+      "name": "Typeform",
+      "key": "siTypeform",
+      "slug": "Typeform"
+    },
+    {
+      "name": "Typeform",
+      "key": "siTypeform",
+      "slug": "Typeform"
+    },
+    {
+      "name": "Ubersuggest",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Unthread",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Unusual Whales",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Unwrap",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "VEED Fabric",
+      "key": "siVeed",
+      "slug": "Veed"
+    },
+    {
+      "name": "Vantage",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Vercel",
+      "key": "siVercel",
+      "slug": "Vercel"
+    },
+    {
+      "name": "Viator",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Vibe Prospecting",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Wave API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Webflow",
+      "key": "siWebflow",
+      "slug": "Webflow"
+    },
+    {
+      "name": "Whimsical",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Whop",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Windsor.ai",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Wireflow",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Wispr Flow",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Wix",
+      "key": "siWix",
+      "slug": "Wix"
+    },
+    {
+      "name": "Wolfram",
+      "key": "siWolfram",
+      "slug": "Wolfram"
+    },
+    {
+      "name": "WordPress",
+      "key": "siWordpress",
+      "slug": "Wordpress"
+    },
+    {
+      "name": "WorkOS",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Workable",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Wrike",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Xero",
+      "key": "siXero",
+      "slug": "Xero"
+    },
+    {
+      "name": "Yelp API",
+      "key": "siYelp",
+      "slug": "Yelp"
+    },
+    {
+      "name": "Zapier",
+      "key": "siZapier",
+      "slug": "Zapier"
+    },
+    {
+      "name": "Zendesk API",
+      "key": "siZendesk",
+      "slug": "Zendesk"
+    },
+    {
+      "name": "Zernio",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Zocks",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "Zoho",
+      "key": "siZoho",
+      "slug": "Zoho"
+    },
+    {
+      "name": "Zoom",
+      "key": "siZoom",
+      "slug": "Zoom"
+    },
+    {
+      "name": "beehiiv",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "doola",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "fal.ai",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "freee",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "ilert",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "incident.io",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "monday.com",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "n8n",
+      "key": "siN8n",
+      "slug": "N8n"
+    },
+    {
+      "name": "n8n API",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "tl;dv",
+      "key": null,
+      "slug": null
+    },
+    {
+      "name": "vidIQ",
+      "key": null,
+      "slug": null
+    }
+  ]
+}
