@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "node:crypto";
 import type { RequestHandler } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createContext } from "../server/_core/context";
@@ -13,6 +14,15 @@ import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
 const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// Request Correlation ID Middleware
+app.use((req, res, next) => {
+  const reqId =
+    (req.headers["x-request-id"] as string) || `req_${crypto.randomUUID()}`;
+  req.headers["x-request-id"] = reqId;
+  res.setHeader("x-request-id", reqId);
+  next();
+});
 
 const sendFirebaseConfig = (_req: express.Request, res: express.Response) => {
   const config = getFirebasePublicConfig();

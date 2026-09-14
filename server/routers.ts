@@ -11,7 +11,7 @@ import {
 import { invokeUserProvider } from "./providerAdapters";
 import { getWorkspaceSettings, updateWorkspaceSettings } from "./settingsDb";
 import { runAgentCore, synthesizeFallbackResponse } from "./agentCore";
-import { integrations } from "@shared/integrations";
+import { integrations } from "../shared/integrations";
 import { executeConnectorAction } from "./connectorAdapters";
 import {
   approveRequest,
@@ -35,12 +35,22 @@ import {
 } from "./firestore";
 import { consumeDailyTokens, getDailyQuota, type HannaTier } from "./usage";
 import { performAiHealthCheck } from "./aiHealth";
+import {
+  getWorkspaceContributors,
+  inviteContributor,
+  removeContributor,
+  shareChatWithContributors,
+  updateContributorCredits,
+} from "./contributorsDb";
+
+import { TRPCError } from "@trpc/server";
 
 export async function executeHannaRequest(
   prompt: string,
   context?: string,
   userId?: number,
-  requestedModel?: string
+  requestedModel?: string,
+  clientIp?: string
 ) {
   try {
     return await runAgentCore(
@@ -54,23 +64,20 @@ export async function executeHannaRequest(
         );
 
         const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-        const quota = userId
-          ? consumeDailyTokens(
-              String(userId),
-              Math.ceil(prompt.length / 4),
-              tier
-            )
-          : {
-              allowed: true as const,
-              used: 0,
-              limit: tier === "pro" ? 1500 : 300,
-              remaining: tier === "pro" ? 1500 : 300,
-              resetAt: "",
-            };
-        if (!quota.allowed)
+        const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
+        const quota = consumeDailyTokens(
+          quotaKey,
+          Math.ceil(prompt.length / 4),
+          tier
+        );
+
+        if (!quota.allowed) {
           throw new Error(
-            `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
+            userId
+              ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
+              : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
           );
+        }
         if (!provider.apiKey)
           throw new Error(
             "Hanna’s default Gemini API key is not configured. Check its API key in Settings or environment variables."
@@ -133,6 +140,7 @@ export async function executeHannaRequest(
       },
       trace: [],
       providerError: true,
+      responseType: "PROVIDER_ERROR" as const,
     };
   }
 }
@@ -338,6 +346,58 @@ export const appRouter = router({
         updateWorkspaceSettings(ctx.user.id, input)
       ),
   }),
+  contributors: router({
+    list: protectedProcedure.query(({ ctx }) =>
+      getWorkspaceContributors(String(ctx.user.id))
+    ),
+    invite: protectedProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          role: z.enum(["head", "admin", "editor", "viewer"]).optional(),
+          monthlyCreditLimit: z.number().int().positive().optional(),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        inviteContributor(
+          String(ctx.user.id),
+          input.email,
+          input.role,
+          input.monthlyCreditLimit
+        )
+      ),
+    remove: protectedProcedure
+      .input(z.object({ contributorId: z.string() }))
+      .mutation(({ ctx, input }) =>
+        removeContributor(String(ctx.user.id), input.contributorId)
+      ),
+    updateCredits: protectedProcedure
+      .input(z.object({ contributorId: z.string(), credits: z.number() }))
+      .mutation(({ ctx, input }) =>
+        updateContributorCredits(
+          String(ctx.user.id),
+          input.contributorId,
+          input.credits
+        )
+      ),
+    shareChat: protectedProcedure
+      .input(
+        z.object({
+          chatId: z.string(),
+          emails: z.array(z.string().email()),
+          permission: z.enum(["read", "write"]).optional(),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        shareChatWithContributors(
+          String(ctx.user.id),
+          input.chatId,
+          input.emails,
+          ctx.user.email || ctx.user.name || "Owner",
+          input.permission
+        )
+      ),
+  }),
   hanna: router({
     ask: publicProcedure
       .input(
@@ -347,14 +407,30 @@ export const appRouter = router({
           model: z.string().max(120).optional(),
         })
       )
-      .mutation(({ ctx, input }) =>
-        executeHannaRequest(
+      .mutation(({ ctx, input }) => {
+        if (!ctx.user && input.prompt.length > 2000) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Unauthenticated prompts are limited to 2,000 characters. Sign in to send longer prompts.",
+          });
+        }
+        const clientIp = (
+          (ctx.req?.headers?.["x-forwarded-for"] as string) ||
+          ctx.req?.socket?.remoteAddress ||
+          "guest"
+        )
+          .split(",")[0]
+          .trim();
+
+        return executeHannaRequest(
           input.prompt,
           input.context,
           ctx.user?.id,
-          input.model
-        )
-      ),
+          input.model,
+          clientIp
+        );
+      }),
     healthCheck: publicProcedure
       .input(
         z

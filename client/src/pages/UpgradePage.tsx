@@ -54,7 +54,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
             Upgrade your Hanna Experience
           </h1>
           <p className="page-description" style={{ fontSize: "15px", color: "var(--text-secondary)" }}>
-            Unlock high-speed Hanna Lite (Gemini 2.5 Flash) &amp; Hanna Pro (Gemini 2.5 Flash) intelligence, store automations, multimodal research, and higher credit limits.
+            Unlock high-speed Hanna Lite &amp; Hanna Pro intelligence, team contributor collaboration, store automations, multimodal research, and custom credit limits.
           </p>
         </div>
 
@@ -148,10 +148,10 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
       {/* Pricing Cards Grid */}
       <div className="pricing-grid" style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-        gap: "24px",
+        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: "20px",
         alignItems: "stretch",
-        maxWidth: "1080px",
+        maxWidth: "1180px",
         margin: "0 auto"
       }}>
         {/* Starter Free Plan */}
@@ -159,46 +159,43 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
           background: "var(--surface-raised)",
           border: "1px solid var(--border)",
           borderRadius: "20px",
-          padding: "28px",
+          padding: "24px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between"
         }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
               <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)" }}>
                 Starter
               </span>
-              <span style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: "11px", padding: "4px 10px", borderRadius: "999px", color: "var(--text-secondary)" }}>
-                Free Plan
+              <span style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: "11px", padding: "3px 8px", borderRadius: "999px", color: "var(--text-secondary)" }}>
+                Free
               </span>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
+            <div style={{ marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                <span style={{ fontSize: "36px", fontWeight: "800", color: "var(--text-primary)" }}>Free</span>
-                <span style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>/ free forever</span>
+                <span style={{ fontSize: "32px", fontWeight: "800", color: "var(--text-primary)" }}>Free</span>
               </div>
-              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "6px" }}>
-                500 credits weekly refreshed automatically. Perfect for getting started with Hanna.
+              <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                500 credits weekly. Great for single workspace creators.
               </p>
             </div>
 
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px", marginBottom: "24px" }}>
-              <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "12px" }}>
-                Plan Benefits
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "16px", marginBottom: "20px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "10px" }}>
+                Includes:
               </span>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "8px" }}>
                 {[
-                  "500 credits weekly (auto-refreshes)",
-                  "Hanna Lite (Gemini 2.5 Flash) default AI model",
-                  "Basic Shopify & web search tools",
-                  "Up to 10 saved conversation threads",
-                  "Standard file & image uploads",
-                  "Community support & docs"
+                  "500 credits weekly",
+                  "Hanna Lite fast engine",
+                  "Up to 1 contributor seat",
+                  "Standard Shopify & web tools",
                 ].map(feat => (
-                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-primary)" }}>
-                    <Check size={16} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
+                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
+                    <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
                     <span>{feat}</span>
                   </li>
                 ))}
@@ -208,94 +205,65 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
 
           <Button
             variant="outline"
-            style={{ width: "100%", borderRadius: "12px", padding: "12px" }}
-            onClick={() => showToast("You are currently on the Starter Free Plan")}
+            style={{ width: "100%", borderRadius: "10px", padding: "10px" }}
+            onClick={() => showToast("You are on the Starter Free Plan")}
           >
             Current Plan
           </Button>
         </div>
 
-        {/* Pro Plan (Highlighted) */}
+        {/* Pro Plan ($19.99/mo) - 5 contributors */}
         <div className="pricing-card is-popular" style={{
           background: "var(--surface-raised)",
           border: "2px solid var(--gemini-accent)",
           borderRadius: "20px",
-          padding: "28px",
+          padding: "24px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
           position: "relative",
-          boxShadow: "0 12px 32px rgba(26,115,232,0.15)"
         }}>
-          <div style={{
-            position: "absolute",
-            top: "-14px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "var(--gemini-accent)",
-            color: "#ffffff",
-            fontSize: "11px",
-            fontWeight: "700",
-            padding: "4px 14px",
-            borderRadius: "999px",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em"
-          }}>
-            Most Popular
-          </div>
-
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", marginTop: "4px" }}>
-              <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--gemini-accent)", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Zap size={16} /> Pro Plan
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--gemini-accent)", display: "flex", alignItems: "center", gap: "4px" }}>
+                <Zap size={15} /> Pro
               </span>
-              <span style={{ background: "rgba(26,115,232,0.15)", color: "var(--gemini-accent)", fontSize: "11px", padding: "4px 10px", borderRadius: "999px", fontWeight: "600" }}>
-                3-Day Free Trial
+              <span style={{ background: "rgba(26,115,232,0.15)", color: "var(--gemini-accent)", fontSize: "11px", padding: "3px 8px", borderRadius: "999px", fontWeight: "600" }}>
+                5 Seats
               </span>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                <span style={{ fontSize: "36px", fontWeight: "800", color: "var(--text-primary)" }}>
-                  {isAnnual ? "16.99 USD" : "19.99 USD"}
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                <span style={{ fontSize: "32px", fontWeight: "800", color: "var(--text-primary)" }}>
+                  {isAnnual ? "$16.99" : "$19.99"}
                 </span>
-                <span style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>/ mo</span>
+                <span style={{ color: "var(--text-tertiary)", fontSize: "13px" }}>/ mo</span>
               </div>
               {isAnnual && (
                 <div style={{ fontSize: "11px", color: "var(--gemini-accent)", fontWeight: "600", marginTop: "2px" }}>
-                  Billed annually ($203.88/yr) · 15% discount applied
+                  15% discount applied
                 </div>
               )}
-              <div style={{
-                marginTop: "10px",
-                padding: "8px 12px",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                fontSize: "12px",
-                color: "var(--text-primary)"
-              }}>
-                <strong style={{ color: "var(--gemini-accent)" }}>Introductory Offer:</strong> 3-day free trial, 50% off for the first month ($9.99 USD), then $19.99 USD in following months. Canceled at anytime.
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                Up to <strong>5 contributors</strong> max.
               </div>
             </div>
 
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px", marginBottom: "24px" }}>
-              <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "12px" }}>
-                Everything in Starter, plus:
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "16px", marginBottom: "20px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "10px" }}>
+                Pro Benefits:
               </span>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "8px" }}>
                 {[
-                  "1,000 credits per week (auto-refreshed)",
-                  "Hanna Pro (Gemini 2.5 Flash) priority engine access",
-                  "3-day free trial with 50% off month 1 ($9.99 USD)",
-                  "Advanced Shopify store automations & inventory sync",
-                  "Deep web research & native image generation",
-                  "Unlimited file, PDF & visual attachments",
-                  "Priority customer support & workflow templates",
-                  "Cancel at anytime with no contract"
+                  "1,000 credits per week",
+                  "Hanna Pro deep reasoning",
+                  "Up to 5 contributors",
+                  "Chat sharing & control panel",
+                  "Priority store automations"
                 ].map(feat => (
-                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-primary)" }}>
-                    <Check size={16} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
+                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
+                    <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
                     <span>{feat}</span>
                   </li>
                 ))}
@@ -304,64 +272,59 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
           </div>
 
           <Button
-            style={{ width: "100%", borderRadius: "12px", padding: "12px", background: "var(--gemini-accent)", color: "#ffffff", fontWeight: "700" }}
+            style={{ width: "100%", borderRadius: "10px", padding: "10px", background: "var(--gemini-accent)", color: "#ffffff", fontWeight: "700" }}
             onClick={() => handleSelectPlan("Pro")}
           >
-            Start 3-Day Free Trial
+            Upgrade to Pro
           </Button>
         </div>
 
-        {/* Enterprise Plan */}
+        {/* Max Plan ($49.99/mo) - 20 contributors */}
         <div className="pricing-card" style={{
           background: "var(--surface-raised)",
           border: "1px solid var(--border)",
           borderRadius: "20px",
-          padding: "28px",
+          padding: "24px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between"
         }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-              <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Crown size={16} /> Enterprise
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "4px" }}>
+                <Sparkles size={15} /> Max
               </span>
-              <span style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: "11px", padding: "4px 10px", borderRadius: "999px", color: "var(--text-secondary)" }}>
-                Enterprise Grade
+              <span style={{ background: "rgba(124,58,237,0.15)", color: "#7c3aed", fontSize: "11px", padding: "3px 8px", borderRadius: "999px", fontWeight: "600" }}>
+                20 Seats
               </span>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                <span style={{ fontSize: "36px", fontWeight: "800", color: "var(--text-primary)" }}>
-                  {isAnnual ? "42.49 USD" : "49.99 USD"}
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                <span style={{ fontSize: "32px", fontWeight: "800", color: "var(--text-primary)" }}>
+                  {isAnnual ? "$39.99" : "$49.99"}
                 </span>
-                <span style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>/ mo</span>
+                <span style={{ color: "var(--text-tertiary)", fontSize: "13px" }}>/ mo</span>
               </div>
-              {isAnnual && (
-                <div style={{ fontSize: "11px", color: "var(--gemini-accent)", fontWeight: "600", marginTop: "2px" }}>
-                  Billed annually ($509.88/yr) · 15% discount applied
-                </div>
-              )}
-              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "6px" }}>
-                For high-volume e-commerce brands and teams requiring custom credits, collaboration, and custom integrations.
-              </p>
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                Up to <strong>20 contributors</strong> max.
+              </div>
             </div>
 
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px", marginBottom: "24px" }}>
-              <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "12px" }}>
-                Everything in Pro, plus:
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "16px", marginBottom: "20px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "10px" }}>
+                Max Benefits:
               </span>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "8px" }}>
                 {[
-                  "Custom credits tailored to your team volume",
-                  "Team collaboration & workspace role permissions",
-                  "Dedicated multi-agent Shopify & store orchestration",
-                  "Custom API key connectors & webhooks",
-                  "Dedicated account manager & 99.9% SLA uptime"
+                  "5,000 credits per week",
+                  "Hanna Pro priority reasoning",
+                  "Up to 20 contributors",
+                  "Advanced contributor control panel",
+                  "Granular chat & task permissions"
                 ].map(feat => (
-                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-primary)" }}>
-                    <Check size={16} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
+                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
+                    <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
                     <span>{feat}</span>
                   </li>
                 ))}
@@ -371,10 +334,70 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
 
           <Button
             variant="outline"
-            style={{ width: "100%", borderRadius: "12px", padding: "12px" }}
+            style={{ width: "100%", borderRadius: "10px", padding: "10px" }}
+            onClick={() => handleSelectPlan("Max")}
+          >
+            Upgrade to Max
+          </Button>
+        </div>
+
+        {/* Enterprise Plan ($99.99 USD starting - Custom everything) */}
+        <div className="pricing-card" style={{
+          background: "var(--surface-raised)",
+          border: "1px solid var(--border)",
+          borderRadius: "20px",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between"
+        }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "4px" }}>
+                <Crown size={15} /> Enterprise
+              </span>
+              <span style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: "11px", padding: "3px 8px", borderRadius: "999px", color: "var(--text-secondary)" }}>
+                Custom
+              </span>
+            </div>
+
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                <span style={{ fontSize: "32px", fontWeight: "800", color: "var(--text-primary)" }}>$99.99</span>
+                <span style={{ color: "var(--text-tertiary)", fontSize: "13px" }}>/ mo base</span>
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                Everything custom (credits &amp; seats set by Head of Contributors).
+              </div>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "16px", marginBottom: "20px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)", display: "block", marginBottom: "10px" }}>
+                Enterprise Benefits:
+              </span>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "8px" }}>
+                {[
+                  "Custom credits & monthly credit allocation",
+                  "Custom / unlimited contributors",
+                  "Head of Contributors Control Panel",
+                  "Custom API key connectors & SLA",
+                  "99.99% uptime guarantee & support"
+                ].map(feat => (
+                  <li key={feat} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
+                    <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />
+                    <span>{feat}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            style={{ width: "100%", borderRadius: "10px", padding: "10px" }}
             onClick={() => handleSelectPlan("Enterprise")}
           >
-            Upgrade to Enterprise
+            Contact Enterprise
           </Button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { getProviderCredentialById } from "./providerDb";
 
 export type AiHealthReport = {
   status: AiHealthStatus;
+  diagnosticCode: string;
   provider: string;
   model: string;
   isCustom: boolean;
@@ -26,23 +27,22 @@ export async function performAiHealthCheck(options?: {
   const requestedInput = options?.model || options?.provider;
   const resolved = resolveProviderAndModel(requestedInput);
 
-  const report: AiHealthReport = {
-    status: "AI_READY",
+  const buildReport = (status: AiHealthStatus, details: string): AiHealthReport => ({
+    status,
+    diagnosticCode: status,
     provider: resolved.provider,
     model: resolved.model,
     isCustom: resolved.isCustom,
     geminiKeyPresent: Boolean(geminiKey),
     geminiModelPresent: Boolean(geminiModel),
     configuredModel,
-    details: "AI service operational.",
+    details,
     timestamp: new Date().toISOString(),
-  };
+  });
 
   if (!resolved.isCustom) {
     if (!geminiKey) {
-      report.status = "GEMINI_KEY_MISSING";
-      report.details = "GEMINI_API_KEY environment variable is missing on the server.";
-      return report;
+      return buildReport("GEMINI_KEY_MISSING", "GEMINI_API_KEY environment variable is missing on the server.");
     }
 
     try {
@@ -62,62 +62,42 @@ export async function performAiHealthCheck(options?: {
       ).finally(() => clearTimeout(timeoutId));
 
       if (response.ok) {
-        report.status = "AI_READY";
-        report.details = `Gemini connection verified for model ${resolved.model}.`;
-        return report;
+        return buildReport("AI_READY", `Gemini connection verified for model ${resolved.model}.`);
       }
 
       if (response.status === 401 || response.status === 403) {
-        report.status = "GEMINI_AUTH_FAILED";
-        report.details = "GEMINI_API_KEY rejected by Google Gemini API.";
-        return report;
+        return buildReport("GEMINI_AUTH_FAILED", "GEMINI_API_KEY rejected by Google Gemini API.");
       }
 
       if (response.status === 404) {
-        report.status = "GEMINI_MODEL_UNAVAILABLE";
-        report.details = `Configured model ${resolved.model} is unavailable (404).`;
-        return report;
+        return buildReport("GEMINI_MODEL_UNAVAILABLE", `Configured model ${resolved.model} is unavailable (404).`);
       }
 
       if (response.status === 429) {
         const errText = await response.text().catch(() => "");
         if (errText.toLowerCase().includes("quota")) {
-          report.status = "GEMINI_QUOTA_EXCEEDED";
-          report.details = "Gemini API quota exhausted.";
-        } else {
-          report.status = "GEMINI_RATE_LIMITED";
-          report.details = "Gemini API rate limit exceeded.";
+          return buildReport("GEMINI_QUOTA_EXCEEDED", "Gemini API quota exhausted.");
         }
-        return report;
+        return buildReport("GEMINI_RATE_LIMITED", "Gemini API rate limit exceeded.");
       }
 
-      report.status = "AI_ERROR";
-      report.details = `Gemini returned HTTP status ${response.status}.`;
-      return report;
+      return buildReport("AI_ERROR", `Gemini returned HTTP status ${response.status}.`);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        report.status = "GEMINI_TIMEOUT";
-        report.details = "Gemini API request timed out after 8 seconds.";
-        return report;
+        return buildReport("GEMINI_TIMEOUT", "Gemini API request timed out after 8 seconds.");
       }
-      report.status = "AI_ERROR";
-      report.details = error instanceof Error ? error.message : "Network failure reaching Gemini.";
-      return report;
+      return buildReport("AI_ERROR", error instanceof Error ? error.message : "Network failure reaching Gemini.");
     }
   }
 
   // Custom provider check
   if (!options?.userId) {
-    report.status = "CUSTOM_PROVIDER_NOT_CONFIGURED";
-    report.details = "User authentication required to check custom provider key.";
-    return report;
+    return buildReport("CUSTOM_PROVIDER_NOT_CONFIGURED", "User authentication required to check custom provider key.");
   }
 
   const userCred = await getProviderCredentialById(options.userId, resolved.provider);
   if (!userCred || !userCred.apiKey) {
-    report.status = "CUSTOM_PROVIDER_NOT_CONFIGURED";
-    report.details = `No active API key found for custom provider ${resolved.provider}.`;
-    return report;
+    return buildReport("CUSTOM_PROVIDER_NOT_CONFIGURED", `No active API key found for custom provider ${resolved.provider}.`);
   }
 
   try {
@@ -128,21 +108,15 @@ export async function performAiHealthCheck(options?: {
       endpoint: userCred.endpoint,
       prompt: "Ping health check.",
     });
-    report.status = "AI_READY";
-    report.details = `Custom provider ${resolved.provider} (${resolved.model}) is ready.`;
-    return report;
+    return buildReport("AI_READY", `Custom provider ${resolved.provider} (${resolved.model}) is ready.`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("401") || message.includes("403") || message.includes("authentication failed")) {
-      report.status = "CUSTOM_PROVIDER_NOT_CONFIGURED";
-      report.details = `Custom provider ${resolved.provider} key rejected.`;
-    } else if (message.includes("404") || message.includes("not found")) {
-      report.status = "CUSTOM_MODEL_UNAVAILABLE";
-      report.details = `Model ${resolved.model} is unavailable on ${resolved.provider}.`;
-    } else {
-      report.status = "AI_ERROR";
-      report.details = message || "Custom provider failed health check.";
+      return buildReport("CUSTOM_PROVIDER_NOT_CONFIGURED", `Custom provider ${resolved.provider} key rejected.`);
     }
-    return report;
+    if (message.includes("404") || message.includes("not found")) {
+      return buildReport("CUSTOM_MODEL_UNAVAILABLE", `Model ${resolved.model} is unavailable on ${resolved.provider}.`);
+    }
+    return buildReport("AI_ERROR", message || "Custom provider failed health check.");
   }
 }

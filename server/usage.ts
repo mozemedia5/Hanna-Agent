@@ -1,7 +1,10 @@
-export type HannaTier = "lite" | "pro";
+export type HannaTier = "free" | "lite" | "pro" | "max" | "enterprise";
 export const DAILY_TOKEN_LIMITS: Record<HannaTier, number> = {
+  free: 300,
   lite: 300,
   pro: 1500,
+  max: 5000,
+  enterprise: 20000,
 };
 type Usage = { day: string; tokens: number };
 const usage = new Map<string, Usage>();
