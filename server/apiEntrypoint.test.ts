@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import handler from "../server/api";
+import handler from "./api";
 
 describe("Vercel API entrypoint", () => {
   it("exports an Express-compatible request handler without opening a listener", () => {
