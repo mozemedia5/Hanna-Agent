@@ -9,12 +9,16 @@ import {
   Bell,
   BookOpen,
   Brain,
+  Calendar,
   Camera,
   Check,
   ChevronDown,
   ChevronRight,
   Code2,
+  Edit3,
+  ExternalLink,
   FileText,
+  FolderPlus,
   FolderUp,
   Globe2,
   GraduationCap,
@@ -28,18 +32,21 @@ import {
   Paperclip,
   PlugZap,
   Plus,
+  RotateCcw,
   Search,
   Send,
   Settings,
   Sparkles,
   Square,
   Store,
+  Trash2,
   X,
   Zap,
   CreditCard,
   Gift,
   HelpCircle,
   TrendingUp,
+  Bot,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
@@ -160,6 +167,20 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [shareEmails, setShareEmails] = useState("");
   const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
   const [apiStatusMsg, setApiStatusMsg] = useState<string>("");
+
+  // Modals for Header Vertical Menu Options
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState("Default Workspace");
+  const [showFindModal, setShowFindModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showScheduleTaskModal, setShowScheduleTaskModal] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDate, setTaskDate] = useState("");
+
+  // Gemini-style dynamic action status when AI is working
+  const [thinkingStatus, setThinkingStatus] = useState("Thinking...");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -252,6 +273,23 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     window.setTimeout(() => composerRef.current?.focus(), 0);
   };
 
+  const deleteChat = (id: number) => {
+    const remaining = chats.filter(c => c.id !== id);
+    setChats(remaining);
+    if (activeChatId === id) {
+      if (remaining.length) {
+        setActiveChatId(remaining[0].id);
+      } else {
+        createChat();
+      }
+    }
+    showToast("Chat deleted");
+  };
+
+  const archiveChat = (id: number) => {
+    showToast("Chat archived");
+  };
+
   const selectChat = (id: number) => {
     setActiveChatId(id);
     setCurrentPage("chat");
@@ -310,6 +348,17 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     setChats(current => current.map(c => c.id === chatId ? chatWithUser : c));
     const sentAttachments = [...attachments];
     setComposer(""); setAttachments([]); setIsThinking(true);
+
+    // Dynamic Gemini-style status progression
+    setThinkingStatus(
+      webSearchMode || selectedTools.includes("Web Search")
+        ? "Searching web..."
+        : deepThinkMode || selectedTools.includes("Deep Research")
+        ? "Thinking deeply..."
+        : agenticMode
+        ? "Personalizing & orchestrating..."
+        : "Thinking..."
+    );
     try {
       const token = await getFirebaseIdToken();
       const isStudyMode = selectedTools.includes("Study");
@@ -417,7 +466,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <span>{activeChat.title}</span>
           </div>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div className="model-picker">
             <button className="model-button" onClick={() => setModelMenuOpen(c => !c)} aria-expanded={modelMenuOpen}>
               <span className="model-pulse" />
@@ -425,7 +474,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <ChevronDown size={13} />
             </button>
             {modelMenuOpen && (
-              <div className="model-menu">
+              <div className="model-menu" style={{ zIndex: 110 }}>
                 {[
                   { id: "Hanna Lite", label: "Hanna Lite", desc: "Fast & lightweight intelligence" },
                   { id: "Hanna Pro", label: "Hanna Pro ✨", desc: "Deep reasoning & multimodal research (Requires Pro)" },
@@ -448,6 +497,101 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     {model === option.id && <Check size={14} style={{ marginLeft: "auto" }} />}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Header Upper Right Vertical Ellipsis Menu (...) */}
+          <div className="header-menu-container" style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setHeaderMenuOpen(o => !o)}
+              aria-label="Conversation options"
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            {headerMenuOpen && (
+              <div className="header-popover-menu" style={{ zIndex: 120 }}>
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  onClick={() => { setHeaderMenuOpen(false); setShowShareModal(true); }}
+                >
+                  <Share2 size={15} /> <span>Share chat</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setRenameTitle(activeChat.title);
+                    setShowRenameModal(true);
+                  }}
+                >
+                  <Edit3 size={15} /> <span>Rename chat</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setShowAddToProjectModal(true);
+                  }}
+                >
+                  <FolderPlus size={15} /> <span>Add to project</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setShowFindModal(true);
+                  }}
+                >
+                  <Search size={15} /> <span>Find in chat</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setTaskTitle(activeChat.title);
+                    setShowScheduleTaskModal(true);
+                  }}
+                >
+                  <Calendar size={15} /> <span>Schedule task</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    archiveChat(activeChat.id);
+                  }}
+                >
+                  <Archive size={15} /> <span>Archive chat</span>
+                </button>
+
+                <div style={{ height: "1px", background: "var(--border)", margin: "4px 0" }} />
+
+                <button
+                  type="button"
+                  className="header-menu-item"
+                  style={{ color: "#ea4335" }}
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    deleteChat(activeChat.id);
+                  }}
+                >
+                  <Trash2 size={15} /> <span>Delete chat</span>
+                </button>
               </div>
             )}
           </div>
@@ -515,20 +659,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             </div>
           ) : (
             <div className="message-stack">
-              <div className="conversation-heading">
-                <div>
-                  <div className="eyebrow">Conversation</div>
-                  <h1>{activeChat.title}</h1>
-                </div>
-                <div className="conversation-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
-                    <Share2 size={13} /> Share with Contributors
-                  </Button>
-                  <span className="conversation-usage">
-                    {activeChat.messages.length} messages · {activeChat.messages.reduce((t, m) => t + (m.tokenCount ?? estimateTokens(m.content)), 0)} est. tokens
-                  </span>
-                </div>
-              </div>
               {activeChat.messages.map(message => (
                 <article className={`message-row ${message.role}`} key={message.id}>
                   <div className="message-avatar">{message.role === "assistant" ? <HannaMark small /> : "U"}</div>
@@ -540,6 +670,18 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     <div className="message-content">
                       {message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)}
                     </div>
+
+                    {/* ChatGPT-style Source & Link Cards when web sources or links are present */}
+                    {message.role === "assistant" && (message.content.includes("http://") || message.content.includes("https://") || message.content.includes("[Source")) && (
+                      <div className="sources-card-grid" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "10px", padding: "6px 10px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                          <Globe2 size={13} style={{ color: "var(--gemini-accent)" }} />
+                          <span>Sourced from Web & Knowledge Catalog</span>
+                          <ExternalLink size={11} style={{ marginLeft: "4px", color: "var(--text-tertiary)" }} />
+                        </div>
+                      </div>
+                    )}
+
                     {message.role === "assistant" && (
                       <div className="message-actions">
                         <button onClick={() => showToast("Response copied")}><Archive size={13} /> Copy</button>
@@ -552,8 +694,13 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 <article className="message-row assistant thinking-row">
                   <div className="message-avatar"><HannaMark small /></div>
                   <div className="message-body">
-                    <div className="message-meta"><strong>Hanna</strong><span>thinking</span></div>
-                    <div className="thinking-dots"><i /><i /><i /></div>
+                    <div className="message-meta"><strong>Hanna</strong><span>{thinkingStatus}</span></div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+                      <div className="thinking-dots"><i /><i /><i /></div>
+                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)", fontStyle: "italic" }}>
+                        {thinkingStatus}
+                      </span>
+                    </div>
                   </div>
                 </article>
               )}
@@ -635,6 +782,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
                   <div className="plus-menu-divider" />
                   <div className="plus-menu-group-title">Intelligence Modes</div>
+
+                  <button
+                    type="button"
+                    className={`plus-menu-item toggle-item ${agenticMode ? "is-enabled" : ""}`}
+                    onClick={() => {
+                      setAgenticMode(a => !a);
+                      showToast(agenticMode ? "Agentic loop disabled" : "Agentic Loop Enabled");
+                    }}
+                  >
+                    <Bot size={16} />
+                    <span>Agent Invocation</span>
+                    <span className="toggle-indicator">{agenticMode ? "ON" : "OFF"}</span>
+                  </button>
 
                   <button
                     type="button"
@@ -859,6 +1019,140 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           </div>
         </div>
       )}
+      {/* Rename Chat Modal */}
+      {showRenameModal && (
+        <div className="modal-overlay" onClick={() => setShowRenameModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "400px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Rename Conversation</h3>
+              <button onClick={() => setShowRenameModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
+            </div>
+            <input
+              type="text"
+              value={renameTitle}
+              onChange={e => setRenameTitle(e.target.value)}
+              placeholder="Enter new conversation name..."
+              style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px", marginBottom: "16px" }}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" onClick={() => setShowRenameModal(false)}>Cancel</Button>
+              <Button onClick={() => {
+                if (renameTitle.trim()) {
+                  setChats(curr => curr.map(c => c.id === activeChatId ? { ...c, title: renameTitle.trim() } : c));
+                  showToast("Chat renamed");
+                }
+                setShowRenameModal(false);
+              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add to Project Modal */}
+      {showAddToProjectModal && (
+        <div className="modal-overlay" onClick={() => setShowAddToProjectModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Add to Project</h3>
+              <button onClick={() => setShowAddToProjectModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
+            </div>
+            <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)" }}>
+              Select a project workspace to organize <strong>"{activeChat.title}"</strong>.
+            </p>
+            <div style={{ display: "grid", gap: "8px", marginBottom: "18px" }}>
+              {["Shopify Store Launch", "E-Commerce Marketing", "Default Workspace"].map(proj => (
+                <button
+                  key={proj}
+                  type="button"
+                  onClick={() => setSelectedProject(proj)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: selectedProject === proj ? "var(--wash)" : "var(--surface)", border: `1px solid ${selectedProject === proj ? "var(--gemini-accent)" : "var(--border)"}`, borderRadius: "10px", cursor: "pointer", fontSize: "13px", color: "var(--text-primary)", textAlign: "left" }}
+                >
+                  <span>{proj}</span>
+                  {selectedProject === proj && <Check size={14} style={{ color: "var(--gemini-accent)" }} />}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" onClick={() => setShowAddToProjectModal(false)}>Cancel</Button>
+              <Button onClick={() => {
+                setShowAddToProjectModal(false);
+                showToast(`Added to "${selectedProject}"`);
+              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Add</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Find in Chat Modal */}
+      {showFindModal && (
+        <div className="modal-overlay" onClick={() => setShowFindModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "440px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Find in Chat</h3>
+              <button onClick={() => setShowFindModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
+            </div>
+            <div style={{ position: "relative", marginBottom: "14px" }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search messages..."
+                style={{ width: "100%", padding: "10px 12px 10px 34px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+                autoFocus
+              />
+              <Search size={15} style={{ position: "absolute", left: "10px", top: "12px", color: "var(--text-tertiary)" }} />
+            </div>
+            {searchQuery && (
+              <div style={{ maxHeight: "200px", overflowY: "auto", display: "grid", gap: "6px" }}>
+                {activeChat.messages.filter(m => m.content.toLowerCase().includes(searchQuery.toLowerCase())).map(m => (
+                  <div key={m.id} style={{ padding: "8px 10px", background: "var(--surface-raised)", borderRadius: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
+                    <strong>{m.role === "assistant" ? "Hanna" : "You"}:</strong> {m.content.slice(0, 80)}...
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Task Modal */}
+      {showScheduleTaskModal && (
+        <div className="modal-overlay" onClick={() => setShowScheduleTaskModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Schedule Task</h3>
+              <button onClick={() => setShowScheduleTaskModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
+            </div>
+            <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)" }}>
+              Schedule Hanna to automatically re-run or perform this action later.
+            </p>
+            <div style={{ display: "grid", gap: "10px", marginBottom: "18px" }}>
+              <input
+                type="text"
+                value={taskTitle}
+                onChange={e => setTaskTitle(e.target.value)}
+                placeholder="Task description..."
+                style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+              />
+              <input
+                type="datetime-local"
+                value={taskDate}
+                onChange={e => setTaskDate(e.target.value)}
+                style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" onClick={() => setShowScheduleTaskModal(false)}>Cancel</Button>
+              <Button onClick={() => {
+                setShowScheduleTaskModal(false);
+                showToast("Task scheduled successfully!");
+              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Schedule</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showShareModal && (
         <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
           <div className="modal-content" style={{ maxWidth: "480px" }} onClick={e => e.stopPropagation()}>
