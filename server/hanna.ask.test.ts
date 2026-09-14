@@ -44,7 +44,7 @@ describe("hanna.ask", () => {
     expect(result.plan?.trace).toBeUndefined();
   });
 
-  it("routes to Hanna Default Gemini 2.5 Flash when default model is selected", async () => {
+  it("routes to Hanna Default Gemini 3.5 Flash when default model is selected", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "AIzaSyServerEnvTestKey";
     invokeUserProvider.mockResolvedValue("Gemini response");
@@ -56,7 +56,7 @@ describe("hanna.ask", () => {
       });
       expect(result.text).toBe("Gemini response");
       expect(result.model).toContain("gemini");
-      expect(result.model).toContain("gemini-2.5-flash");
+      expect(result.model).toContain("gemini-3.5-flash");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
     }

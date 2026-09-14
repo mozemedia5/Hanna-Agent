@@ -328,7 +328,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const submitMessage = async () => {
     const text = composer.trim();
-    if ((!text && attachments.length === 0) || isThinking || apiHealthy === false) return;
+    if ((!text && attachments.length === 0) || isThinking) return;
     const chatId = activeChatId;
     let contentWithAttachments = text;
     if (attachments.length > 0) {
@@ -475,7 +475,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <ChevronDown size={13} />
             </button>
             {modelMenuOpen && (
-              <div className="model-menu" style={{ zIndex: 110 }}>
+              <div className="model-menu">
                 {[
                   { id: "Hanna Lite", label: "Hanna Lite", desc: "Fast & lightweight intelligence" },
                   { id: "Hanna Pro", label: "Hanna Pro ✨", desc: "Deep reasoning & multimodal research (Requires Pro)" },
@@ -491,11 +491,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         setModel(option.id);
                       }
                     }}>
-                    <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                      <strong style={{ fontSize: "13px", fontWeight: "600" }}>{option.label}</strong>
-                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{option.desc}</span>
+                    <div style={{ display: "flex", flexDirection: "column", textAlign: "left", flex: 1, minWidth: 0 }}>
+                      <strong style={{ fontSize: "13px", fontWeight: "600", lineHeight: "1.3" }}>{option.label}</strong>
+                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)", lineHeight: "1.3", whiteSpace: "normal" }}>{option.desc}</span>
                     </div>
-                    {model === option.id && <Check size={14} style={{ marginLeft: "auto" }} />}
+                    {model === option.id && <Check size={14} style={{ flexShrink: 0 }} />}
                   </button>
                 ))}
               </div>
@@ -514,7 +514,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             </button>
 
             {headerMenuOpen && (
-              <div className="header-popover-menu" style={{ zIndex: 120 }}>
+              <div className="header-popover-menu">
                 <button
                   type="button"
                   className="header-menu-item"
@@ -715,11 +715,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         <input type="file" ref={docInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept=".pdf,.csv,.doc,.docx,.txt,.json,.md" />
         <input type="file" ref={cameraInputRef} style={{ display: "none" }} onChange={handleFileUpload} capture="environment" accept="image/*" />
 
-        {apiHealthy === false && (
-          <div style={{ background: "rgba(234, 67, 53, 0.12)", border: "1px solid rgba(234, 67, 53, 0.3)", color: "#ea4335", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", marginBottom: "8px", textAlign: "center" }}>
-            {apiStatusMsg || "Hanna API unavailable."} Prompt submission disabled.
-          </div>
-        )}
 
         <div className="command-center-container">
           {attachments.length > 0 && (
@@ -875,12 +870,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 <button
                   type="button"
                   className={`command-submit-button ${
-                    (composer.trim() || attachments.length > 0) && apiHealthy !== false
+                    composer.trim() || attachments.length > 0
                       ? "state-active"
                       : "state-idle"
                   }`}
                   onClick={submitMessage}
-                  disabled={(!composer.trim() && attachments.length === 0) || apiHealthy === false}
+                  disabled={!composer.trim() && attachments.length === 0}
                   aria-label="Send message"
                 >
                   <ArrowUp size={16} strokeWidth={2.4} />

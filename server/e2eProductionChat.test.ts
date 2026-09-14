@@ -9,7 +9,7 @@ describe("Production Chat & Vercel API Route Resolution E2E Test", () => {
 
   beforeEach(async () => {
     process.env.GEMINI_API_KEY = "test_gemini_prod_key_12345";
-    process.env.GEMINI_MODEL = "gemini-2.5-flash";
+    process.env.GEMINI_MODEL = "gemini-3.5-flash";
 
     await new Promise<void>(resolve => {
       server = app.listen(0, "127.0.0.1", () => {
@@ -64,7 +64,7 @@ describe("Production Chat & Vercel API Route Resolution E2E Test", () => {
       const urlString = url.toString();
       if (urlString.includes("generativelanguage.googleapis.com")) {
         expect(urlString).toContain("test_gemini_prod_key_12345");
-        expect(urlString).toContain("gemini-2.5-flash");
+        expect(urlString).toContain("gemini-3.5-flash");
 
         const reqBody = JSON.parse(init?.body as string);
         expect(reqBody.contents[0].parts[0].text).toContain("What is the capital of France?");
@@ -108,7 +108,7 @@ describe("Production Chat & Vercel API Route Resolution E2E Test", () => {
 
     const data = payload[0].result.data.json;
     expect(data.text).toBe("The capital of France is Paris.");
-    expect(data.model).toBe("gemini · gemini-2.5-flash");
+    expect(data.model).toBe("gemini · gemini-3.5-flash");
     expect(data.providerError).toBe(false);
   });
 

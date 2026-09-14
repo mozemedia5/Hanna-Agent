@@ -70,13 +70,13 @@ describe("providers and integrations routing & management", () => {
     );
   });
 
-  it("routes default request to Gemini 2.5 Flash when no custom provider selected", async () => {
+  it("routes default request to Gemini 3.5 Flash when no custom provider selected", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "AIzaSyServerKeyTest";
     try {
       const res = await getProviderCredentialForRequest(42, "How do I optimize store conversion?");
       expect(res?.provider).toBe("gemini");
-      expect(res?.model).toBe("gemini-2.5-flash");
+      expect(res?.model).toBe("gemini-3.5-flash");
       expect(res?.apiKey).toBe("AIzaSyServerKeyTest");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
@@ -107,7 +107,7 @@ describe("providers and integrations routing & management", () => {
     expect(res?.model).toBe("llama-3.3-70b-versatile");
   });
 
-  it("deterministically switches back to Gemini 2.5 Flash when user selects Hanna Default", async () => {
+  it("deterministically switches back to Gemini 3.5 Flash when user selects Hanna Default", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "AIzaSyServerKeyTest";
     try {
@@ -120,7 +120,7 @@ describe("providers and integrations routing & management", () => {
       // Switch back
       const defaultRes = await getProviderCredentialForRequest(104, "Draft email", "Hanna Default");
       expect(defaultRes?.provider).toBe("gemini");
-      expect(defaultRes?.model).toBe("gemini-2.5-flash");
+      expect(defaultRes?.model).toBe("gemini-3.5-flash");
       expect(defaultRes?.apiKey).toBe("AIzaSyServerKeyTest");
     } finally {
       process.env.GEMINI_API_KEY = origKey;
