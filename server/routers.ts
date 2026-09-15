@@ -328,7 +328,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
     const fallbackText = synthesizeFallbackResponse(prompt, context);
     return {
       text: fallbackText,
-      model: requestedModel === "Hanna Pro" ? "gemini-3.6-flash" : "gemini-2.5-flash",
+      model: requestedModel === "Hanna Pro" ? "gemini-3.5-flash" : "gemini-3.5-flash",
       providerError: true,
     };
   }

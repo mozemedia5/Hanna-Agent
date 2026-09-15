@@ -1,8 +1,8 @@
 // server/aiConfig.ts
 var DEFAULT_AI_PROVIDER = "gemini";
-var DEFAULT_AI_MODEL = "gemini-2.5-flash";
+var DEFAULT_AI_MODEL = "gemini-3.5-flash";
 var GEMINI_FALLBACK_MODELS = [
-  "gemini-2.5-flash",
+  "gemini-3.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
   "gemini-1.5-pro"
@@ -22,9 +22,10 @@ function resolveProviderAndModel(requestedModelOrProvider) {
   const lower = input.toLowerCase();
   if (lower.includes("gemini")) {
     let modelName = defaultModel;
-    if (lower.includes("3.6")) modelName = "gemini-2.5-flash";
+    if (lower.includes("3.5")) modelName = "gemini-3.5-flash";
+    else if (lower.includes("3.6")) modelName = "gemini-3.5-flash";
     else if (lower.includes("3.7")) modelName = "gemini-3.7-flash";
-    else if (lower.includes("2.5")) modelName = "gemini-2.5-flash";
+    else if (lower.includes("2.5")) modelName = "gemini-3.5-flash";
     else if (lower.includes("2.0")) modelName = "gemini-2.0-flash";
     else if (lower.includes("1.5-pro")) modelName = "gemini-1.5-pro";
     else if (lower.includes("1.5")) modelName = "gemini-1.5-flash";
@@ -117,11 +118,12 @@ function userMessage(request) {
 User request: ${request.prompt}` : request.prompt;
 }
 function geminiCandidateModels(requestedModel) {
-  const rawModel = (requestedModel || process.env.GEMINI_MODEL || "gemini-2.5-flash").trim();
+  const rawModel = (requestedModel || process.env.GEMINI_MODEL || "gemini-3.5-flash").trim();
   let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
-  if (primaryModel.includes("3.6")) primaryModel = "gemini-2.5-flash";
+  if (primaryModel.includes("3.5")) primaryModel = "gemini-3.5-flash";
+  else if (primaryModel.includes("3.6")) primaryModel = "gemini-3.5-flash";
   else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
-  else if (primaryModel.includes("2.5")) primaryModel = "gemini-2.5-flash";
+  else if (primaryModel.includes("2.5")) primaryModel = "gemini-3.5-flash";
   else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
   else if (primaryModel.includes("1.5-pro")) primaryModel = "gemini-1.5-pro";
   else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
@@ -2651,7 +2653,7 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Multimodal & Document Reasoning",
-      reason: "Gemini 2.5 Flash provides high-throughput multimodal context analysis."
+      reason: "Gemini 3.5 Flash provides high-throughput multimodal context analysis."
     };
   }
   if (/(shopify|store|product|inventory|order|customer|ecommerce|catalog)/.test(value)) {
@@ -2659,7 +2661,7 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Shopify & Store Management",
-      reason: "Gemini 2.5 Flash orchestrates connected Shopify and commerce workflows."
+      reason: "Gemini 3.5 Flash orchestrates connected Shopify and commerce workflows."
     };
   }
   if (/(market|campaign|ad|social|copy|seo|marketing|content|research|strategy|analy[sz]e)/.test(value)) {
@@ -2667,7 +2669,7 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Marketing & Research Strategy",
-      reason: "Gemini 2.5 Flash generates high-converting marketing campaigns, research briefs, and creative content."
+      reason: "Gemini 3.5 Flash generates high-converting marketing campaigns, research briefs, and creative content."
     };
   }
   if (/(code|github|debug|deploy|repository|typescript|react|python)/.test(value)) {
@@ -2675,14 +2677,14 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Coding & Software Orchestration",
-      reason: "Gemini 2.5 Flash handles code comprehension, debugging, and deployment planning."
+      reason: "Gemini 3.5 Flash handles code comprehension, debugging, and deployment planning."
     };
   }
   return {
     provider: DEFAULT_AI_PROVIDER,
     model: DEFAULT_AI_MODEL,
     capability: "General Assistance",
-    reason: "Gemini 2.5 Flash is Hanna's primary general-purpose intelligence engine."
+    reason: "Gemini 3.5 Flash is Hanna's primary general-purpose intelligence engine."
   };
 }
 
@@ -3618,7 +3620,7 @@ ${extraSummary}` : extraSummary;
     const fallbackText = synthesizeFallbackResponse(prompt, context);
     return {
       text: fallbackText,
-      model: requestedModel === "Hanna Pro" ? "gemini-3.6-flash" : "gemini-2.5-flash",
+      model: requestedModel === "Hanna Pro" ? "gemini-3.5-flash" : "gemini-3.5-flash",
       providerError: true
     };
   }
