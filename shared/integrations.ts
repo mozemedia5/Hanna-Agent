@@ -38,6 +38,10 @@ export type ConnectorId =
   | "github"
   | "vercel"
   | "google-workspace"
+  | "google-drive"
+  | "google-docs"
+  | "google-sheets"
+  | "google-slides"
   | "gmail"
   | "google-calendar"
   | "google-maps"
@@ -497,12 +501,72 @@ export const integrations: IntegrationDefinition[] = [
     credentialFields: ["accountEmail"],
     supportsOAuth: true,
     supportsMcp: true,
-    capabilities: ["drive:search", "docs:read", "sheets:read", "calendar:read"],
+    capabilities: ["drive:search", "docs:read", "sheets:read", "calendar:read", "slides:read"],
     requiresApproval: true,
-    description: "Access Google Docs, Sheets, Drive files, and Calendar schedule.",
+    description: "Access Google Docs, Sheets, Slides, Drive files, and Calendar schedule.",
     docUrl: "https://developers.google.com/workspace",
     instructions: [
       "Enter the provider credentials to sign in with Google Workspace.",
+    ],
+  },
+  {
+    id: "google-drive",
+    name: "Google Drive",
+    category: "workspace",
+    credentialFields: ["accountEmail"],
+    supportsOAuth: true,
+    supportsMcp: true,
+    capabilities: ["drive:search", "drive:read", "drive:upload", "drive:share"],
+    requiresApproval: true,
+    description: "Search, organize, upload, and manage cloud files and folders in Google Drive.",
+    docUrl: "https://developers.google.com/drive",
+    instructions: [
+      "Enter the provider credentials to sign in with Google Drive.",
+    ],
+  },
+  {
+    id: "google-docs",
+    name: "Google Docs",
+    category: "workspace",
+    credentialFields: ["accountEmail"],
+    supportsOAuth: true,
+    supportsMcp: true,
+    capabilities: ["docs:read", "docs:create", "docs:edit", "docs:format"],
+    requiresApproval: true,
+    description: "Read, draft, format, and collaborate on documents in Google Docs.",
+    docUrl: "https://developers.google.com/docs",
+    instructions: [
+      "Enter the provider credentials to authorize Google Docs.",
+    ],
+  },
+  {
+    id: "google-sheets",
+    name: "Google Sheets",
+    category: "workspace",
+    credentialFields: ["accountEmail"],
+    supportsOAuth: true,
+    supportsMcp: true,
+    capabilities: ["sheets:read", "sheets:append", "sheets:update", "sheets:analyze"],
+    requiresApproval: true,
+    description: "Analyze spreadsheets, insert data rows, and manage formulas in Google Sheets.",
+    docUrl: "https://developers.google.com/sheets",
+    instructions: [
+      "Enter the provider credentials to authorize Google Sheets.",
+    ],
+  },
+  {
+    id: "google-slides",
+    name: "Google Slides",
+    category: "workspace",
+    credentialFields: ["accountEmail"],
+    supportsOAuth: true,
+    supportsMcp: true,
+    capabilities: ["slides:read", "slides:create", "slides:edit"],
+    requiresApproval: true,
+    description: "Create presentation decks, update slide content, and format visual presentations in Google Slides.",
+    docUrl: "https://developers.google.com/slides",
+    instructions: [
+      "Enter the provider credentials to authorize Google Slides.",
     ],
   },
   {

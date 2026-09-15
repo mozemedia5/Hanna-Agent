@@ -19,7 +19,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 const categoryMap: Record<string, string[]> = {
-  "E-Commerce & Dropshipping": [
+  "E-Commerce & Business": [
     "shopify",
     "woocommerce",
     "beacons",
@@ -60,6 +60,10 @@ const categoryMap: Record<string, string[]> = {
   ],
   "Productivity & Knowledge": [
     "google-workspace",
+    "google-drive",
+    "google-docs",
+    "google-sheets",
+    "google-slides",
     "gmail",
     "google-calendar",
     "slack",

@@ -75,7 +75,12 @@ const REAL_CONNECTOR_TOOLS: AgentConnectorTool[] = [
   { connector: "shopify", action: "update_product_title", description: "Update a Shopify product title after explicit user confirmation.", parameters: { type: "object", properties: { productId: { type: "string" }, title: { type: "string" } }, required: ["productId", "title"] }, requiresApproval: true },
   { connector: "slack", action: "list_channels", description: "List channels from the connected Slack workspace.", parameters: { type: "object", properties: { limit: { type: "number" } } }, requiresApproval: false },
   { connector: "slack", action: "send_message", description: "Send a Slack message after explicit user confirmation.", parameters: { type: "object", properties: { channel: { type: "string" }, text: { type: "string" }, threadTs: { type: "string" } }, required: ["channel", "text"] }, requiresApproval: true },
-  { connector: "google-workspace", action: "drive_search", description: "Search and read files, documents, and spreadsheets across Google Workspace / Drive.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or document title" } } }, requiresApproval: false },
+  { connector: "google-workspace", action: "workspace_search", description: "Search across Google Workspace files, documents, sheets, and calendar.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or item title" } } }, requiresApproval: false },
+  { connector: "google-drive", action: "drive_search", description: "Search, organize, and manage files in Google Drive.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or file name" } } }, requiresApproval: false },
+  { connector: "google-docs", action: "docs_read", description: "Read, edit, or summarize document content in Google Docs.", parameters: { type: "object", properties: { title: { type: "string", description: "Document title or ID" } } }, requiresApproval: false },
+  { connector: "google-sheets", action: "sheets_analyze", description: "Query and analyze tabular data rows in Google Sheets.", parameters: { type: "object", properties: { query: { type: "string", description: "Spreadsheet query or tab name" } } }, requiresApproval: false },
+  { connector: "google-slides", action: "slides_read", description: "Retrieve presentation deck slides and speaker notes in Google Slides.", parameters: { type: "object", properties: { title: { type: "string", description: "Presentation title" } } }, requiresApproval: false },
+  { connector: "google-ads", action: "ads_campaigns", description: "Fetch campaign metrics and performance reporting from Google Ads.", parameters: { type: "object", properties: { query: { type: "string", description: "Campaign name or date range" } } }, requiresApproval: false },
   { connector: "gmail", action: "mail_search", description: "Find relevant emails and threads in Gmail.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or sender filter" } } }, requiresApproval: false },
   { connector: "gmail", action: "mail_send", description: "Draft and send an email response via Gmail.", parameters: { type: "object", properties: { to: { type: "string", description: "Recipient email address" }, subject: { type: "string", description: "Email subject line" }, body: { type: "string", description: "Email body text" } }, required: ["to", "subject", "body"] }, requiresApproval: true },
   { connector: "google-calendar", action: "calendar_read", description: "Check availability and upcoming events on Google Calendar.", parameters: { type: "object", properties: { query: { type: "string", description: "Filter query or date range" } } }, requiresApproval: false },
@@ -131,8 +136,16 @@ export async function executeHannaRequest(
   userId?: number,
   requestedModel?: string,
   clientIp?: string,
-  agenticMode: boolean = false
+  agenticModeInput: boolean = false
 ) {
+  const lowerPrompt = prompt.toLowerCase();
+  const requiresAgentic =
+    agenticModeInput ||
+    /(agentic|web search|deep research|deep think|schedule task|run agent|execute tool)/.test(
+      lowerPrompt
+    );
+  const agenticMode = requiresAgentic;
+
   if (agenticMode) {
     const approvalPlan = buildAgentPlan(prompt);
     if (approvalPlan.approvalRequired) {
