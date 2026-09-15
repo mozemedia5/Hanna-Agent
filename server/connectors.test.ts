@@ -202,4 +202,27 @@ describe("authenticated Shopify and Slack connectors", () => {
       )
     ).rejects.toThrow("does not implement");
   });
+
+  it("executes Google Workspace, Gmail, and Google Calendar MCP actions successfully", async () => {
+    const driveResult = await executeConnectorAction(
+      { connector: "google-workspace", values: { connectionMode: "oauth", account: "user@workspace.com" } },
+      { connector: "google-workspace", action: "drive_search", parameters: { query: "Strategy" } }
+    );
+    expect(driveResult.verification.status).toBe("verified");
+    expect(driveResult.summary).toContain("executed successfully");
+
+    const gmailResult = await executeConnectorAction(
+      { connector: "gmail", values: { connectionMode: "oauth", account: "user@gmail.com" } },
+      { connector: "gmail", action: "mail_send", parameters: { to: "lead@client.com", subject: "Proposal", body: "Hello" } }
+    );
+    expect(gmailResult.verification.status).toBe("verified");
+    expect(gmailResult.summary).toContain("Drafted and sent email");
+
+    const calResult = await executeConnectorAction(
+      { connector: "google-calendar", values: { connectionMode: "oauth", account: "user@gmail.com" } },
+      { connector: "google-calendar", action: "calendar_read", parameters: {} }
+    );
+    expect(calResult.verification.status).toBe("verified");
+    expect(calResult.summary).toContain("Checked Google Calendar");
+  });
 });

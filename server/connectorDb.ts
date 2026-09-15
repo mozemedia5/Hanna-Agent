@@ -21,6 +21,7 @@ export type ConnectorCredential = {
 export type ConnectorSummary = {
   connector: ConnectorId;
   fields: Record<string, string>;
+  is_connected?: boolean;
   updatedAt: Date;
 };
 
@@ -159,6 +160,7 @@ export async function listConnectorCredentials(
             credentialHint(values[field] ?? ""),
           ])
         ),
+        is_connected: values.is_connected !== "false",
         updatedAt: new Date(row.updatedAt),
       };
     });
