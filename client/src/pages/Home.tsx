@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   Code2,
+  Copy,
   Edit3,
   ExternalLink,
   FileText,
@@ -39,7 +40,11 @@ import {
   Sparkles,
   Square,
   Store,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
+  Volume2,
+  VolumeX,
   X,
   Zap,
   CreditCard,
@@ -48,6 +53,7 @@ import {
   TrendingUp,
   Bot,
 } from "lucide-react";
+import MarkdownMessage from "@/components/MarkdownMessage";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
@@ -66,6 +72,7 @@ import UpgradePage from "./UpgradePage";
 import UsagePage from "./UsagePage";
 import ContributorsPage from "./ContributorsPage";
 import { Users, Share2 } from "lucide-react";
+import { renderBrandIcon } from "@/components/ProviderIcons";
 
 type Page =
   | "chat"
@@ -457,17 +464,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const renderChatPage = () => (
     <>
       <header className="workspace-header">
-        <div className="header-leading">
+        <div className="header-leading" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button className="icon-button" onClick={() => setSidebarOpen(c => !c)} aria-label="Toggle sidebar">
             <Menu size={18} />
           </button>
-          <div className="workspace-breadcrumb">
-            <span className="breadcrumb-quiet">Hanna</span>
-            <ChevronRight size={13} />
-            <span>{activeChat.title}</span>
-          </div>
-        </div>
-        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div className="model-picker">
             <button className="model-button" onClick={() => setModelMenuOpen(c => !c)} aria-expanded={modelMenuOpen}>
               <span className="model-pulse" />
@@ -501,6 +501,34 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               </div>
             )}
           </div>
+        </div>
+
+        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Plugin Bar with Real Icons */}
+          <button
+            type="button"
+            className="header-plugin-bar"
+            onClick={() => navigate("integrations")}
+            title="Plugins & Connectors catalog"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "var(--surface-raised, rgba(255,255,255,0.04))",
+              border: "1px solid var(--border, rgba(255,255,255,0.1))",
+              borderRadius: "20px",
+              padding: "4px 10px",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--text-secondary)", marginRight: "2px" }}>Plugins</span>
+            {renderBrandIcon("Shopify", 16)}
+            {renderBrandIcon("Google Workspace", 16)}
+            {renderBrandIcon("Slack", 16)}
+            {renderBrandIcon("GitHub", 16)}
+            <ChevronRight size={12} style={{ color: "var(--text-tertiary)", marginLeft: "2px" }} />
+          </button>
 
           {/* Header Upper Right Vertical Ellipsis Menu (...) */}
           <div className="header-menu-container" style={{ position: "relative" }}>
@@ -669,7 +697,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       <span>{message.time}</span>
                     </div>
                     <div className="message-content">
-                      {message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)}
+                      {message.role === "assistant" ? (
+                        <MarkdownMessage content={message.content} />
+                      ) : (
+                        message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)
+                      )}
                     </div>
 
                     {/* ChatGPT-style Source & Link Cards when web sources or links are present */}
@@ -684,8 +716,68 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     )}
 
                     {message.role === "assistant" && (
-                      <div className="message-actions">
-                        <button onClick={() => showToast("Response copied")}><Archive size={13} /> Copy</button>
+                      <div className="message-actions" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(message.content);
+                            showToast("Response copied");
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                        >
+                          <Copy size={13} /> Copy
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.speechSynthesis) {
+                              if (window.speechSynthesis.speaking) {
+                                window.speechSynthesis.cancel();
+                                showToast("Read Aloud stopped");
+                              } else {
+                                const utterance = new SpeechSynthesisUtterance(message.content.replaceAll(/[*#_`]/g, ""));
+                                utterance.rate = 1.0;
+                                utterance.pitch = 1.0;
+                                window.speechSynthesis.speak(utterance);
+                                showToast("Reading Aloud...");
+                              }
+                            } else {
+                              showToast("Speech synthesis not supported on this browser.");
+                            }
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                        >
+                          <Volume2 size={13} /> Read Aloud
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => showToast("Response feedback recorded (Good)")}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          title="Good response"
+                        >
+                          <ThumbsUp size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => showToast("Response feedback recorded (Bad)")}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          title="Bad response"
+                        >
+                          <ThumbsDown size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                        >
+                          <Share2 size={13} /> Share
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1151,19 +1243,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
       {showShareModal && (
         <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
-          <div className="modal-content" style={{ maxWidth: "480px" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
-                <Share2 size={18} style={{ color: "var(--gemini-accent)" }} /> Share Conversation
+          <div className="modal-content" style={{ maxWidth: "460px", padding: "18px 20px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Share2 size={16} style={{ color: "var(--gemini-accent)" }} /> Share Conversation
               </h3>
-              <button onClick={() => setShowShareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={18} /></button>
+              <button onClick={() => setShowShareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
             </div>
-            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+            <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
               Share <strong>"{activeChat.title}"</strong> directly to messaging apps or with workspace contributors.
             </p>
 
             {/* Direct Messaging Apps Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginBottom: "18px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "14px" }}>
               <button
                 type="button"
                 onClick={() => {
@@ -1171,7 +1263,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   window.open(`https://wa.me/?text=${shareText}`, "_blank");
                   showToast("Opening WhatsApp...");
                 }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#25D366", color: "#ffffff", padding: "10px 14px", borderRadius: "10px", border: "none", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#25D366", color: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "none", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
               >
                 <span>WhatsApp</span>
               </button>
@@ -1184,7 +1276,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank");
                   showToast("Opening Telegram...");
                 }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#0088cc", color: "#ffffff", padding: "10px 14px", borderRadius: "10px", border: "none", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#0088cc", color: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "none", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
               >
                 <span>Telegram</span>
               </button>
@@ -1197,7 +1289,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
                   showToast("Opening X (Twitter)...");
                 }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#000000", color: "#ffffff", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#000000", color: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
               >
                 <span>X / Twitter</span>
               </button>
@@ -1210,14 +1302,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   window.open(`mailto:?subject=${subject}&body=${body}`);
                   showToast("Opening Mail app...");
                 }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--surface-raised)", color: "var(--text-primary)", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--surface-raised)", color: "var(--text-primary)", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
               >
                 <span>Email</span>
               </button>
             </div>
 
             {/* Quick Copy Link & Native Web Share */}
-            <div style={{ display: "flex", gap: "8px", marginBottom: "18px" }}>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
               <Button
                 variant="outline"
                 className="w-full"
@@ -1225,7 +1317,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   navigator.clipboard.writeText(window.location.href);
                   showToast("Conversation link copied!");
                 }}
-                style={{ fontSize: "12px", borderRadius: "10px" }}
+                style={{ fontSize: "12px", borderRadius: "8px", padding: "6px 12px" }}
               >
                 Copy Link
               </Button>
@@ -1239,15 +1331,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       url: window.location.href,
                     }).catch(() => undefined);
                   }}
-                  style={{ background: "var(--gemini-accent)", color: "#ffffff", fontSize: "12px", borderRadius: "10px" }}
+                  style={{ background: "var(--gemini-accent)", color: "#ffffff", fontSize: "12px", borderRadius: "8px", padding: "6px 12px" }}
                 >
-                  Native Share
+                  Share
                 </Button>
               )}
             </div>
 
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "14px", marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
                 Share directly with Workspace Contributors
               </label>
               <textarea
@@ -1255,12 +1347,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 onChange={e => setShareEmails(e.target.value)}
                 placeholder="colleague1@company.com, colleague2@company.com"
                 rows={2}
-                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 10px", color: "var(--text-primary)", fontSize: "12px" }}
               />
             </div>
-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <Button variant="outline" onClick={() => setShowShareModal(false)}>Close</Button>
-              <Button onClick={() => {
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <Button variant="outline" size="sm" onClick={() => setShowShareModal(false)}>Close</Button>
+              <Button size="sm" onClick={() => {
                 setShowShareModal(false);
                 setShareEmails("");
                 showToast("Chat access shared with contributors!");

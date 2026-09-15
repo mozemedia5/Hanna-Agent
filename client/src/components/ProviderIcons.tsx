@@ -356,6 +356,34 @@ export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siGoogledrive} size={size} className={className} />;
 }
 
+export function GoogleDocsIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect x="3" y="2" width="18" height="20" rx="3" fill="#4285F4" />
+      <path fill="#fff" d="M7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z" />
+    </svg>
+  );
+}
+
+export function GoogleSheetsIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect x="3" y="2" width="18" height="20" rx="3" fill="#0F9D58" />
+      <path fill="#fff" d="M7 7h10v10H7V7zm2 2v2h2V9H9zm4 0v2h2V9h-2zm-4 4v2h2v-2H9zm4 0v2h2v-2h-2z" />
+    </svg>
+  );
+}
+
+export function GoogleSlidesIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect x="3" y="2" width="18" height="20" rx="3" fill="#F4B400" />
+      <rect x="6" y="6" width="12" height="10" rx="1" fill="#fff" />
+      <rect x="8" y="8" width="8" height="6" rx="0.5" fill="#F4B400" />
+    </svg>
+  );
+}
+
 export function YouTubeIcon({ size = 20, className = "" }: IconProps) {
   return <SimpleBrandIcon icon={siYoutube} size={size} className={className} />;
 }
@@ -615,6 +643,9 @@ export function renderBrandIcon(
   if (lower.includes("google calendar")) return <GoogleCalendarIcon size={size} className={className} />;
   if (lower.includes("google maps")) return <GoogleMapsIcon size={size} className={className} />;
   if (lower.includes("google ad")) return <GoogleAdsIcon size={size} className={className} />;
+  if (lower.includes("google docs")) return <GoogleDocsIcon size={size} className={className} />;
+  if (lower.includes("google sheet")) return <GoogleSheetsIcon size={size} className={className} />;
+  if (lower.includes("google slide")) return <GoogleSlidesIcon size={size} className={className} />;
   if (lower.includes("google drive") || lower.includes("google workspace")) return <GoogleDriveIcon size={size} className={className} />;
   if (lower.includes("google")) return <GoogleIcon size={size} className={className} />;
   if (lower.includes("gmail")) return <GmailIcon size={size} className={className} />;
