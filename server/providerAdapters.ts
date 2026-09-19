@@ -241,6 +241,128 @@ export async function invokeUserProvider(
   );
 }
 
+export async function streamUserProvider(
+  request: ProviderRequest,
+  onChunk: (chunk: string) => void
+): Promise<{ text: string; provider: string; model: string }> {
+  if (!request.apiKey || !request.apiKey.trim()) {
+    throw new Error(
+      `${request.provider || "Provider"} API key is missing or not configured.`
+    );
+  }
+  const message = userMessage(request);
+
+  if (request.provider === "gemini") {
+    const candidateModels = geminiCandidateModels(request.model);
+    let lastError = "";
+
+    for (const modelName of candidateModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(request.apiKey.trim())}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: message }] }],
+          }),
+        });
+
+        if (!response.ok) {
+          const errText = await getResponseText(response);
+          const safeText = sanitizeError(errText);
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`Gemini provider returned ${response.status}: Authentication failed.`);
+          }
+          if (response.status === 429) {
+            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
+          }
+          if (response.status === 404) {
+            lastError = `Gemini model ${modelName} unavailable (404).`;
+            continue;
+          }
+          throw new Error(
+            `Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
+          );
+        }
+
+        if (!response.body) {
+          const text = await invokeUserProvider({ ...request, model: modelName });
+          onChunk(text);
+          return { text, provider: "gemini", model: modelName };
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        let fullText = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+
+            const jsonStr = trimmed.slice(5).trim();
+            if (!jsonStr || jsonStr === "[DONE]") continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              const chunk = data.candidates?.[0]?.content?.parts
+                ?.map((p: { text?: string }) => p.text ?? "")
+                .join("") || "";
+
+              if (chunk) {
+                fullText += chunk;
+                onChunk(chunk);
+              }
+            } catch {
+              // Ignore non-JSON lines in SSE stream
+            }
+          }
+        }
+
+        if (fullText.trim()) {
+          return { text: fullText, provider: "gemini", model: modelName };
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
+            throw err;
+          }
+          lastError = err.message;
+          if (err.message.includes("404")) continue;
+        }
+        throw err;
+      }
+    }
+
+    throw new Error(
+      lastError || "Gemini provider streaming failed with configured models."
+    );
+  }
+
+  // Non-Gemini providers: invoke and stream full response
+  const fullResponse = await invokeUserProvider(request);
+  const chunkSize = 16;
+  for (let i = 0; i < fullResponse.length; i += chunkSize) {
+    const chunk = fullResponse.slice(i, i + chunkSize);
+    onChunk(chunk);
+    await new Promise(resolve => setTimeout(resolve, 15));
+  }
+  return {
+    text: fullResponse,
+    provider: request.provider,
+    model: request.model || "default",
+  };
+}
+
 
 export async function invokeGeminiAgentTurn(
   request: ProviderRequest

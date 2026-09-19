@@ -11,7 +11,7 @@ import { getConnectorCredential, listConnectorCredentials } from "../../server/c
 import { executeConnectorAction } from "../../server/connectorAdapters";
 import { listMcpTools } from "../../server/mcpServer";
 import { getProviderCredentialForRequest } from "../../server/providerDb";
-import { invokeGeminiAgentTurn, invokeUserProvider } from "../../server/providerAdapters";
+import { invokeGeminiAgentTurn, invokeUserProvider, streamUserProvider } from "../../server/providerAdapters";
 import { consumeDailyTokens, type HannaTier } from "../../server/usage";
 
 export type IntentRouteType = "route_a" | "route_b";
@@ -45,32 +45,39 @@ export function analyzePromptIntent(
 
   const lower = prompt.toLowerCase();
 
-  // Route B trigger patterns
-  const actionKeywords = [
-    "shopify", "store", "product", "inventory", "order", "customer", "checkout",
-    "github", "repo", "commit", "push", "pull request", "issue", "branch",
-    "slack", "channel", "message", "workspace", "send slack",
-    "gmail", "email", "send mail", "draft mail", "inbox",
-    "google workspace", "drive", "docs", "sheets", "slides", "google calendar", "schedule meeting",
-    "meta ads", "google ads", "facebook ads", "ad campaign", "roas", "ctr",
-    "heygen", "synthesia", "creatify", "tiktok", "instagram", "facebook", "telegram", "outlook", "vercel",
-    "schedule task", "run agent loop", "execute tool", "create product", "update product", "sync inventory",
-    "file alteration", "write file", "deploy", "mcp tool"
+  // Integrated services & ecosystems keywords
+  const connectorKeywords = [
+    "shopify", "store", "product", "products", "inventory", "order", "orders", "customer", "customers", "checkout",
+    "github", "repo", "repository", "repositories", "commit", "push", "pull request", "issue", "issues", "branch",
+    "slack", "channel", "channels", "workspace", "send slack", "slack message",
+    "gmail", "email", "emails", "mail", "inbox", "send mail", "draft mail",
+    "google workspace", "google drive", "drive", "google docs", "docs", "google sheets", "sheets", "google slides", "slides", "google calendar", "schedule meeting", "calendar event",
+    "meta ads", "facebook ads", "google ads", "ad campaign", "campaigns", "roas", "ctr",
+    "heygen", "synthesia", "creatify", "tiktok", "instagram", "facebook", "telegram", "outlook", "vercel", "vercel deployment"
   ];
 
-  const matched = actionKeywords.filter(kw => lower.includes(kw));
+  // Action verbs indicating multi-step agentic execution or system alterations
+  const actionVerbs = [
+    "schedule task", "run agent loop", "execute tool", "create product", "update product", "sync inventory",
+    "file alteration", "write file", "deploy", "mcp tool", "check my", "look at my", "find why", "send this",
+    "analyze my", "create a", "delete", "post", "publish", "trigger", "cancel"
+  ];
 
-  if (matched.length > 0) {
+  const matchedConnectors = connectorKeywords.filter(kw => lower.includes(kw));
+  const matchedActions = actionVerbs.filter(kw => lower.includes(kw));
+
+  // Determine route B based on connector intent or actionable intent
+  if (matchedConnectors.length > 0 || matchedActions.length > 0) {
     return {
       route: "route_b",
       confidence: 0.95,
-      reason: `Prompt demands ecosystem actions or tool integrations matching: ${matched.join(", ")}`,
-      detectedTools: matched,
+      reason: `Prompt demands ecosystem actions or tool integrations matching: ${[...matchedConnectors, ...matchedActions].join(", ")}`,
+      detectedTools: matchedConnectors.length > 0 ? matchedConnectors : ["agentic_action"],
       capabilities: ["tool_execution", "mcp_integration", "react_loop"],
     };
   }
 
-  if (hasConnectedApps && /(check|sync|update|post|send|fetch|get|list|create|delete)/.test(lower)) {
+  if (hasConnectedApps && /(check|sync|update|post|send|fetch|get|list|create|delete|search|find|analyze)/.test(lower)) {
     return {
       route: "route_b",
       confidence: 0.85,
@@ -80,7 +87,7 @@ export function analyzePromptIntent(
     };
   }
 
-  // Purely conversational or simple question -> Route A
+  // Purely conversational, simple question, or standard writing/coding -> Route A
   return {
     route: "route_a",
     confidence: 0.9,
@@ -129,23 +136,20 @@ export async function executeRouteAStream(
       throw new Error(`Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`);
     }
 
-    const fullResponseText = await invokeUserProvider({
-      ...provider,
-      prompt,
-      context,
-    });
-
-    // Stream text in natural chunks
-    const chunkSize = 16;
-    for (let i = 0; i < fullResponseText.length; i += chunkSize) {
-      const chunk = fullResponseText.slice(i, i + chunkSize);
-      sendSSE("token", { chunk });
-      await new Promise(resolve => setTimeout(resolve, 15));
-    }
+    const result = await streamUserProvider(
+      {
+        ...provider,
+        prompt,
+        context,
+      },
+      chunk => {
+        sendSSE("token", { chunk });
+      }
+    );
 
     sendSSE("final", {
-      text: fullResponseText,
-      model: `${provider.provider} · ${provider.model}`,
+      text: result.text,
+      model: `${result.provider} · ${result.model}`,
       route: "route_a",
     });
   } catch (err) {
