@@ -50,6 +50,68 @@ app.get(["/api/health", "/health"], async (req, res) => {
   res.status(isHealthy ? 200 : 503).json(report);
 });
 
+// Cloudinary Upload Handler Endpoint
+app.post(["/api/upload", "/upload"], async (req, res) => {
+  try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(500).json({
+        error: "Cloudinary credentials not configured on server (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET).",
+      });
+    }
+
+    const { file, filename, folder } = req.body || {};
+    if (!file) {
+      return res.status(400).json({ error: "Missing file data for upload." });
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const folderName = folder || "hanna_uploads";
+    const strToSign = `folder=${folderName}&timestamp=${timestamp}${apiSecret}`;
+
+    const signature = crypto
+      .createHash("sha1")
+      .update(strToSign)
+      .digest("hex");
+
+    const formData = new URLSearchParams();
+    formData.append("file", file);
+    formData.append("api_key", apiKey);
+    formData.append("timestamp", String(timestamp));
+    formData.append("folder", folderName);
+    formData.append("signature", signature);
+
+    const cloudinaryRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!cloudinaryRes.ok) {
+      const errText = await cloudinaryRes.text();
+      return res
+        .status(cloudinaryRes.status)
+        .json({ error: `Cloudinary error: ${errText}` });
+    }
+
+    const resultData = await cloudinaryRes.json();
+    return res.json({
+      url: resultData.secure_url || resultData.url,
+      public_id: resultData.public_id,
+      format: resultData.format,
+      bytes: resultData.bytes,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Cloudinary upload failed";
+    return res.status(500).json({ error: msg });
+  }
+});
+
 // MCP Server Endpoint (JSON-RPC 2.0 / Model Context Protocol)
 app.all(["/api/mcp", "/mcp"], async (req, res) => {
   if (req.method === "GET") {

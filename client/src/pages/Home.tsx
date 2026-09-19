@@ -165,7 +165,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("dark");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [model, setModel] = useState("Hanna Lite");
+  const [modelSubMenuOpen, setModelSubMenuOpen] = useState(false);
+  const [model, setModel] = useState("Hanna Lite (default)");
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -327,23 +328,49 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    const newFiles: UploadedFile[] = [];
     Array.from(files).forEach(file => {
       const isImg = file.type.startsWith("image/");
       const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
       const isVideo = file.type.startsWith("video/");
       const kind: UploadedFile["type"] = isImg ? "image" : isPdf ? "pdf" : isVideo ? "video" : "other";
       const objectUrl = URL.createObjectURL(file);
-      const item: UploadedFile = { id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: file.name, type: kind, url: objectUrl, size: file.size };
-      if (isImg || file.size < 3 * 1024 * 1024) {
-        const reader = new FileReader();
-        reader.onload = e => { item.dataUrl = e.target?.result as string; setAttachments(prev => [...prev]); };
-        reader.readAsDataURL(file);
-      }
-      newFiles.push(item);
+      const fileId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+      const item: UploadedFile = {
+        id: fileId,
+        name: file.name,
+        type: kind,
+        url: objectUrl,
+        size: file.size,
+      };
+
+      setAttachments(prev => [...prev, item]);
+
+      const reader = new FileReader();
+      reader.onload = async e => {
+        const base64Data = e.target?.result as string;
+        item.dataUrl = base64Data;
+
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ file: base64Data, filename: file.name, folder: "hanna_user_uploads" }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.url) {
+              item.url = data.url;
+              setAttachments(prev => prev.map(f => f.id === fileId ? { ...f, url: data.url } : f));
+              showToast(`Uploaded ${file.name} to Cloudinary`);
+            }
+          }
+        } catch {
+          // Keep local objectUrl fallback
+        }
+      };
+      reader.readAsDataURL(file);
     });
-    setAttachments(prev => [...prev, ...newFiles]);
-    showToast(`Attached ${newFiles.length} file(s)`);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -511,7 +538,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     { icon: FolderKanban, label: "Projects", page: "projects" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Users, label: "Contributors", page: "contributors" as Page },
-    { icon: Plus, label: "Plugins", page: "integrations" as Page },
+    { icon: PlugZap, label: "Plugins", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
     { icon: Settings, label: "Customize", page: "settings" as Page },
   ];
@@ -529,6 +556,30 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
 
         <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Add Topic button next to ellipsis */}
+          <button
+            type="button"
+            onClick={createChat}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              background: "var(--surface-raised)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+            title="Start a new chat topic"
+          >
+            <Plus size={14} />
+            <span>Topic</span>
+          </button>
+
           {/* Header Upper Right Vertical Ellipsis Menu (...) */}
           <div className="header-menu-container" style={{ position: "relative" }}>
             <button
@@ -894,32 +945,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 <Plus size={18} />
               </button>
 
-              {/* Active Model Indicator Badge */}
-              <button
-                type="button"
-                onClick={() => setPlusMenuOpen(o => !o)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  padding: "4px 8px",
-                  borderRadius: "8px",
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border)",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-                title="Active AI Model (Click + to change)"
-              >
-                <Sparkles size={11} style={{ color: "var(--gemini-accent)" }} />
-                <span>{model}</span>
-              </button>
-
               {plusMenuOpen && (
-                <div className="plus-popover-menu">
+                <div className="plus-popover-menu" style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 100 }}>
                   <div className="plus-menu-group-title">Media & Documents</div>
                   <button
                     type="button"
@@ -950,7 +977,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     className="plus-menu-item"
                     onClick={() => { setPlusMenuOpen(false); navigate("integrations"); }}
                   >
-                    <Plus size={16} /> <span>Plugins / Extensions</span>
+                    <PlugZap size={16} /> <span>Plugins / Extensions</span>
                   </button>
 
                   <div className="plus-menu-divider" />
@@ -1009,39 +1036,79 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   </button>
 
                   <div className="plus-menu-divider" />
-                  <div className="plus-menu-group-title">AI Model Selection</div>
 
-                  {[
-                    { id: "Hanna Lite", label: "Hanna Lite", desc: "Fast & lightweight intelligence" },
-                    { id: "Hanna Pro", label: "Hanna Pro ✨", desc: "Deep reasoning & multimodal research" },
-                    { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", desc: "Direct Google Gemini 3.5 Flash" },
-                    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", desc: "Direct Google Gemini 2.0 Flash" },
-                    { id: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", desc: "Anthropic Claude 3.5 Sonnet" },
-                    { id: "gpt-4o", label: "GPT-4o", desc: "OpenAI GPT-4o" },
-                  ].map(mOption => (
+                  {/* Models item that triggers nested models sub-container */}
+                  <div style={{ position: "relative" }}>
                     <button
-                      key={mOption.id}
                       type="button"
-                      className={`plus-menu-item ${model === mOption.id ? "is-enabled" : ""}`}
-                      onClick={() => {
-                        setModel(mOption.id);
-                        setPlusMenuOpen(false);
-                        showToast(`Model switched to ${mOption.label}`);
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "8px 12px",
-                      }}
+                      className="plus-menu-item"
+                      onClick={() => setModelSubMenuOpen(prev => !prev)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                        <strong style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" }}>{mOption.label}</strong>
-                        <span style={{ fontSize: "10px", color: "var(--text-tertiary)" }}>{mOption.desc}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Sparkles size={16} />
+                        <span>Models ({model.split(" ")[0]})</span>
                       </div>
-                      {model === mOption.id && <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />}
+                      <ChevronRight size={14} />
                     </button>
-                  ))}
+
+                    {modelSubMenuOpen && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: "calc(100% + 8px)",
+                          bottom: 0,
+                          width: "240px",
+                          background: "var(--surface-raised)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "12px",
+                          padding: "8px",
+                          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
+                          zIndex: 110,
+                          display: "grid",
+                          gap: "4px",
+                        }}
+                      >
+                        <div className="plus-menu-group-title" style={{ padding: "4px 8px" }}>Hanna AI Models</div>
+                        {[
+                          { id: "Hanna Lite (default)", label: "Hanna Lite (default)", desc: "Fast & lightweight intelligence" },
+                          { id: "Hanna Pro", label: "Hanna Pro", desc: "Deep reasoning & multimodal research" },
+                          { id: "Hanna Speed", label: "Hanna Speed", desc: "Ultra-fast response synthesis" },
+                          { id: "Hanna Vision & Research", label: "Hanna Vision & Research", desc: "Advanced visual & document intelligence" },
+                          { id: "Hanna Enterprise", label: "Hanna Enterprise", desc: "Maximum capacity & high precision" },
+                        ].map(mOption => (
+                          <button
+                            key={mOption.id}
+                            type="button"
+                            className={`plus-menu-item ${model === mOption.id ? "is-enabled" : ""}`}
+                            onClick={() => {
+                              setModel(mOption.id);
+                              setModelSubMenuOpen(false);
+                              setPlusMenuOpen(false);
+                              showToast(`Model switched to ${mOption.label}`);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "8px 10px",
+                              borderRadius: "8px",
+                              background: model === mOption.id ? "var(--wash)" : "transparent",
+                              cursor: "pointer",
+                              border: "none",
+                              width: "100%",
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                              <strong style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" }}>{mOption.label}</strong>
+                              <span style={{ fontSize: "10px", color: "var(--text-tertiary)" }}>{mOption.desc}</span>
+                            </div>
+                            {model === mOption.id && <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

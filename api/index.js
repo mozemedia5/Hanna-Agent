@@ -3286,7 +3286,19 @@ function buildAgentTrace(plan, providerError = false) {
 function synthesizeFallbackResponse(prompt, _context, plan) {
   const lower = prompt.toLowerCase();
   let responseBody = "";
-  if (/(shopify|store|product|inventory|order|ecommerce|catalog|sales|roas|fulfillment)/.test(lower)) {
+  if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of)/.test(lower)) {
+    const cleanPrompt = prompt.replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of)/gi, "").trim() || prompt;
+    const seed = Math.floor(Math.random() * 1e5);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    responseBody = `Here is the image generated based on your request:
+
+![${cleanPrompt}](${imageUrl})
+
+**Image Details:**
+- **Prompt:** ${cleanPrompt}
+- **Resolution:** 1024x1024 (HD)
+- **Engine:** Hanna Multimodal Image Synthesis`;
+  } else if (/(shopify|store|product|inventory|order|ecommerce|catalog|sales|roas|fulfillment)/.test(lower)) {
     responseBody = `### Shopify & Store Management Insights
 
 Here is the operational strategy for **"${prompt.trim()}"**:
