@@ -261,7 +261,7 @@ export default function SettingsPage({
                 alignItems: "flex-start",
                 padding: "12px 14px",
                 background: voiceChoice === v.id ? "rgba(26, 115, 232, 0.12)" : "var(--surface)",
-                border: `1px solid ${voiceChoice === v.id ? "var(--gemini-accent, #1a73e8)" : "var(--border)"}`,
+                border: `1px solid ${voiceChoice === v.id ? "var(--gemini-accent)" : "var(--border)"}`,
                 borderRadius: "12px",
                 cursor: "pointer",
                 textAlign: "left",

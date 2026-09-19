@@ -240,7 +240,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
               alignItems: "center",
               gap: "6px",
               fontSize: "13px",
-              color: "var(--gemini-accent, #1a73e8)",
+              color: "var(--gemini-accent)",
               background: "transparent",
               border: "none",
               cursor: "pointer",
@@ -252,7 +252,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
             <ArrowLeft size={16} /> {activeProjectId ? "All Projects" : "Back to Workspace"}
           </button>
           <h1 style={{ fontSize: "22px", fontWeight: "700", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
-            <FolderKanban size={24} style={{ color: "var(--gemini-accent, #1a73e8)" }} />
+            <FolderKanban size={24} style={{ color: "var(--gemini-accent)" }} />
             {currentProject ? currentProject.name : "Workspace Projects"}
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--text-secondary)" }}>
@@ -263,7 +263,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
         {!activeProjectId && (
           <Button
             onClick={() => setShowCreateModal(true)}
-            style={{ background: "var(--gemini-accent, #1a73e8)", color: "#ffffff", borderRadius: "10px", padding: "8px 16px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", borderRadius: "10px", padding: "8px 16px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
             <Plus size={16} /> New Project
           </Button>
@@ -277,19 +277,19 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
           <div style={{ display: "flex", gap: "12px", borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "20px" }}>
             <button
               onClick={() => setActiveTab("chats")}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", padding: "8px 16px", borderRadius: "10px", background: activeTab === "chats" ? "var(--surface-raised, #2a2b2d)" : "transparent", color: activeTab === "chats" ? "var(--gemini-accent, #1a73e8)" : "var(--text-secondary)", border: "none", cursor: "pointer" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", padding: "8px 16px", borderRadius: "10px", background: activeTab === "chats" ? "var(--surface-raised, #2a2b2d)" : "transparent", color: activeTab === "chats" ? "var(--gemini-accent)" : "var(--text-secondary)", border: "none", cursor: "pointer" }}
             >
               <MessageSquare size={16} /> Chats ({currentProject.chats.length})
             </button>
             <button
               onClick={() => setActiveTab("files")}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", padding: "8px 16px", borderRadius: "10px", background: activeTab === "files" ? "var(--surface-raised, #2a2b2d)" : "transparent", color: activeTab === "files" ? "var(--gemini-accent, #1a73e8)" : "var(--text-secondary)", border: "none", cursor: "pointer" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", padding: "8px 16px", borderRadius: "10px", background: activeTab === "files" ? "var(--surface-raised, #2a2b2d)" : "transparent", color: activeTab === "files" ? "var(--gemini-accent)" : "var(--text-secondary)", border: "none", cursor: "pointer" }}
             >
               <FileText size={16} /> Files ({currentProject.files.length})
             </button>
             <button
               onClick={() => setActiveTab("instructions")}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", padding: "8px 16px", borderRadius: "10px", background: activeTab === "instructions" ? "var(--surface-raised, #2a2b2d)" : "transparent", color: activeTab === "instructions" ? "var(--gemini-accent, #1a73e8)" : "var(--text-secondary)", border: "none", cursor: "pointer" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", padding: "8px 16px", borderRadius: "10px", background: activeTab === "instructions" ? "var(--surface-raised, #2a2b2d)" : "transparent", color: activeTab === "instructions" ? "var(--gemini-accent)" : "var(--text-secondary)", border: "none", cursor: "pointer" }}
             >
               <BookOpen size={16} /> Project Instructions
             </button>
@@ -300,7 +300,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                 <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "700" }}>Project Chats</h3>
-                <Button onClick={() => setShowAddChatModal(true)} size="sm" style={{ background: "var(--gemini-accent, #1a73e8)", color: "#ffffff" }}>
+                <Button onClick={() => setShowAddChatModal(true)} size="sm" style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)" }}>
                   <Plus size={14} /> Add New Chat
                 </Button>
               </div>
@@ -406,7 +406,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                 <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "700" }}>Project Files & Assets</h3>
-                <Button onClick={() => fileInputRef.current?.click()} size="sm" style={{ background: "var(--gemini-accent, #1a73e8)", color: "#ffffff" }}>
+                <Button onClick={() => fileInputRef.current?.click()} size="sm" style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)" }}>
                   <FileUp size={14} /> Upload File (PDF, Image, Audio, Video)
                 </Button>
               </div>
@@ -514,7 +514,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                         fontWeight: "700",
                         textTransform: "uppercase",
                         letterSpacing: ".05em",
-                        color: "var(--gemini-accent, #1a73e8)",
+                        color: "var(--gemini-accent)",
                         background: "rgba(26, 115, 232, 0.12)",
                         padding: "3px 8px",
                         borderRadius: "6px",

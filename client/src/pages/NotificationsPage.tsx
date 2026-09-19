@@ -32,7 +32,7 @@ const notifications: Notification[] = [
     date: "Just now",
     icon: Sparkles,
     featured: true,
-    gradient: "linear-gradient(135deg, #1a73e8 0%, #0f9d58 100%)",
+    gradient: "linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)",
   },
   {
     id: "n2",
