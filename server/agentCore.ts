@@ -769,9 +769,7 @@ I have analyzed your request: **"${prompt.trim()}"**
     ? `\n\n#### Execution Plan Overview\n${stepsList}`
     : "";
 
-  const notice = `\n\n---\n*Executed by Hanna Commerce Operator Core (Hanna Agent Core).*`;
-
-  return `${responseBody}${planSection}${notice}`;
+  return `${responseBody}${planSection}`;
 }
 
 export async function runAgentCore(
