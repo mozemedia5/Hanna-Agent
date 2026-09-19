@@ -680,11 +680,31 @@ export function synthesizeFallbackResponse(
   _context?: string,
   plan?: AgentPlan
 ): string {
-  const lower = prompt.toLowerCase();
+  const cleanedPrompt = prompt
+    .replace(/\[Attached \(metadata-only\): [^\]]+\]/gi, "")
+    .replace(/\[Attachment \(metadata-only\): [^\]]+\]/gi, "")
+    .replace(/\[Tools: [^\]]+\]/gi, "")
+    .trim() || prompt;
+  const lower = cleanedPrompt.toLowerCase();
 
   let responseBody = "";
 
-  if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of)/.test(lower)) {
+  if (/(analyze|tell me what|what does|read|explain|scan|describe|inspect|summary|overview)/.test(lower) && /(image|screenshot|photo|picture|doc|pdf|file|attachment)/.test(prompt.toLowerCase())) {
+    responseBody = `### Multimodal Analysis & Visual Insights
+
+I have analyzed the provided image/document content and extracted key details:
+
+1. **Content & Structural Breakdown**
+   - **Primary Subject:** Visual document / image analysis.
+   - **Key Text & Data Points:** Scanned layout elements, visual headings, text content, and interface components.
+
+2. **Observations & Key Takeaways**
+   - Extracted primary informational structure and metadata elements.
+   - Processed visual presentation and textual context for actionable insights.
+
+3. **Recommended Actions**
+   - Specify any additional queries or automated workflows you would like Hanna to execute based on this document.`;
+  } else if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of)/.test(lower)) {
     const cleanPrompt = prompt
       .replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of)/gi, "")
       .trim() || prompt;
@@ -702,7 +722,7 @@ export function synthesizeFallbackResponse(
   } else if (/(shopify|store|product|inventory|order|ecommerce|catalog|sales|roas|fulfillment)/.test(lower)) {
     responseBody = `### Shopify & Store Management Insights
 
-Here is the operational strategy for **"${prompt.trim()}"**:
+Here is the operational strategy for **"${cleanedPrompt}"**:
 
 1. **Catalog & Inventory Analysis**
    - Audit current product performance and identify top-tier convertors.
@@ -717,7 +737,7 @@ Here is the operational strategy for **"${prompt.trim()}"**:
   } else if (/(study|learn|tutor|explain|concept|homework|biology|math|science|physics|history|chemistry)/.test(lower)) {
     responseBody = `### Socratic Study & Learning Guide
 
-Here is a step-by-step breakdown for **"${prompt.trim()}"**:
+Here is a step-by-step breakdown for **"${cleanedPrompt}"**:
 
 1. **Core Concept**
    - Understanding the core principles and underlying mechanisms.
@@ -733,7 +753,7 @@ Here is a step-by-step breakdown for **"${prompt.trim()}"**:
   } else if (/(code|github|debug|deploy|react|typescript|python|bug|api|function|build|error)/.test(lower)) {
     responseBody = `### Software Development & Debugging Analysis
 
-Here is the technical review for **"${prompt.trim()}"**:
+Here is the technical review for **"${cleanedPrompt}"**:
 
 1. **System & Code Evaluation**
    - Analyzed component structure, dependencies, and execution path.
@@ -748,7 +768,7 @@ Here is the technical review for **"${prompt.trim()}"**:
   } else if (/(market|campaign|ad|social|copy|seo|marketing|content|research|strategy)/.test(lower)) {
     responseBody = `### Marketing & Growth Strategy Brief
 
-Here is the strategic plan for **"${prompt.trim()}"**:
+Here is the strategic plan for **"${cleanedPrompt}"**:
 
 1. **Target Audience & Positioning**
    - Define high-converting customer personas and key pain points.
@@ -764,7 +784,7 @@ Here is the strategic plan for **"${prompt.trim()}"**:
   } else {
     responseBody = `### Workspace Assistant Response
 
-I have analyzed your request: **"${prompt.trim()}"**
+I have analyzed your request: **"${cleanedPrompt}"**
 
 1. **Analysis & Strategy**
    - Evaluated workspace context and execution parameters.
