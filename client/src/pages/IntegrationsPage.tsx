@@ -418,7 +418,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                   onClick={handleOAuthConnect}
                   disabled={saving}
                   className="w-full"
-                  style={{ background: "#1a73e8", color: "#fff", fontWeight: 600 }}
+                  style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", fontWeight: 600 }}
                 >
                   {saving ? "Authenticating via OAuth..." : `Connect ${activeModal.name} with OAuth`}
                 </Button>

@@ -72,6 +72,7 @@ import UpgradePage from "./UpgradePage";
 import UsagePage from "./UsagePage";
 import ContributorsPage from "./ContributorsPage";
 import ProjectsPage from "./ProjectsPage";
+import ScheduleTaskPage from "./ScheduleTaskPage";
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 
@@ -84,7 +85,8 @@ type Page =
   | "upgrade"
   | "usage"
   | "contributors"
-  | "projects";
+  | "projects"
+  | "schedule";
 
 type ToolKey =
   | "Web Search"
@@ -197,8 +199,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     return localStorage.getItem("hanna_voice_choice") || "Hanna (Natural) - Female";
   });
 
-  // Gemini-style dynamic action status when AI is working
-  const [thinkingStatus, setThinkingStatus] = useState("Thinking...");
+  // Real-time action status and progress when AI is working
+  const [thinkingProgress, setThinkingProgress] = useState(25);
+  const [thinkingAction, setThinkingAction] = useState("Analyzing query & workspace context...");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -368,16 +371,30 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     const sentAttachments = [...attachments];
     setComposer(""); setAttachments([]); setIsThinking(true);
 
-    // Dynamic Gemini-style status progression
-    setThinkingStatus(
+    setIsThinking(true);
+    setThinkingProgress(20);
+    setThinkingAction(
       webSearchMode || selectedTools.includes("Web Search")
-        ? "Searching web..."
+        ? "Searching web sources & catalog..."
         : deepThinkMode || selectedTools.includes("Deep Research")
-        ? "Thinking deeply..."
-        : agenticMode
-        ? "Personalizing & orchestrating..."
-        : "Thinking..."
+        ? "Analyzing deep reasoning paths..."
+        : "Analyzing prompt & workspace context..."
     );
+
+    const t1 = setTimeout(() => {
+      setThinkingProgress(55);
+      setThinkingAction("Querying active connectors & tools...");
+    }, 600);
+
+    const t2 = setTimeout(() => {
+      setThinkingProgress(85);
+      setThinkingAction("Synthesizing response & verifying details...");
+    }, 1500);
+
+    const t3 = setTimeout(() => {
+      setThinkingProgress(95);
+      setThinkingAction("Finalizing output formatting...");
+    }, 2400);
     try {
       const token = await getFirebaseIdToken();
       const isStudyMode = selectedTools.includes("Study");
@@ -490,10 +507,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
+    { icon: Calendar, label: "Schedule Task", page: "schedule" as Page },
     { icon: FolderKanban, label: "Projects", page: "projects" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Users, label: "Contributors", page: "contributors" as Page },
-    { icon: Store, label: "Plugins", page: "integrations" as Page },
+    { icon: Plus, label: "Plugins", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
     { icon: Settings, label: "Customize", page: "settings" as Page },
   ];
@@ -505,38 +523,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <button className="icon-button" onClick={() => setSidebarOpen(c => !c)} aria-label="Toggle sidebar">
             <Menu size={18} />
           </button>
-          <div className="model-picker">
-            <button className="model-button" onClick={() => setModelMenuOpen(c => !c)} aria-expanded={modelMenuOpen}>
-              <span className="model-pulse" />
-              {model}
-              <ChevronDown size={13} />
-            </button>
-            {modelMenuOpen && (
-              <div className="model-menu">
-                {[
-                  { id: "Hanna Lite", label: "Hanna Lite", desc: "Fast & lightweight intelligence" },
-                  { id: "Hanna Pro", label: "Hanna Pro ✨", desc: "Deep reasoning & multimodal research (Requires Pro)" },
-                  { id: "Custom", label: "Custom Provider Key", desc: "Use your own API key in Settings" },
-                ].map(option => (
-                  <button key={option.id} className={`model-option ${model === option.id ? "is-selected" : ""}`}
-                    onClick={() => {
-                      setModelMenuOpen(false);
-                      if (option.id === "Hanna Pro") {
-                        showToast("Upgrade to Hanna Pro to unlock deep reasoning");
-                        navigate("upgrade");
-                      } else {
-                        setModel(option.id);
-                      }
-                    }}>
-                    <div style={{ display: "flex", flexDirection: "column", textAlign: "left", flex: 1, minWidth: 0 }}>
-                      <strong style={{ fontSize: "13px", fontWeight: "600", lineHeight: "1.3" }}>{option.label}</strong>
-                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)", lineHeight: "1.3", whiteSpace: "normal" }}>{option.desc}</span>
-                    </div>
-                    {model === option.id && <Check size={14} style={{ flexShrink: 0 }} />}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-primary)" }}>
+            {activeChat.title}
           </div>
         </div>
 
@@ -601,8 +589,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   className="header-menu-item"
                   onClick={() => {
                     setHeaderMenuOpen(false);
-                    setTaskTitle(activeChat.title);
-                    setShowScheduleTaskModal(true);
+                    navigate("schedule");
                   }}
                 >
                   <Calendar size={15} /> <span>Schedule task</span>
@@ -701,7 +688,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div className="message-stack">
               {activeChat.messages.map(message => (
                 <article className={`message-row ${message.role}`} key={message.id}>
-                  <div className="message-avatar">{message.role === "assistant" ? <HannaMark small /> : "U"}</div>
+                  {message.role === "user" && (
+                    <div className="message-avatar">
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt={user.displayName || "User"} className="message-avatar-img" />
+                      ) : (
+                        (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()
+                      )}
+                    </div>
+                  )}
                   <div className="message-body">
                     <div className="message-meta">
                       <strong>{message.role === "assistant" ? "Hanna" : "You"}</strong>
@@ -838,14 +833,27 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               ))}
               {isThinking && (
                 <article className="message-row assistant thinking-row">
-                  <div className="message-avatar"><HannaMark small /></div>
                   <div className="message-body">
-                    <div className="message-meta"><strong>Hanna</strong><span>{thinkingStatus}</span></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
-                      <div className="thinking-dots"><i /><i /><i /></div>
-                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)", fontStyle: "italic" }}>
-                        {thinkingStatus}
-                      </span>
+                    <div className="message-meta">
+                      <strong>Hanna</strong>
+                      <span>Active ({thinkingProgress}%)</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px", maxWidth: "480px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--text-primary)", fontWeight: "500" }}>
+                        <Sparkles size={14} style={{ color: "var(--gemini-accent)" }} />
+                        <span>{thinkingAction}</span>
+                      </div>
+                      <div style={{ width: "100%", height: "4px", background: "var(--surface-raised)", borderRadius: "4px", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${thinkingProgress}%`,
+                            height: "100%",
+                            background: "var(--gemini-accent)",
+                            borderRadius: "4px",
+                            transition: "width 0.4s ease-in-out",
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -876,7 +884,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
           <div className="command-center-inner">
             {/* Left Action: Plus Menu Popover */}
-            <div className="plus-menu-container">
+            <div className="plus-menu-container" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <button
                 type="button"
                 className={`plus-circle-button ${plusMenuOpen ? "is-active" : ""}`}
@@ -884,6 +892,30 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 aria-label="Add file or tool option"
               >
                 <Plus size={18} />
+              </button>
+
+              {/* Active Model Indicator Badge */}
+              <button
+                type="button"
+                onClick={() => setPlusMenuOpen(o => !o)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 8px",
+                  borderRadius: "8px",
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                title="Active AI Model (Click + to change)"
+              >
+                <Sparkles size={11} style={{ color: "var(--gemini-accent)" }} />
+                <span>{model}</span>
               </button>
 
               {plusMenuOpen && (
@@ -918,7 +950,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     className="plus-menu-item"
                     onClick={() => { setPlusMenuOpen(false); navigate("integrations"); }}
                   >
-                    <PlugZap size={16} /> <span>Plugins / Extensions</span>
+                    <Plus size={16} /> <span>Plugins / Extensions</span>
                   </button>
 
                   <div className="plus-menu-divider" />
@@ -975,6 +1007,41 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     <span>Study Mode</span>
                     <span className="toggle-indicator">{studyMode ? "ON" : "OFF"}</span>
                   </button>
+
+                  <div className="plus-menu-divider" />
+                  <div className="plus-menu-group-title">AI Model Selection</div>
+
+                  {[
+                    { id: "Hanna Lite", label: "Hanna Lite", desc: "Fast & lightweight intelligence" },
+                    { id: "Hanna Pro", label: "Hanna Pro ✨", desc: "Deep reasoning & multimodal research" },
+                    { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", desc: "Direct Google Gemini 3.5 Flash" },
+                    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", desc: "Direct Google Gemini 2.0 Flash" },
+                    { id: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", desc: "Anthropic Claude 3.5 Sonnet" },
+                    { id: "gpt-4o", label: "GPT-4o", desc: "OpenAI GPT-4o" },
+                  ].map(mOption => (
+                    <button
+                      key={mOption.id}
+                      type="button"
+                      className={`plus-menu-item ${model === mOption.id ? "is-enabled" : ""}`}
+                      onClick={() => {
+                        setModel(mOption.id);
+                        setPlusMenuOpen(false);
+                        showToast(`Model switched to ${mOption.label}`);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                        <strong style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" }}>{mOption.label}</strong>
+                        <span style={{ fontSize: "10px", color: "var(--text-tertiary)" }}>{mOption.desc}</span>
+                      </div>
+                      {model === mOption.id && <Check size={14} style={{ color: "var(--gemini-accent)", flexShrink: 0 }} />}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -1138,6 +1205,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
       case "contributors": content = <ContributorsPage onBack={handleBack} />; break;
       case "projects": content = <ProjectsPage onBack={handleBack} />; break;
+      case "schedule": content = <ScheduleTaskPage onBack={handleBack} onNavigateToIntegrations={() => navigate("integrations")} />; break;
       default: return renderChatPage();
     }
     return <div className="workspace-body custom-scroll">{content}</div>;
