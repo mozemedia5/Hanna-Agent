@@ -70,7 +70,7 @@ describe("hanna.ask", () => {
       const result = await caller({ ...user, id: 9101 }).hanna.ask({
         prompt: "Help me think",
       });
-      expect(result.text).toContain("Hanna Agent Core");
+      expect(result.text).toContain("Workspace Assistant Response");
       expect(result.providerError).toBe(true);
     } finally {
       process.env.GEMINI_API_KEY = origKey;

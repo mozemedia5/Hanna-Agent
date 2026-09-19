@@ -119,7 +119,7 @@ describe("Hanna Agent Core", () => {
       }
     );
     expect(result.providerError).toBe(true);
-    expect(result.text).toContain("Hanna Agent Core");
+    expect(result.text).toContain("Workspace Assistant Response");
     expect(
       result.trace.find(item => item.stage === "verify")?.detail
     ).toContain("no fabricated tool results");

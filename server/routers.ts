@@ -142,7 +142,7 @@ export async function executeHannaRequest(
   const lowerPrompt = prompt.toLowerCase();
   const requiresAgentic =
     agenticModeInput ||
-    /(agentic|web search|deep research|deep think|schedule task|run agent|execute tool)/.test(
+    /(schedule task|run agent loop|execute tool action|deep agent scan|agentic execution)/.test(
       lowerPrompt
     );
   const agenticMode = requiresAgentic;

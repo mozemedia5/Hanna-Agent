@@ -66,7 +66,6 @@ import {
 
 import SettingsPage from "./SettingsPage";
 import IntegrationsPage from "./IntegrationsPage";
-import CollectionsPage from "./CollectionsPage";
 import NotificationsPage from "./NotificationsPage";
 import ProfilePage from "./ProfilePage";
 import UpgradePage from "./UpgradePage";
@@ -80,7 +79,6 @@ type Page =
   | "chat"
   | "settings"
   | "integrations"
-  | "collections"
   | "notifications"
   | "profile"
   | "upgrade"
@@ -495,7 +493,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     { icon: FolderKanban, label: "Projects", page: "projects" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Users, label: "Contributors", page: "contributors" as Page },
-    { icon: Layers3, label: "Collections", page: "collections" as Page },
     { icon: Store, label: "Plugins", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
     { icon: Settings, label: "Customize", page: "settings" as Page },
@@ -1135,7 +1132,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     switch (currentPage) {
       case "settings": content = <SettingsPage theme={theme} onThemeChange={handleThemeChange} onBack={handleBack} />; break;
       case "integrations": content = <IntegrationsPage onBack={handleBack} />; break;
-      case "collections": content = <CollectionsPage onBack={handleBack} />; break;
       case "notifications": content = <NotificationsPage onBack={handleBack} />; break;
       case "profile": content = <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onNavigateToUsage={() => navigate("usage")} onBack={handleBack} />; break;
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
@@ -1499,21 +1495,21 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               Share <strong>"{activeChat.title}"</strong> using a direct workspace link or invite team contributors.
             </p>
 
-            {/* Fixed Action Buttons: Copy Link and Native Share */}
-            <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+            {/* Responsive Small Action Buttons: Copy Link and Native Share */}
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
               <Button
                 variant="outline"
-                className="w-full"
+                size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
                   showToast("Conversation link copied!");
                 }}
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "13px", borderRadius: "10px", padding: "10px 14px", fontWeight: "600" }}
+                style={{ flex: "1 1 120px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", borderRadius: "8px", padding: "6px 12px", fontWeight: "500", minWidth: "100px" }}
               >
-                <Copy size={14} /> Copy Link
+                <Copy size={13} /> Copy Link
               </Button>
               <Button
-                className="w-full"
+                size="sm"
                 onClick={() => {
                   if (typeof navigator !== "undefined" && navigator.share) {
                     navigator.share({
@@ -1526,9 +1522,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     showToast("Conversation link copied!");
                   }
                 }}
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "var(--gemini-accent)", color: "#ffffff", fontSize: "13px", borderRadius: "10px", padding: "10px 14px", fontWeight: "600" }}
+                style={{ flex: "1 1 120px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "var(--gemini-accent)", color: "#ffffff", fontSize: "12px", borderRadius: "8px", padding: "6px 12px", fontWeight: "500", minWidth: "100px" }}
               >
-                <Share2 size={14} /> Share
+                <Share2 size={13} /> Share
               </Button>
             </div>
 
