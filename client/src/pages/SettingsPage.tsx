@@ -17,6 +17,7 @@ import {
   User,
   Sparkles,
   Save,
+  Volume2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -40,6 +41,23 @@ export default function SettingsPage({
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [voiceChoice, setVoiceChoice] = useState<string>(() => {
+    return localStorage.getItem("hanna_voice_choice") || "Hanna (Natural) - Female";
+  });
+
+  const voices = [
+    { id: "Hanna (Natural) - Female", name: "Hanna (Natural)", gender: "Female", desc: "Balanced, clear, natural response tone" },
+    { id: "Emma (Friendly) - Female", name: "Emma (Friendly)", gender: "Female", desc: "Warm, engaging, conversational style" },
+    { id: "Sophia (Professional) - Female", name: "Sophia (Professional)", gender: "Female", desc: "Executive, authoritative, crisp articulation" },
+    { id: "James (Direct) - Male", name: "James (Direct)", gender: "Male", desc: "Clear, direct, confident delivery" },
+    { id: "Daniel (Calm) - Male", name: "Daniel (Calm)", gender: "Male", desc: "Soothing, measured, steady tone" },
+    { id: "Alex (Warm) - Male", name: "Alex (Warm)", gender: "Male", desc: "Enthusiastic, approachable, expressive" },
+  ];
+
+  const handleVoiceSelect = (vId: string) => {
+    setVoiceChoice(vId);
+    localStorage.setItem("hanna_voice_choice", vId);
+  };
 
   useEffect(() => {
     void getUserProfile()
@@ -215,6 +233,50 @@ export default function SettingsPage({
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Voice Selection */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <div className="settings-card-icon accent">
+            <Volume2 size={18} />
+          </div>
+          <div>
+            <h3>Voice Choice (Read Aloud)</h3>
+            <span className="settings-card-subtitle">
+              Select your preferred voice for speech synthesis (3 Female & 3 Male options)
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "12px", marginTop: "12px" }}>
+          {voices.map(v => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => handleVoiceSelect(v.id)}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                padding: "12px 14px",
+                background: voiceChoice === v.id ? "rgba(26, 115, 232, 0.12)" : "var(--surface)",
+                border: `1px solid ${voiceChoice === v.id ? "var(--gemini-accent, #1a73e8)" : "var(--border)"}`,
+                borderRadius: "12px",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "4px" }}>
+                <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>{v.name}</strong>
+                <span style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", padding: "2px 6px", borderRadius: "4px", background: v.gender === "Female" ? "rgba(233, 30, 99, 0.15)" : "rgba(33, 150, 243, 0.15)", color: v.gender === "Female" ? "#e91e63" : "#2196f3" }}>
+                  {v.gender}
+                </span>
+              </div>
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)", lineHeight: "1.3" }}>{v.desc}</span>
+            </button>
+          ))}
         </div>
       </section>
 

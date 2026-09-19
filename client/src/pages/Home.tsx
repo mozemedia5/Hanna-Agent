@@ -192,8 +192,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [taskRepeat, setTaskRepeat] = useState<"once" | "daily" | "weekly" | "monthly">("once");
   const [taskTools, setTaskTools] = useState<string[]>(["Web Search"]);
 
-  // SpeechSynthesis active message ID state
+  // SpeechSynthesis active message & audio player state
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [isAudioPaused, setIsAudioPaused] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<string>(() => {
+    return localStorage.getItem("hanna_voice_choice") || "Hanna (Natural) - Female";
+  });
 
   // Gemini-style dynamic action status when AI is working
   const [thinkingStatus, setThinkingStatus] = useState("Thinking...");
@@ -382,10 +386,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const attachmentContext = sentAttachments.length ? `\n[Attached (metadata-only): ${sentAttachments.map(a => `${a.name} (${a.type})`).join(", ")}]` : "";
       const toolsCtx = selectedTools.length ? `[Tools: ${selectedTools.join(", ")}]${isStudyMode ? " [STUDY MODE]" : ""}` : "";
       const fullPrompt = `${toolsCtx}${attachmentContext}\n\n${contentWithAttachments}`;
+      // Include full conversation history for multi-turn chat memory
+      const historyContext = currentChat.messages
+        .slice(-10) // pass up to last 10 messages for full chat memory
+        .map(m => `${m.role === "user" ? "User" : "Hanna"}: ${m.content}`)
+        .join("\n\n");
+      const combinedContext = historyContext
+        ? `[Conversation History from Beginning]\n${historyContext}`
+        : undefined;
+
       const response = await fetch("/api/trpc/hanna.ask?batch=1", {
         method: "POST", credentials: "include",
         headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ 0: { json: { prompt: fullPrompt, model: model === "Custom" ? "custom" : model, agenticMode } } }),
+        body: JSON.stringify({ 0: { json: { prompt: fullPrompt, context: combinedContext, model: model === "Custom" ? "custom" : model, agenticMode } } }),
       });
       const responseText = await response.text();
       let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string; providerError?: boolean } } }; error?: { json?: { message?: string } } }> | null = null;
@@ -413,7 +426,24 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         id: `${chatId}-assistant-${Date.now()}`, role: "assistant", content: reply,
         tokenCount: estimateTokens(reply), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
-      const completedChat = { ...chatWithUser, messages: [...chatWithUser.messages, assistantMessage] };
+
+      // Automatic chat renaming based on first exchange topic/summary
+      let updatedTitle = chatWithUser.title;
+      if (
+        (chatWithUser.title === "New conversation" || chatWithUser.title === "Untitled conversation" || chatWithUser.messages.length <= 2) &&
+        reply.trim()
+      ) {
+        const snippet = contentWithAttachments.slice(0, 30).trim() || reply.slice(0, 30).trim();
+        if (snippet) {
+          updatedTitle = snippet.charAt(0).toUpperCase() + snippet.slice(1);
+        }
+      }
+
+      const completedChat = {
+        ...chatWithUser,
+        title: updatedTitle,
+        messages: [...chatWithUser.messages, assistantMessage],
+      };
       setChats(current => current.map(c => c.id === chatId ? completedChat : c));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
@@ -514,32 +544,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
 
         <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {/* Plugin Bar with Real Icons */}
-          <button
-            type="button"
-            className="header-plugin-bar"
-            onClick={() => navigate("integrations")}
-            title="Plugins & Connectors catalog"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "var(--surface-raised, rgba(255,255,255,0.04))",
-              border: "1px solid var(--border, rgba(255,255,255,0.1))",
-              borderRadius: "20px",
-              padding: "4px 10px",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--text-secondary)", marginRight: "2px" }}>Plugins</span>
-            {renderBrandIcon("Shopify", 16)}
-            {renderBrandIcon("Google Workspace", 16)}
-            {renderBrandIcon("Slack", 16)}
-            {renderBrandIcon("GitHub", 16)}
-            <ChevronRight size={12} style={{ color: "var(--text-tertiary)", marginLeft: "2px" }} />
-          </button>
-
           {/* Header Upper Right Vertical Ellipsis Menu (...) */}
           <div className="header-menu-container" style={{ position: "relative" }}>
             <button
@@ -742,9 +746,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                           type="button"
                           onClick={() => {
                             if (typeof window !== "undefined" && window.speechSynthesis) {
-                              if (window.speechSynthesis.speaking && speakingMessageId === message.id) {
+                              if (speakingMessageId === message.id) {
                                 window.speechSynthesis.cancel();
                                 setSpeakingMessageId(null);
+                                setIsAudioPaused(false);
                                 showToast("Read Aloud stopped");
                               } else {
                                 window.speechSynthesis.cancel();
@@ -759,11 +764,28 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                                 const utterance = new SpeechSynthesisUtterance(cleanText);
                                 utterance.rate = 1.0;
                                 utterance.pitch = 1.0;
-                                utterance.onend = () => setSpeakingMessageId(null);
-                                utterance.onerror = () => setSpeakingMessageId(null);
+
+                                const currentVoice = localStorage.getItem("hanna_voice_choice") || selectedVoice;
+                                const systemVoices = window.speechSynthesis.getVoices();
+                                if (systemVoices.length > 0) {
+                                  const nameMatch = systemVoices.find(v =>
+                                    v.name.toLowerCase().includes(currentVoice.split(" ")[0].toLowerCase())
+                                  );
+                                  if (nameMatch) {
+                                    utterance.voice = nameMatch;
+                                  } else {
+                                    const female = currentVoice.toLowerCase().includes("woman") || currentVoice.toLowerCase().includes("female") || currentVoice.includes("Hanna") || currentVoice.includes("Emma") || currentVoice.includes("Sophia");
+                                    const matchedVoice = systemVoices.find(v => female ? v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("samantha") || v.name.toLowerCase().includes("google us english") : v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("david") || v.name.toLowerCase().includes("alex"));
+                                    if (matchedVoice) utterance.voice = matchedVoice;
+                                  }
+                                }
+
+                                utterance.onend = () => { setSpeakingMessageId(null); setIsAudioPaused(false); };
+                                utterance.onerror = () => { setSpeakingMessageId(null); setIsAudioPaused(false); };
                                 setSpeakingMessageId(message.id);
+                                setIsAudioPaused(false);
                                 window.speechSynthesis.speak(utterance);
-                                showToast("Reading Aloud...");
+                                showToast("Playing Read Aloud...");
                               }
                             } else {
                               showToast("Speech synthesis not supported on this browser.");
@@ -782,7 +804,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                           }}
                         >
                           {speakingMessageId === message.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
-                          {speakingMessageId === message.id ? "Stop Reading" : "Read Aloud"}
+                          {speakingMessageId === message.id ? "Playing Audio..." : "Read Aloud"}
                         </button>
 
                         <button
@@ -1011,6 +1033,98 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           </div>
         </div>
         <div className="composer-disclaimer">Hanna can make mistakes. Check important information.</div>
+
+        {/* Floating Audio Player Bar for Read Aloud */}
+        {speakingMessageId && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: "80px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+              background: "var(--surface-raised, #2a2b2d)",
+              border: "1px solid var(--gemini-accent, #1a73e8)",
+              borderRadius: "28px",
+              padding: "8px 18px",
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)",
+              backdropFilter: "blur(12px)",
+              animation: "fadeIn 0.2s ease-in-out",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
+              <Volume2 size={16} style={{ color: "var(--gemini-accent, #1a73e8)", animation: isAudioPaused ? "none" : "pulse 1.5s infinite" }} />
+              <span style={{ fontWeight: "600" }}>Read Aloud</span>
+              <span style={{ color: "var(--text-tertiary)", fontSize: "11px" }}>
+                ({selectedVoice})
+              </span>
+            </div>
+
+            <div style={{ width: "1px", height: "16px", background: "var(--border)" }} />
+
+            {/* Play/Pause toggle button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    setIsAudioPaused(false);
+                    showToast("Audio resumed");
+                  } else if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.pause();
+                    setIsAudioPaused(true);
+                    showToast("Audio paused");
+                  }
+                }
+              }}
+              style={{
+                background: "var(--gemini-accent, #1a73e8)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "16px",
+                padding: "5px 12px",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              {isAudioPaused ? "Resume" : "Pause"}
+            </button>
+
+            {/* Close (X) exit button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  window.speechSynthesis.cancel();
+                }
+                setSpeakingMessageId(null);
+                setIsAudioPaused(false);
+                showToast("Read Aloud closed");
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--text-tertiary)",
+                cursor: "pointer",
+                padding: "2px",
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+              title="Close Read Aloud"
+              aria-label="Close Read Aloud"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
