@@ -91,11 +91,44 @@ export default function SettingsPage({
     }
   };
 
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+
+  const playVoiceSample = (voiceObj: typeof voices[0]) => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const sampleText = `Hello, I am ${voiceObj.name.split(" ")[0]}. How can I help you today?`;
+      const utterance = new SpeechSynthesisUtterance(sampleText);
+      const systemVoices = window.speechSynthesis.getVoices();
+      if (systemVoices.length > 0) {
+        const nameMatch = systemVoices.find(v =>
+          v.name.toLowerCase().includes(voiceObj.name.split(" ")[0].toLowerCase())
+        );
+        if (nameMatch) {
+          utterance.voice = nameMatch;
+        } else {
+          const isFemale = voiceObj.gender === "Female";
+          const matched = systemVoices.find(v =>
+            isFemale
+              ? v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("samantha")
+              : v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("david") || v.name.toLowerCase().includes("alex")
+          );
+          if (matched) utterance.voice = matched;
+        }
+      }
+      utterance.onend = () => setPlayingVoiceId(null);
+      utterance.onerror = () => setPlayingVoiceId(null);
+      setPlayingVoiceId(voiceObj.id);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const themeOptions = [
     { value: "light" as const, label: "Light", icon: Sun, desc: "Paper white and graphite" },
     { value: "dark" as const, label: "Dark", icon: Moon, desc: "Charcoal and soft white" },
     { value: "system" as const, label: "System", icon: Monitor, desc: "Follow your device" },
   ];
+
+  const currentVoiceObj = voices.find(v => v.id === voiceChoice) || voices[0];
 
   return (
     <div className="page-container">
@@ -120,12 +153,9 @@ export default function SettingsPage({
         </div>
       </div>
 
-      {/* Workspace Name & Identity */}
+      {/* Workspace Identity */}
       <section className="settings-card">
         <div className="settings-card-header">
-          <div className="settings-card-icon">
-            <User size={18} />
-          </div>
           <div>
             <h3>Workspace Identity</h3>
             <span className="settings-card-subtitle">
@@ -161,9 +191,6 @@ export default function SettingsPage({
       {/* Hanna Persona */}
       <section className="settings-card">
         <div className="settings-card-header">
-          <div className="settings-card-icon accent">
-            <Sparkles size={18} />
-          </div>
           <div>
             <h3>Hanna Persona & Context</h3>
             <span className="settings-card-subtitle">
@@ -239,59 +266,89 @@ export default function SettingsPage({
       {/* Voice Selection */}
       <section className="settings-card">
         <div className="settings-card-header">
-          <div className="settings-card-icon accent">
-            <Volume2 size={18} />
-          </div>
           <div>
             <h3>Voice Choice (Read Aloud)</h3>
             <span className="settings-card-subtitle">
-              Select your preferred voice for speech synthesis (3 Female & 3 Male options)
+              Select your preferred speech synthesis voice
             </span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "12px", marginTop: "12px" }}>
-          {voices.map(v => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => handleVoiceSelect(v.id)}
+
+        <div style={{ marginTop: "16px", display: "grid", gap: "16px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label className="settings-field-label" htmlFor="voice-select">
+              Voice Choice
+            </label>
+            <select
+              id="voice-select"
+              value={voiceChoice}
+              onChange={e => handleVoiceSelect(e.target.value)}
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                padding: "12px 14px",
-                background: voiceChoice === v.id ? "rgba(26, 115, 232, 0.12)" : "var(--surface)",
-                border: `1px solid ${voiceChoice === v.id ? "var(--gemini-accent)" : "var(--border)"}`,
-                borderRadius: "12px",
+                width: "100%",
+                maxWidth: "420px",
+                padding: "10px 14px",
+                background: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+                borderRadius: "10px",
+                fontSize: "14px",
+                fontWeight: "500",
                 cursor: "pointer",
-                textAlign: "left",
+                outline: "none",
+              }}
+            >
+              {voices.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.name} ({v.gender}) — {v.desc}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "12px",
+              maxWidth: "420px",
+            }}
+          >
+            <div>
+              <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)" }}>
+                {currentVoiceObj.name}
+              </strong>
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                {currentVoiceObj.desc}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => playVoiceSample(currentVoiceObj)}
+              style={{
+                background: playingVoiceId === currentVoiceObj.id ? "var(--text-primary)" : "var(--surface-raised)",
+                color: playingVoiceId === currentVoiceObj.id ? "var(--surface)" : "var(--text-primary)",
+                border: "1px solid var(--border)",
+                padding: "6px 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
                 transition: "all 0.15s ease",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "4px" }}>
-                <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>{v.name}</strong>
-                <span style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", padding: "2px 6px", borderRadius: "4px", background: v.gender === "Female" ? "rgba(233, 30, 99, 0.15)" : "rgba(33, 150, 243, 0.15)", color: v.gender === "Female" ? "#e91e63" : "#2196f3" }}>
-                  {v.gender}
-                </span>
-              </div>
-              <span style={{ fontSize: "11px", color: "var(--text-secondary)", lineHeight: "1.3" }}>{v.desc}</span>
+              {playingVoiceId === currentVoiceObj.id ? "Playing..." : "Play Sample"}
             </button>
-          ))}
+          </div>
         </div>
       </section>
 
       {/* Appearance */}
       <section className="settings-card">
         <div className="settings-card-header">
-          <div className="settings-card-icon">
-            {theme === "dark" ? (
-              <Moon size={18} />
-            ) : theme === "light" ? (
-              <Sun size={18} />
-            ) : (
-              <Monitor size={18} />
-            )}
-          </div>
           <div>
             <h3>Appearance</h3>
             <span className="settings-card-subtitle">
@@ -324,19 +381,19 @@ export default function SettingsPage({
         <Button
           onClick={handleSave}
           disabled={saving || !profile.displayName.trim()}
-          className="settings-save-button"
+          style={{
+            background: "var(--text-primary)",
+            color: "var(--surface)",
+            border: "1px solid var(--text-primary)",
+            borderRadius: "10px",
+            padding: "10px 24px",
+            fontWeight: "600",
+            fontSize: "14px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
         >
-          {saved ? (
-            <>
-              <Check size={16} /> Saved
-            </>
-          ) : saving ? (
-            "Saving..."
-          ) : (
-            <>
-              <Save size={16} /> Save settings
-            </>
-          )}
+          {saved ? "Saved" : saving ? "Saving..." : "Save settings"}
         </Button>
       </div>
     </div>

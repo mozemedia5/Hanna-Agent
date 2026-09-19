@@ -7,14 +7,14 @@ import {
   ArrowLeft,
   Check,
   Crown,
-  Mail,
   Plus,
-  Shield,
   Trash2,
   Users,
+  X,
   Zap,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 type Contributor = {
   id: string;
@@ -30,29 +30,40 @@ type ContributorsPageProps = {
 };
 
 export default function ContributorsPage({ onBack }: ContributorsPageProps) {
-  const [contributors, setContributors] = useState<Contributor[]>([
-    {
-      id: "c1",
-      email: "owner@workspace.com",
-      name: "Head of Contributors (Owner)",
-      role: "head",
-      status: "active",
-      monthlyCreditLimit: 20000,
-    },
-    {
-      id: "c2",
-      email: "alex@store.com",
-      name: "Alex E-Commerce Lead",
-      role: "admin",
-      status: "active",
-      monthlyCreditLimit: 5000,
-    },
-  ]);
+  const { user } = useAuth();
+
+  const [contributors, setContributors] = useState<Contributor[]>(() => {
+    const saved = localStorage.getItem("hanna_contributors");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // Fall back
+      }
+    }
+    const currentName = user?.displayName || user?.email?.split("@")[0] || "Workspace Head";
+    const currentEmail = user?.email || "owner@workspace.com";
+    return [
+      {
+        id: "head_owner",
+        email: currentEmail,
+        name: `${currentName} (Owner)`,
+        role: "head",
+        status: "active",
+        monthlyCreditLimit: 20000,
+      },
+    ];
+  });
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"editor" | "admin">("editor");
   const [inviteCredits, setInviteCredits] = useState("2000");
   const [toast, setToast] = useState("");
+  const [deletingContributor, setDeletingContributor] = useState<Contributor | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("hanna_contributors", JSON.stringify(contributors));
+  }, [contributors]);
 
   const showToast = (m: string) => {
     setToast(m);
@@ -63,10 +74,16 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
 
+    const emailClean = inviteEmail.trim().toLowerCase();
+    if (contributors.some(c => c.email === emailClean)) {
+      showToast("Contributor email already exists");
+      return;
+    }
+
     const newMember: Contributor = {
       id: `contrib_${Date.now()}`,
-      email: inviteEmail.trim().toLowerCase(),
-      name: inviteEmail.split("@")[0],
+      email: emailClean,
+      name: emailClean.split("@")[0],
       role: inviteRole,
       status: "invited",
       monthlyCreditLimit: Number(inviteCredits) || 2000,
@@ -77,8 +94,16 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
     showToast(`Invitation sent to ${newMember.email}`);
   };
 
-  const handleRemove = (id: string) => {
+  const confirmDelete = (c: Contributor) => {
+    if (c.role === "head") return;
+    setDeletingContributor(c);
+  };
+
+  const handleExecuteRemove = () => {
+    if (!deletingContributor) return;
+    const id = deletingContributor.id;
     setContributors(prev => prev.filter(c => c.id !== id || c.role === "head"));
+    setDeletingContributor(null);
     showToast("Contributor removed from workspace");
   };
 
@@ -200,7 +225,7 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
                 </div>
 
                 {c.role !== "head" && (
-                  <button onClick={() => handleRemove(c.id)} style={{ background: "none", border: "none", color: "#ea4335", cursor: "pointer", padding: "6px" }} title="Remove contributor">
+                  <button onClick={() => confirmDelete(c)} style={{ background: "none", border: "none", color: "#ea4335", cursor: "pointer", padding: "6px" }} title="Remove contributor">
                     <Trash2 size={16} />
                   </button>
                 )}
@@ -209,6 +234,28 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
           ))}
         </div>
       </div>
+
+      {deletingContributor && (
+        <div className="modal-overlay" onClick={() => setDeletingContributor(null)}>
+          <div className="modal-content" style={{ maxWidth: "400px", padding: "20px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Confirm Removal</h3>
+              <button onClick={() => setDeletingContributor(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Are you sure you want to remove <strong>{deletingContributor.name}</strong> ({deletingContributor.email}) from this workspace? They will lose access to all shared chats and workspace credits.
+            </p>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" onClick={() => setDeletingContributor(null)}>Cancel</Button>
+              <Button onClick={handleExecuteRemove} style={{ background: "#ea4335", color: "#ffffff" }}>
+                Remove Contributor
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && <div className="hanna-toast"><Check size={15} /> {toast}</div>}
     </div>
