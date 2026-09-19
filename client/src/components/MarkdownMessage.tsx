@@ -87,13 +87,31 @@ function ResponseVisualCard({ src, alt, caption }: { src: string; alt?: string; 
   );
 }
 
+export function cleanResponseSymbols(text: string): string {
+  if (!text) return "";
+  return text
+    // Remove raw LaTeX math delimiters like \[ \], \( \), \begin{...}, \end{...}
+    .replace(/\\\[\s*/g, "")
+    .replace(/\s*\\\]/g, "")
+    .replace(/\\\(\s*/g, "")
+    .replace(/\s*\\\)/g, "")
+    .replace(/\\begin\{[a-zA-Z0-9*]+\}/g, "")
+    .replace(/\\end\{[a-zA-Z0-9*]+\}/g, "")
+    // Remove unparsed symbol garbage or noise patterns (e.g. *#$#&, #$#&, etc.) while preserving markdown headers (###)
+    .replace(/(?<!^|\n)(?:[*#$&\\]{3,})/g, "")
+    // Replace double backslashes used as linebreaks in raw math with normal linebreaks
+    .replace(/\\\\/g, "\n");
+}
+
 export default function MarkdownMessage({ content }: MarkdownMessageProps) {
+  const sanitizedContent = cleanResponseSymbols(content);
+
   // Extract potential image URLs or data graph cues
   const imageUrlMatch = content.match(/https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|webp|gif|svg)/i);
   const chartDataCues: Array<{ label: string; value: number }> = [];
 
   // Parse lines with numbers/percentages to construct visual chart if applicable
-  const lines = content.split("\n");
+  const lines = sanitizedContent.split("\n");
   for (const line of lines) {
     const tableRowMatch = line.match(/^\|?\s*([A-Za-z0-9\s_-]+)\s*\|?\s*[:$]?([\d,.]+)\%?\s*\|?/);
     if (tableRowMatch && tableRowMatch[1] && tableRowMatch[2]) {
@@ -122,7 +140,7 @@ export default function MarkdownMessage({ content }: MarkdownMessageProps) {
           },
         }}
       >
-        {content}
+        {sanitizedContent}
       </ReactMarkdown>
 
       {/* Render AI Visual Image container if image URL is present in response */}
