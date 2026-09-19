@@ -1,6 +1,6 @@
 /*
- * Settings Page — Workspace personalization only
- * Hanna name, persona context, descriptions, and theme.
+ * Settings Page — Unified Settings & Workspace Personalization
+ * Unifies profile identity, customize instructions, tokens, usage, affiliate rewards, what's new & help.
  */
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
@@ -18,6 +18,14 @@ import {
   Sparkles,
   Save,
   Volume2,
+  BarChart3,
+  CreditCard,
+  Gift,
+  HelpCircle,
+  TrendingUp,
+  Copy,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -41,6 +49,7 @@ export default function SettingsPage({
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [copiedAffiliate, setCopiedAffiliate] = useState(false);
   const [voiceChoice, setVoiceChoice] = useState<string>(() => {
     return localStorage.getItem("hanna_voice_choice") || "Hanna (Natural) - Female";
   });
@@ -129,6 +138,7 @@ export default function SettingsPage({
   ];
 
   const currentVoiceObj = voices.find(v => v.id === voiceChoice) || voices[0];
+  const affiliateLink = `https://hanna.ai/ref/${(user?.email || "user").split("@")[0]}`;
 
   return (
     <div className="page-container">
@@ -144,14 +154,40 @@ export default function SettingsPage({
 
       <div className="page-header">
         <div className="page-header-text">
-          <span className="eyebrow">Workspace</span>
+          <span className="eyebrow">Workspace & Account</span>
           <h1 className="page-title">Settings</h1>
           <p className="page-description">
-            Personalize how Hanna works for you. Set your workspace name,
-            context, and how Hanna should respond.
+            Personalize how Hanna works for you. Manage profile identity, custom persona instructions, tokens, usage, affiliate rewards, and system options.
           </p>
         </div>
       </div>
+
+      {/* User Account Overview */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <div>
+            <h3>Profile & Account</h3>
+            <span className="settings-card-subtitle">
+              Your account details and personal workspace identity
+            </span>
+          </div>
+        </div>
+        <div className="profile-card-top" style={{ padding: "16px 0 0" }}>
+          <div className="profile-avatar-large">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="" />
+            ) : (
+              (user?.displayName || user?.email || "U")
+                .slice(0, 1)
+                .toUpperCase()
+            )}
+          </div>
+          <div className="profile-info">
+            <h2>{profile.displayName || user?.displayName || "User"}</h2>
+            <span>{user?.email || "No email"}</span>
+          </div>
+        </div>
+      </section>
 
       {/* Workspace Identity */}
       <section className="settings-card">
@@ -188,13 +224,13 @@ export default function SettingsPage({
         </div>
       </section>
 
-      {/* Hanna Persona */}
+      {/* Hanna Persona & Custom Instructions */}
       <section className="settings-card">
         <div className="settings-card-header">
           <div>
-            <h3>Hanna Persona & Context</h3>
+            <h3>Hanna Persona & Custom Instructions</h3>
             <span className="settings-card-subtitle">
-              Pick the context Hanna should use and how she should respond
+              Define instructions for how Hanna should answer all your prompts
             </span>
           </div>
         </div>
@@ -259,6 +295,98 @@ export default function SettingsPage({
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Usage, Tokens & Credit Quota */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <div>
+            <h3>Usage, Tokens & Credits</h3>
+            <span className="settings-card-subtitle">
+              Track your daily allowance, token quota, and workspace credits
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "grid", gap: "16px", marginTop: "16px" }}>
+          <div className="profile-credits-card" style={{ margin: 0 }}>
+            <div className="credits-header">
+              <CreditCard size={18} />
+              <span>Workspace Allowance</span>
+              <span className="credits-amount">2,500 credits left</span>
+            </div>
+            <div className="credits-bar">
+              <div className="credits-bar-fill" style={{ width: "80%" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-secondary)", marginTop: "8px" }}>
+              <span>Daily Token Quota: 300 tokens/day (Hanna Lite)</span>
+              <span>Refreshes daily at 00:00 UTC</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Affiliate Program & Commissions */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <div>
+            <h3>Affiliate Program</h3>
+            <span className="settings-card-subtitle">
+              Invite businesses or creators and earn 100% commission on referrals
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "grid", gap: "12px", marginTop: "16px" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "14px 16px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+            <div>
+              <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block" }}>Your Affiliate Referral Link</strong>
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{affiliateLink}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(affiliateLink);
+                setCopiedAffiliate(true);
+                setTimeout(() => setCopiedAffiliate(false), 2000);
+              }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              {copiedAffiliate ? <Check size={14} /> : <Copy size={14} />}
+              {copiedAffiliate ? "Copied" : "Copy Link"}
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* What's New & Help Section */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <div>
+            <h3>What's New & Workspace Help</h3>
+            <span className="settings-card-subtitle">
+              Recent system updates and assistance guide
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "grid", gap: "10px", marginTop: "16px" }}>
+          <div style={{ padding: "12px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+            <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block", marginBottom: "4px" }}>
+              ⚡ Intent Router & Dual-Track Execution (Route A / Route B)
+            </strong>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+              Fast streaming for Q&A (Route A) and multi-step ReAct agentic execution with MCP ecosystem tool calls (Route B).
+            </span>
+          </div>
+
+          <div style={{ padding: "12px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+            <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block", marginBottom: "4px" }}>
+              ☁️ Cloudinary Preset (`hanna_agent`) Integration
+            </strong>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+              Full functional image & media uploads powered by Cloudinary preset `hanna_agent`.
+            </span>
           </div>
         </div>
       </section>

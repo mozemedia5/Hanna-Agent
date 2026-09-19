@@ -1,6 +1,7 @@
 import { performAiHealthCheck } from "../server/aiHealth";
 import { getFirebasePublicConfig, missingFirebaseConfigFields } from "../server/firebaseConfig";
 import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
+import { handleApiChatRoute } from "./chat/route";
 import { createContext } from "../server/_core/context";
 import { appRouter } from "../server/routers";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -50,6 +51,10 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
   try {
     if (path === "/api" || path === "/") {
       return respond(res, 200, { status: "ok", service: "hanna-agent-api" });
+    }
+
+    if (path === "/api/chat" || path === "/chat") {
+      return handleApiChatRoute(req as never, res as never);
     }
 
     if (path === "/api/config" || path === "/config") {

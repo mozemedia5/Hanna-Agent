@@ -10,6 +10,7 @@ import {
   missingFirebaseConfigFields,
 } from "./firebaseConfig";
 import { handleMcpRequest, listMcpTools } from "./mcpServer";
+import { handleApiChatRoute } from "../api/chat/route";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -39,6 +40,9 @@ app.get("/api", (_req, res) => {
 });
 
 app.get(["/api/config", "/config"], sendFirebaseConfig);
+
+// Dedicated Streaming & Intent Router Endpoint (/api/chat)
+app.post(["/api/chat", "/chat"], handleApiChatRoute);
 
 app.get(["/api/health", "/health"], async (req, res) => {
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
@@ -70,7 +74,8 @@ app.post(["/api/upload", "/upload"], async (req, res) => {
 
     const timestamp = Math.floor(Date.now() / 1000);
     const folderName = folder || "hanna_uploads";
-    const strToSign = `folder=${folderName}&timestamp=${timestamp}${apiSecret}`;
+    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || "hanna_agent";
+    const strToSign = `folder=${folderName}&timestamp=${timestamp}&upload_preset=${uploadPreset}${apiSecret}`;
 
     const signature = crypto
       .createHash("sha1")
@@ -82,6 +87,7 @@ app.post(["/api/upload", "/upload"], async (req, res) => {
     formData.append("api_key", apiKey);
     formData.append("timestamp", String(timestamp));
     formData.append("folder", folderName);
+    formData.append("upload_preset", uploadPreset);
     formData.append("signature", signature);
 
     const cloudinaryRes = await fetch(
