@@ -477,7 +477,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   };
 
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitMessage(); }
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); submitMessage(); }
   };
 
   const useSuggestion = (text: string) => {

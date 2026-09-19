@@ -262,6 +262,16 @@ export function useChatWorkflow() {
                 }));
                 break;
 
+              case "error":
+                accumulatedText = data.message || accumulatedText;
+                setState(prev => ({
+                  ...prev,
+                  status: "error",
+                  streamingText: accumulatedText,
+                  error: data.message || "Hanna could not complete this request.",
+                }));
+                break;
+
               case "fallback":
                 accumulatedText = data.text || accumulatedText;
                 setState(prev => ({
@@ -273,6 +283,10 @@ export function useChatWorkflow() {
                 break;
             }
           }
+        }
+
+        if (!accumulatedText.trim()) {
+          accumulatedText = "I’m here and ready to help. Please try sending your request again.";
         }
 
         setState(prev => ({

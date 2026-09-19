@@ -152,6 +152,12 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     );
   }, [searchQuery]);
 
+  const categorizedIds = useMemo(() => new Set(Object.values(categoryMap).flat()), []);
+  const uncategorizedIntegrations = useMemo(
+    () => filteredIntegrations.filter(integration => !categorizedIds.has(integration.id)),
+    [categorizedIds, filteredIntegrations]
+  );
+
   const openModal = (integration: IntegrationDefinition) => {
     setActiveModal(integration);
     setConnectionMode("oauth");
@@ -350,6 +356,29 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
             </div>
           );
         })
+      )}
+
+      {!searchQuery && uncategorizedIntegrations.length > 0 && (
+        <div className="integration-category">
+          <h3 className="integration-category-label">All Other Manus Connectors ({uncategorizedIntegrations.length})</h3>
+          <div className="integration-list">
+            {uncategorizedIntegrations.map(integration => {
+              const isConnected = connected.includes(integration.id);
+              return (
+                <div className="integration-card" key={integration.id}>
+                  <div className="integration-card-icon">{renderBrandIcon(integration.name, 20)}</div>
+                  <div className="integration-card-copy">
+                    <strong>{integration.name}</strong>
+                    <span>{integration.description}</span>
+                  </div>
+                  <button className={`integration-card-action ${isConnected ? "is-connected" : ""}`} onClick={() => openModal(integration)}>
+                    {isConnected ? <><Check size={13} /> Connected</> : <>Add <ChevronRight size={13} /></>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Setup Modal */}

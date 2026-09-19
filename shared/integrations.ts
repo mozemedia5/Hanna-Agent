@@ -91,7 +91,7 @@ export type ConnectorId =
   | "typeform";
 
 export type IntegrationDefinition = {
-  id: ConnectorId;
+  id: string;
   name: string;
   category: IntegrationCategory;
   credentialFields: string[];
@@ -104,7 +104,9 @@ export type IntegrationDefinition = {
   supportsOAuth?: boolean;
 };
 
-export const integrations: IntegrationDefinition[] = [
+import manusConnectorManifest from "../connector icons/manifest.json";
+
+const curatedIntegrations: IntegrationDefinition[] = [
   // Commerce & Dropshipping
   {
     id: "shopify",
@@ -1286,6 +1288,30 @@ export const integrations: IntegrationDefinition[] = [
     ],
   },
 ];
+
+const slugifyConnectorName = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+const manifestIntegrations: IntegrationDefinition[] = manusConnectorManifest.providers.map(provider => ({
+  id: slugifyConnectorName(provider.name),
+  name: provider.name,
+  category: "custom_mcp",
+  credentialFields: ["accessToken"],
+  capabilities: ["provider_tools"],
+  requiresApproval: true,
+  description: `Connect ${provider.name} to let Hanna use its authorized tools and workflows.`,
+  docUrl: provider.source || "",
+  instructions: [
+    `Authorize ${provider.name} in its official account flow or provide the requested access token.`,
+    "Review scopes before enabling write actions.",
+  ],
+  supportsMcp: true,
+  supportsOAuth: true,
+}));
+
+export const integrations: IntegrationDefinition[] = Array.from(
+  new Map([...curatedIntegrations, ...manifestIntegrations].map(integration => [integration.id, integration])).values()
+);
 
 export function getIntegration(id: string) {
   return integrations.find(integration => integration.id === id);
