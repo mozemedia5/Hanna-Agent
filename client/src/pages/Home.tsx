@@ -73,6 +73,7 @@ import UsagePage from "./UsagePage";
 import ContributorsPage from "./ContributorsPage";
 import ProjectsPage from "./ProjectsPage";
 import ScheduleTaskPage from "./ScheduleTaskPage";
+import { useChatWorkflow } from "@/hooks/useChatWorkflow";
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 
@@ -160,7 +161,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [composer, setComposer] = useState("");
   const [agenticMode, setAgenticMode] = useState(false);
   const [selectedTools, setSelectedTools] = useState<ToolKey[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [toast, setToast] = useState("");
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -550,7 +551,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     { icon: Users, label: "Contributors", page: "contributors" as Page },
     { icon: PlugZap, label: "Plugins", page: "integrations" as Page },
     { icon: Bell, label: "Notifications", page: "notifications" as Page },
-    { icon: Settings, label: "Customize", page: "settings" as Page },
+    { icon: Settings, label: "Settings", page: "settings" as Page },
   ];
 
   const renderChatPage = () => (
@@ -566,7 +567,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
 
         <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {/* Add Topic button next to ellipsis */}
+          {/* New chat button in top header */}
           <button
             type="button"
             onClick={createChat}
@@ -584,10 +585,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               cursor: "pointer",
               transition: "all 0.15s ease",
             }}
-            title="Start a new chat topic"
+            title="Start a new conversation"
           >
             <Plus size={14} />
-            <span>Topic</span>
+            <span>New</span>
           </button>
 
           {/* Header Upper Right Vertical Ellipsis Menu (...) */}
@@ -1346,15 +1347,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
         <div className="sidebar-bottom">
           <div className="profile-popup-wrapper" style={{ position: "relative" }}>
-            <button className="account-row" onClick={() => setShowProfilePopup(c => !c)} style={{ cursor: "pointer", width: "100%" }}>
+            <button className="account-row" onClick={() => navigate("settings")} style={{ cursor: "pointer", width: "100%" }}>
               <div className="avatar">
                 {user?.photoURL ? <img src={user.photoURL} alt="" className="avatar-img" /> : (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}
               </div>
               <div className="account-copy">
                 <span className="account-name">{user?.displayName || user?.email || "You"}</span>
-                <span className="account-plan">Personal workspace</span>
+                <span className="account-plan">Settings & Profile</span>
               </div>
-              <Bell size={16} style={{ color: "var(--text-tertiary)", marginLeft: "auto" }} />
+              <Settings size={16} style={{ color: "var(--text-tertiary)", marginLeft: "auto" }} />
             </button>
             {showProfilePopup && (
               <div className="profile-popup">
