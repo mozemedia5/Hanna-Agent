@@ -257,6 +257,106 @@ async function invokeUserProvider(request) {
     throw new Error(`${request.provider} returned an invalid response format.`);
   return data.choices?.[0]?.message?.content ?? "I\u2019m ready to help. Could you rephrase that request?";
 }
+async function streamUserProvider(request, onChunk) {
+  if (!request.apiKey || !request.apiKey.trim()) {
+    throw new Error(
+      `${request.provider || "Provider"} API key is missing or not configured.`
+    );
+  }
+  const message = userMessage(request);
+  if (request.provider === "gemini") {
+    const candidateModels = geminiCandidateModels(request.model);
+    let lastError = "";
+    for (const modelName of candidateModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(request.apiKey.trim())}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: message }] }]
+          })
+        });
+        if (!response.ok) {
+          const errText = await getResponseText(response);
+          const safeText = sanitizeError(errText);
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`Gemini provider returned ${response.status}: Authentication failed.`);
+          }
+          if (response.status === 429) {
+            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
+          }
+          if (response.status === 404) {
+            lastError = `Gemini model ${modelName} unavailable (404).`;
+            continue;
+          }
+          throw new Error(
+            `Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
+          );
+        }
+        if (!response.body) {
+          const text2 = await invokeUserProvider({ ...request, model: modelName });
+          onChunk(text2);
+          return { text: text2, provider: "gemini", model: modelName };
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        let fullText = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const jsonStr = trimmed.slice(5).trim();
+            if (!jsonStr || jsonStr === "[DONE]") continue;
+            try {
+              const data = JSON.parse(jsonStr);
+              const chunk = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || "";
+              if (chunk) {
+                fullText += chunk;
+                onChunk(chunk);
+              }
+            } catch {
+            }
+          }
+        }
+        if (fullText.trim()) {
+          return { text: fullText, provider: "gemini", model: modelName };
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
+            throw err;
+          }
+          lastError = err.message;
+          if (err.message.includes("404")) continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error(
+      lastError || "Gemini provider streaming failed with configured models."
+    );
+  }
+  const fullResponse = await invokeUserProvider(request);
+  const chunkSize = 16;
+  for (let i = 0; i < fullResponse.length; i += chunkSize) {
+    const chunk = fullResponse.slice(i, i + chunkSize);
+    onChunk(chunk);
+    await new Promise((resolve) => setTimeout(resolve, 15));
+  }
+  return {
+    text: fullResponse,
+    provider: request.provider,
+    model: request.model || "default"
+  };
+}
 async function invokeGeminiAgentTurn(request) {
   if (request.provider !== "gemini") {
     return { text: await invokeUserProvider(request) };
@@ -3290,43 +3390,58 @@ function analyzePromptIntent(prompt, hasConnectedApps = false, agenticModeFlag =
       capabilities: ["agentic_loop"]
     };
   }
-  const lower = prompt.toLowerCase();
-  const actionKeywords = [
+  const lower = prompt.toLowerCase().trim();
+  const connectorKeywords = [
     "shopify",
     "store",
     "product",
+    "products",
     "inventory",
     "order",
+    "orders",
     "customer",
+    "customers",
     "checkout",
     "github",
     "repo",
+    "repository",
+    "repositories",
     "commit",
     "push",
     "pull request",
     "issue",
+    "issues",
     "branch",
     "slack",
     "channel",
-    "message",
+    "channels",
     "workspace",
     "send slack",
+    "slack message",
     "gmail",
     "email",
+    "emails",
+    "mail",
+    "inbox",
     "send mail",
     "draft mail",
-    "inbox",
     "google workspace",
+    "google drive",
     "drive",
+    "google docs",
     "docs",
+    "google sheets",
     "sheets",
+    "google slides",
     "slides",
     "google calendar",
     "schedule meeting",
+    "calendar event",
     "meta ads",
-    "google ads",
     "facebook ads",
+    "google ads",
     "ad campaign",
+    "campaigns",
     "roas",
     "ctr",
     "heygen",
@@ -3338,28 +3453,34 @@ function analyzePromptIntent(prompt, hasConnectedApps = false, agenticModeFlag =
     "telegram",
     "outlook",
     "vercel",
-    "schedule task",
-    "run agent loop",
-    "execute tool",
-    "create product",
-    "update product",
-    "sync inventory",
-    "file alteration",
-    "write file",
-    "deploy",
-    "mcp tool"
+    "vercel deployment"
   ];
-  const matched = actionKeywords.filter((kw) => lower.includes(kw));
-  if (matched.length > 0) {
+  const actionPatterns = [
+    /\bschedule\s+task\b/,
+    /\brun\s+agent\b/,
+    /\bexecute\s+tool\b/,
+    /\bcreate\s+product\b/,
+    /\bupdate\s+product\b/,
+    /\bsync\s+inventory\b/,
+    /\bdeploy\s+(app|site|vercel|project)\b/,
+    /\bmcp\s+tool\b/,
+    /\bsend\s+(email|mail|slack|message)\b/,
+    /\bpost\s+(a\s+)?(message|tweet|ad|campaign)\b/,
+    /\bdelete\s+(product|order|item|file)\b/,
+    /\bcancel\s+(task|schedule)\b/
+  ];
+  const matchedConnectors = connectorKeywords.filter((kw) => lower.includes(kw));
+  const matchedActionPatterns = actionPatterns.filter((ptn) => ptn.test(lower));
+  if (matchedConnectors.length > 0 || matchedActionPatterns.length > 0) {
     return {
       route: "route_b",
       confidence: 0.95,
-      reason: `Prompt demands ecosystem actions or tool integrations matching: ${matched.join(", ")}`,
-      detectedTools: matched,
+      reason: `Prompt demands ecosystem integrations or external actions matching: ${matchedConnectors.concat(matchedActionPatterns.map((p) => p.source)).join(", ")}`,
+      detectedTools: matchedConnectors.length > 0 ? matchedConnectors : ["agentic_action"],
       capabilities: ["tool_execution", "mcp_integration", "react_loop"]
     };
   }
-  if (hasConnectedApps && /(check|sync|update|post|send|fetch|get|list|create|delete)/.test(lower)) {
+  if (hasConnectedApps && /\b(check|sync|update|post|send|fetch|get|list|create|delete|search|find|analyze)\b/.test(lower)) {
     return {
       route: "route_b",
       confidence: 0.85,
@@ -3371,7 +3492,7 @@ function analyzePromptIntent(prompt, hasConnectedApps = false, agenticModeFlag =
   return {
     route: "route_a",
     confidence: 0.9,
-    reason: "Prompt is conversational or informational standard Q&A.",
+    reason: "Prompt is normal AI conversation, question, writing, or informational query.",
     detectedTools: [],
     capabilities: ["single_pass_stream"]
   };
@@ -3390,35 +3511,41 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
   try {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
-      throw new Error("Default AI API key not configured.");
+      sendSSE("error", {
+        code: "MISSING_API_KEY",
+        message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured."
+      });
+      return;
     }
     const tier = model === "Hanna Pro" ? "pro" : "lite";
     const quota = consumeDailyTokens(userId ? String(userId) : "guest", Math.ceil(prompt.length / 4), tier);
     if (!quota.allowed) {
-      throw new Error(`Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`);
+      sendSSE("error", {
+        code: "RATE_LIMIT_EXCEEDED",
+        message: `Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`
+      });
+      return;
     }
-    const fullResponseText = await invokeUserProvider({
-      ...provider,
-      prompt,
-      context
-    });
-    const chunkSize = 16;
-    for (let i = 0; i < fullResponseText.length; i += chunkSize) {
-      const chunk = fullResponseText.slice(i, i + chunkSize);
-      sendSSE("token", { chunk });
-      await new Promise((resolve) => setTimeout(resolve, 15));
-    }
+    const result = await streamUserProvider(
+      {
+        ...provider,
+        prompt,
+        context
+      },
+      (chunk) => {
+        sendSSE("token", { chunk });
+      }
+    );
     sendSSE("final", {
-      text: fullResponseText,
-      model: `${provider.provider} \xB7 ${provider.model}`,
+      text: result.text,
+      model: `${result.provider} \xB7 ${result.model}`,
       route: "route_a"
     });
   } catch (err) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context);
-    sendSSE("fallback", {
-      text: fallbackText,
-      error: err instanceof Error ? err.message : "Route A execution failed.",
-      route: "route_a_fallback"
+    const errorMessage = err instanceof Error ? err.message : "Route A execution failed.";
+    sendSSE("error", {
+      code: "ROUTE_A_FAILURE",
+      message: errorMessage
     });
   }
 }
@@ -3429,7 +3556,11 @@ async function executeRouteBLoop(prompt, context, userId, model, sendSSE) {
   try {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
-      throw new Error("Default AI API key not configured.");
+      sendSSE("error", {
+        code: "MISSING_API_KEY",
+        message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured."
+      });
+      return;
     }
     const connectedSummaries = userId ? await listConnectorCredentials(userId) : [];
     const connectedCredentials = userId ? (await Promise.all(
@@ -3981,11 +4112,9 @@ function providerToolDefinitions(registry) {
   }));
 }
 async function executeHannaRequest(prompt, context, userId, requestedModel, clientIp, agenticModeInput = false) {
-  const lowerPrompt = prompt.toLowerCase();
-  const requiresAgentic = agenticModeInput || /(schedule task|run agent loop|execute tool action|deep agent scan|agentic execution)/.test(
-    lowerPrompt
-  );
-  const agenticMode = requiresAgentic;
+  const connectedSummariesForIntent = userId ? await listConnectorCredentials(userId) : [];
+  const intent = analyzePromptIntent(prompt, connectedSummariesForIntent.length > 0, agenticModeInput);
+  const agenticMode = intent.route === "route_b";
   if (agenticMode) {
     const approvalPlan = buildAgentPlan(prompt);
     if (approvalPlan.approvalRequired) {
