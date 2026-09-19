@@ -376,6 +376,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const chatWorkflow = useChatWorkflow();
+
   const submitMessage = async () => {
     const text = composer.trim();
     if ((!text && attachments.length === 0) || isThinking) return;
@@ -409,93 +411,62 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     setChats(current => current.map(c => c.id === chatId ? chatWithUser : c));
     setComposer(""); setAttachments([]); setIsThinking(true);
 
-    setIsThinking(true);
-    setThinkingProgress(20);
-    setThinkingAction(
-      webSearchMode || selectedTools.includes("Web Search")
-        ? "Searching web sources & catalog..."
-        : deepThinkMode || selectedTools.includes("Deep Research")
-        ? "Analyzing deep reasoning paths..."
-        : "Analyzing prompt & workspace context..."
-    );
-
-    const t1 = setTimeout(() => {
-      setThinkingProgress(55);
-      setThinkingAction("Querying active connectors & tools...");
-    }, 600);
-
-    const t2 = setTimeout(() => {
-      setThinkingProgress(85);
-      setThinkingAction("Synthesizing response & verifying details...");
-    }, 1500);
-
-    const t3 = setTimeout(() => {
-      setThinkingProgress(95);
-      setThinkingAction("Finalizing output formatting...");
-    }, 2400);
     try {
-      const token = await getFirebaseIdToken();
       const isStudyMode = selectedTools.includes("Study");
       const attachmentContext = sentAttachments.length ? `\n[Attached (metadata-only): ${sentAttachments.map(a => `${a.name} (${a.type})`).join(", ")}]` : "";
       const toolsCtx = selectedTools.length ? `[Tools: ${selectedTools.join(", ")}]${isStudyMode ? " [STUDY MODE]" : ""}` : "";
       const fullPrompt = `${toolsCtx}${attachmentContext}\n\n${contentWithAttachments}`;
-      // Include full conversation history for multi-turn chat memory
+
       const historyContext = currentChat.messages
-        .slice(-10) // pass up to last 10 messages for full chat memory
+        .slice(-10)
         .map(m => `${m.role === "user" ? "User" : "Hanna"}: ${m.content}`)
         .join("\n\n");
       const combinedContext = historyContext
         ? `[Conversation History from Beginning]\n${historyContext}`
         : undefined;
 
-      const response = await fetch("/api/trpc/hanna.ask?batch=1", {
-        method: "POST", credentials: "include",
-        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ 0: { json: { prompt: fullPrompt, context: combinedContext, model: model === "Custom" ? "custom" : model, agenticMode } } }),
-      });
-      const responseText = await response.text();
-      let payload: Array<{ result?: { data?: { json?: { answer?: string; text?: string; providerError?: boolean } } }; error?: { json?: { message?: string } } }> | null = null;
-      try {
-        payload = JSON.parse(responseText);
-      } catch {
-        throw new Error(
-          !response.ok
-            ? `Server HTTP ${response.status}: ${responseText.slice(0, 150) || "Invalid server response."}`
-            : "Invalid JSON response from Hanna API."
-        );
-      }
-      if (Array.isArray(payload) && payload[0]?.error) throw new Error(payload[0].error?.json?.message || "Hanna encountered an issue.");
-      if (!response.ok || !payload) throw new Error(`Server returned status ${response.status}`);
-      const data = payload[0]?.result?.data;
-      const isJson = data && "json" in data;
-      const responseData = isJson ? (data as any).json : undefined;
-      const reply = responseData?.answer || responseData?.text;
-      const isProviderError = Boolean(responseData?.providerError);
-      if (!reply) throw new Error("Hanna returned an empty response.");
-      if (isProviderError) {
-        showToast("Running on Hanna Agent Core");
-      }
-      const assistantMessage: Message = {
-        id: `${chatId}-assistant-${Date.now()}`, role: "assistant", content: reply,
-        tokenCount: estimateTokens(reply), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      // Placeholder assistant message for streaming response
+      const assistantMessageId = `${chatId}-assistant-${Date.now()}`;
+      const placeholderAssistantMsg: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
-      // Automatic chat renaming based on first exchange topic/summary
-      let updatedTitle = chatWithUser.title;
+      setChats(current => current.map(c => c.id === chatId ? { ...c, messages: [...c.messages, placeholderAssistantMsg] } : c));
+
+      const reply = await chatWorkflow.submitPrompt(fullPrompt, {
+        context: combinedContext,
+        model: model === "Custom" ? "custom" : model,
+        agenticMode,
+      });
+
+      if (!reply) throw new Error("Hanna returned an empty response.");
+
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: reply,
+        tokenCount: estimateTokens(reply),
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      let finalTitle = chatWithUser.title;
       if (
         (chatWithUser.title === "New conversation" || chatWithUser.title === "Untitled conversation" || chatWithUser.messages.length <= 2) &&
         reply.trim()
       ) {
-        const snippet = contentWithAttachments.slice(0, 30).trim() || reply.slice(0, 30).trim();
-        if (snippet) {
-          updatedTitle = snippet.charAt(0).toUpperCase() + snippet.slice(1);
+        const titleSnippet = contentWithAttachments.slice(0, 30).trim() || reply.slice(0, 30).trim();
+        if (titleSnippet) {
+          finalTitle = titleSnippet.charAt(0).toUpperCase() + titleSnippet.slice(1);
         }
       }
 
       const completedChat = {
         ...chatWithUser,
-        title: updatedTitle,
-        messages: [...chatWithUser.messages, assistantMessage],
+        title: finalTitle,
+        messages: [...chatWithUser.messages.filter(m => m.id !== assistantMessageId), assistantMessage],
       };
       setChats(current => current.map(c => c.id === chatId ? completedChat : c));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);

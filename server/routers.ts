@@ -49,6 +49,7 @@ import {
 } from "./firestore";
 import { consumeDailyTokens, getDailyQuota, type HannaTier } from "./usage";
 import { performAiHealthCheck } from "./aiHealth";
+import { analyzePromptIntent } from "../api/chat/route";
 import {
   getWorkspaceContributors,
   inviteContributor,
@@ -139,13 +140,9 @@ export async function executeHannaRequest(
   clientIp?: string,
   agenticModeInput: boolean = false
 ) {
-  const lowerPrompt = prompt.toLowerCase();
-  const requiresAgentic =
-    agenticModeInput ||
-    /(schedule task|run agent loop|execute tool action|deep agent scan|agentic execution)/.test(
-      lowerPrompt
-    );
-  const agenticMode = requiresAgentic;
+  const connectedSummariesForIntent = userId ? await listConnectorCredentials(userId) : [];
+  const intent = analyzePromptIntent(prompt, connectedSummariesForIntent.length > 0, agenticModeInput);
+  const agenticMode = intent.route === "route_b";
 
   if (agenticMode) {
     const approvalPlan = buildAgentPlan(prompt);
