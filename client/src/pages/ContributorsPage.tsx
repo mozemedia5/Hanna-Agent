@@ -62,6 +62,41 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
   const [deletingContributor, setDeletingContributor] = useState<Contributor | null>(null);
 
   useEffect(() => {
+    if (user?.email) {
+      setContributors(prev => {
+        const realName = user.displayName || user.email?.split("@")[0] || "Workspace Head";
+        const realEmail = user.email || "owner@workspace.com";
+        const headIndex = prev.findIndex(c => c.role === "head" || c.id === "head_owner");
+
+        if (headIndex >= 0) {
+          if (prev[headIndex].email === realEmail && prev[headIndex].name.includes(realName)) {
+            return prev;
+          }
+          const next = [...prev];
+          next[headIndex] = {
+            ...next[headIndex],
+            email: realEmail,
+            name: `${realName} (Owner)`,
+          };
+          return next;
+        } else {
+          return [
+            {
+              id: "head_owner",
+              email: realEmail,
+              name: `${realName} (Owner)`,
+              role: "head",
+              status: "active",
+              monthlyCreditLimit: 20000,
+            },
+            ...prev,
+          ];
+        }
+      });
+    }
+  }, [user]);
+
+  useEffect(() => {
     localStorage.setItem("hanna_contributors", JSON.stringify(contributors));
   }, [contributors]);
 

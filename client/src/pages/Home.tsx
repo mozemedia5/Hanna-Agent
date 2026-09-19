@@ -102,6 +102,7 @@ type Message = {
   content: string;
   time?: string;
   tokenCount?: number;
+  attachments?: UploadedFile[];
 };
 
 const estimateTokens = (c: string) => Math.max(1, Math.ceil(c.length / 4));
@@ -378,24 +379,33 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     const text = composer.trim();
     if ((!text && attachments.length === 0) || isThinking) return;
     const chatId = activeChatId;
-    let contentWithAttachments = text;
-    if (attachments.length > 0) {
-      const attachSummary = attachments.map(a => `[Attachment (metadata-only): ${a.name} (${a.type.toUpperCase()})]`).join("\n");
-      contentWithAttachments = text ? `${text}\n\n${attachSummary}` : attachSummary;
-    }
+    const sentAttachments = [...attachments];
+
+    // Compute derived instant chat title
+    const currentChat = chats.find(c => c.id === chatId) ?? activeChat;
+    const snippet = (text || sentAttachments[0]?.name || "New Chat").trim().slice(0, 30);
+    const capitalizedTitle = snippet.charAt(0).toUpperCase() + snippet.slice(1);
+    const isNewChat = currentChat.title === "New conversation" || currentChat.title === "Untitled conversation" || currentChat.messages.length === 0;
+    const updatedTitle = isNewChat ? capitalizedTitle : currentChat.title;
+
     const userMessage: Message = {
-      id: `${chatId}-${Date.now()}`, role: "user", content: contentWithAttachments,
-      tokenCount: estimateTokens(contentWithAttachments),
+      id: `${chatId}-${Date.now()}`,
+      role: "user",
+      content: text,
+      attachments: sentAttachments.length > 0 ? sentAttachments : undefined,
+      tokenCount: estimateTokens(text || "Attachment"),
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-    const currentChat = chats.find(c => c.id === chatId) ?? activeChat;
+
+    const attachSummary = sentAttachments.map(a => `[Attachment (metadata-only): ${a.name} (${a.type.toUpperCase()})]`).join("\n");
+    const contentWithAttachments = text ? (attachSummary ? `${text}\n\n${attachSummary}` : text) : attachSummary;
+
     const chatWithUser = {
       ...currentChat,
-      title: currentChat.messages.length === 0 ? (text || attachments[0]?.name || "Attachment").slice(0, 32) : currentChat.title,
+      title: updatedTitle,
       messages: [...currentChat.messages, userMessage],
     };
     setChats(current => current.map(c => c.id === chatId ? chatWithUser : c));
-    const sentAttachments = [...attachments];
     setComposer(""); setAttachments([]); setIsThinking(true);
 
     setIsThinking(true);
@@ -753,13 +763,33 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       <strong>{message.role === "assistant" ? "Hanna" : "You"}</strong>
                       <span>{message.time}</span>
                     </div>
-                    <div className="message-content">
-                      {message.role === "assistant" ? (
-                        <MarkdownMessage content={message.content} />
-                      ) : (
-                        message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)
-                      )}
-                    </div>
+                    {/* Attachment preview for user message */}
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="message-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", marginBottom: message.content ? "8px" : "0" }}>
+                        {message.attachments.map(att => (
+                          <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface)" }}>
+                            {att.type === "image" ? (
+                              <img src={att.dataUrl || att.url} alt="Attachment" style={{ maxWidth: "240px", maxHeight: "200px", objectFit: "cover", display: "block", borderRadius: "12px" }} />
+                            ) : (
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)" }}>
+                                {att.type === "pdf" ? <FileText size={16} style={{ color: "#ea4335" }} /> : <Paperclip size={16} style={{ color: "var(--gemini-accent)" }} />}
+                                <span>{att.name}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {message.content ? (
+                      <div className="message-content">
+                        {message.role === "assistant" ? (
+                          <MarkdownMessage content={message.content} />
+                        ) : (
+                          message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)
+                        )}
+                      </div>
+                    ) : null}
 
                     {/* ChatGPT-style Source & Link Cards when web sources or links are present */}
                     {message.role === "assistant" && (message.content.includes("http://") || message.content.includes("https://") || message.content.includes("[Source")) && (
@@ -922,12 +952,21 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
         <div className="command-center-container">
           {attachments.length > 0 && (
-            <div className="composer-attachments-preview">
+            <div className="composer-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "8px 0" }}>
               {attachments.map(file => (
-                <div key={file.id} className="attachment-chip">
-                  {file.type === "image" ? <ImageIcon size={13} /> : file.type === "pdf" ? <FileText size={13} /> : <Paperclip size={13} />}
-                  <span className="attachment-chip-name">{file.name}</span>
-                  <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" aria-label="Remove attachment"><X size={12} /></button>
+                <div key={file.id} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                  {file.type === "image" ? (
+                    <div style={{ position: "relative", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", width: "56px", height: "56px", background: "var(--surface-raised)" }}>
+                      <img src={file.dataUrl || file.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" style={{ position: "absolute", top: "2px", right: "2px", background: "rgba(0,0,0,0.6)", color: "#fff", width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label="Remove image"><X size={11} /></button>
+                    </div>
+                  ) : (
+                    <div className="attachment-chip" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "10px", background: "var(--surface-raised)", border: "1px solid var(--border)", fontSize: "12px", color: "var(--text-primary)" }}>
+                      {file.type === "pdf" ? <FileText size={14} style={{ color: "#ea4335" }} /> : <Paperclip size={14} style={{ color: "var(--gemini-accent)" }} />}
+                      <span className="attachment-chip-name">{file.name}</span>
+                      <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" aria-label="Remove attachment"><X size={12} /></button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1053,22 +1092,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     </button>
 
                     {modelSubMenuOpen && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: "calc(100% + 8px)",
-                          bottom: 0,
-                          width: "240px",
-                          background: "var(--surface-raised)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "12px",
-                          padding: "8px",
-                          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
-                          zIndex: 110,
-                          display: "grid",
-                          gap: "4px",
-                        }}
-                      >
+                      <div className="models-sub-menu custom-scroll">
                         <div className="plus-menu-group-title" style={{ padding: "4px 8px" }}>Hanna AI Models</div>
                         {[
                           { id: "Hanna Lite (default)", label: "Hanna Lite (default)", desc: "Fast & lightweight intelligence" },

@@ -144,6 +144,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
     setSelectedConnectors(prev =>
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
+    setConnectorDropdownOpen(false);
   };
 
   const handleScheduleTask = async (e: React.FormEvent) => {
