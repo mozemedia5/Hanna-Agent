@@ -272,13 +272,30 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
     }
   }
 
-  // Normal Direct Chat Mode (bypasses agent execution loop completely)
+  // Normal Direct Chat Mode
   try {
     const provider = await getProviderCredentialForRequest(
       userId,
       prompt,
       requestedModel
     );
+
+    // Auto-select connected connector tools for user if connected, even if not explicitly invoked in prompt
+    if (userId) {
+      const connectedConnectors = await listConnectorCredentials(userId);
+      if (connectedConnectors.length > 0) {
+        // Automatically inject capabilities into prompt context
+        const autoConnectorList = connectedConnectors
+          .map(c => {
+            const def = integrations.find(i => i.id === c.connector);
+            return `${c.connector} (${def?.name || c.connector}): ${def?.capabilities.join(", ") || "Active"}`;
+          })
+          .join("; ");
+        context = context
+          ? `${context}\n\n[Auto-Selected Active Connectors & Tools: ${autoConnectorList}]`
+          : `[Auto-Selected Active Connectors & Tools: ${autoConnectorList}]`;
+      }
+    }
 
     const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
     const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
@@ -314,6 +331,9 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
         return `${c.connector}${def ? ` [Capabilities: ${def.capabilities.join(", ")}]` : ""}`;
       });
       const extraLines: string[] = [];
+
+      const userName = userProfile?.displayName?.trim() || "User";
+      extraLines.push(`[User Display Name: ${userName}]`);
 
       if (userProfile?.customInstructions?.trim()) {
         extraLines.push(`[User Personalization Instructions: ${userProfile.customInstructions.trim()}]`);
