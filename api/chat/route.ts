@@ -43,9 +43,9 @@ export function analyzePromptIntent(
     };
   }
 
-  const lower = prompt.toLowerCase();
+  const lower = prompt.toLowerCase().trim();
 
-  // Integrated services & ecosystems keywords
+  // Integrated services & ecosystem keywords
   const connectorKeywords = [
     "shopify", "store", "product", "products", "inventory", "order", "orders", "customer", "customers", "checkout",
     "github", "repo", "repository", "repositories", "commit", "push", "pull request", "issue", "issues", "branch",
@@ -56,28 +56,29 @@ export function analyzePromptIntent(
     "heygen", "synthesia", "creatify", "tiktok", "instagram", "facebook", "telegram", "outlook", "vercel", "vercel deployment"
   ];
 
-  // Action verbs indicating multi-step agentic execution or system alterations
-  const actionVerbs = [
-    "schedule task", "run agent loop", "execute tool", "create product", "update product", "sync inventory",
-    "file alteration", "write file", "deploy", "mcp tool", "check my", "look at my", "find why", "send this",
-    "analyze my", "create a", "delete", "post", "publish", "trigger", "cancel"
+  // Action patterns indicating multi-step agentic execution or system alterations
+  const actionPatterns = [
+    /\bschedule\s+task\b/, /\brun\s+agent\b/, /\bexecute\s+tool\b/, /\bcreate\s+product\b/, /\bupdate\s+product\b/,
+    /\bsync\s+inventory\b/, /\bdeploy\s+(app|site|vercel|project)\b/, /\bmcp\s+tool\b/, /\bsend\s+(email|mail|slack|message)\b/,
+    /\bpost\s+(a\s+)?(message|tweet|ad|campaign)\b/, /\bdelete\s+(product|order|item|file)\b/, /\bcancel\s+(task|schedule)\b/
   ];
 
   const matchedConnectors = connectorKeywords.filter(kw => lower.includes(kw));
-  const matchedActions = actionVerbs.filter(kw => lower.includes(kw));
+  const matchedActionPatterns = actionPatterns.filter(ptn => ptn.test(lower));
 
-  // Determine route B based on connector intent or actionable intent
-  if (matchedConnectors.length > 0 || matchedActions.length > 0) {
+  // High-confidence Route B triggering for external actions, integrations, or multi-step tasks
+  if (matchedConnectors.length > 0 || matchedActionPatterns.length > 0) {
     return {
       route: "route_b",
       confidence: 0.95,
-      reason: `Prompt demands ecosystem actions or tool integrations matching: ${[...matchedConnectors, ...matchedActions].join(", ")}`,
+      reason: `Prompt demands ecosystem integrations or external actions matching: ${matchedConnectors.concat(matchedActionPatterns.map(p => p.source)).join(", ")}`,
       detectedTools: matchedConnectors.length > 0 ? matchedConnectors : ["agentic_action"],
       capabilities: ["tool_execution", "mcp_integration", "react_loop"],
     };
   }
 
-  if (hasConnectedApps && /(check|sync|update|post|send|fetch|get|list|create|delete|search|find|analyze)/.test(lower)) {
+  // Active connected apps triggering
+  if (hasConnectedApps && /\b(check|sync|update|post|send|fetch|get|list|create|delete|search|find|analyze)\b/.test(lower)) {
     return {
       route: "route_b",
       confidence: 0.85,
@@ -87,11 +88,11 @@ export function analyzePromptIntent(
     };
   }
 
-  // Purely conversational, simple question, or standard writing/coding -> Route A
+  // Route A for normal AI conversation, informational Q&A, writing, coding, or factual queries
   return {
     route: "route_a",
     confidence: 0.9,
-    reason: "Prompt is conversational or informational standard Q&A.",
+    reason: "Prompt is normal AI conversation, question, writing, or informational query.",
     detectedTools: [],
     capabilities: ["single_pass_stream"],
   };
@@ -127,13 +128,21 @@ export async function executeRouteAStream(
   try {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
-      throw new Error("Default AI API key not configured.");
+      sendSSE("error", {
+        code: "MISSING_API_KEY",
+        message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured.",
+      });
+      return;
     }
 
     const tier: HannaTier = model === "Hanna Pro" ? "pro" : "lite";
     const quota = consumeDailyTokens(userId ? String(userId) : "guest", Math.ceil(prompt.length / 4), tier);
     if (!quota.allowed) {
-      throw new Error(`Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`);
+      sendSSE("error", {
+        code: "RATE_LIMIT_EXCEEDED",
+        message: `Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`,
+      });
+      return;
     }
 
     const result = await streamUserProvider(
@@ -153,11 +162,10 @@ export async function executeRouteAStream(
       route: "route_a",
     });
   } catch (err) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context);
-    sendSSE("fallback", {
-      text: fallbackText,
-      error: err instanceof Error ? err.message : "Route A execution failed.",
-      route: "route_a_fallback",
+    const errorMessage = err instanceof Error ? err.message : "Route A execution failed.";
+    sendSSE("error", {
+      code: "ROUTE_A_FAILURE",
+      message: errorMessage,
     });
   }
 }
@@ -182,7 +190,11 @@ export async function executeRouteBLoop(
   try {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
-      throw new Error("Default AI API key not configured.");
+      sendSSE("error", {
+        code: "MISSING_API_KEY",
+        message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured.",
+      });
+      return;
     }
 
     const connectedSummaries = userId ? await listConnectorCredentials(userId) : [];
