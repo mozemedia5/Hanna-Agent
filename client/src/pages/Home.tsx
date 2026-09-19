@@ -19,6 +19,7 @@ import {
   Edit3,
   ExternalLink,
   FileText,
+  FolderKanban,
   FolderPlus,
   FolderUp,
   Globe2,
@@ -71,6 +72,7 @@ import ProfilePage from "./ProfilePage";
 import UpgradePage from "./UpgradePage";
 import UsagePage from "./UsagePage";
 import ContributorsPage from "./ContributorsPage";
+import ProjectsPage from "./ProjectsPage";
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 
@@ -83,7 +85,8 @@ type Page =
   | "profile"
   | "upgrade"
   | "usage"
-  | "contributors";
+  | "contributors"
+  | "projects";
 
 type ToolKey =
   | "Web Search"
@@ -184,7 +187,13 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [searchQuery, setSearchQuery] = useState("");
   const [showScheduleTaskModal, setShowScheduleTaskModal] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
+  const [taskPrompt, setTaskPrompt] = useState("");
   const [taskDate, setTaskDate] = useState("");
+  const [taskRepeat, setTaskRepeat] = useState<"once" | "daily" | "weekly" | "monthly">("once");
+  const [taskTools, setTaskTools] = useState<string[]>(["Web Search"]);
+
+  // SpeechSynthesis active message ID state
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
   // Gemini-style dynamic action status when AI is working
   const [thinkingStatus, setThinkingStatus] = useState("Thinking...");
@@ -453,6 +462,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
+    { icon: FolderKanban, label: "Projects", page: "projects" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
     { icon: Users, label: "Contributors", page: "contributors" as Page },
     { icon: Layers3, label: "Collections", page: "collections" as Page },
@@ -731,14 +741,27 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         <button
                           type="button"
                           onClick={() => {
-                            if (window.speechSynthesis) {
-                              if (window.speechSynthesis.speaking) {
+                            if (typeof window !== "undefined" && window.speechSynthesis) {
+                              if (window.speechSynthesis.speaking && speakingMessageId === message.id) {
                                 window.speechSynthesis.cancel();
+                                setSpeakingMessageId(null);
                                 showToast("Read Aloud stopped");
                               } else {
-                                const utterance = new SpeechSynthesisUtterance(message.content.replaceAll(/[*#_`]/g, ""));
+                                window.speechSynthesis.cancel();
+                                const cleanText = message.content
+                                  .replace(/```[\s\S]*?```/g, "Code block omitted.")
+                                  .replace(/`([^`]+)`/g, "$1")
+                                  .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+                                  .replace(/[*#_~\-\\\[\]\(\)\{\}]/g, " ")
+                                  .replace(/\s+/g, " ")
+                                  .trim();
+
+                                const utterance = new SpeechSynthesisUtterance(cleanText);
                                 utterance.rate = 1.0;
                                 utterance.pitch = 1.0;
+                                utterance.onend = () => setSpeakingMessageId(null);
+                                utterance.onerror = () => setSpeakingMessageId(null);
+                                setSpeakingMessageId(message.id);
                                 window.speechSynthesis.speak(utterance);
                                 showToast("Reading Aloud...");
                               }
@@ -746,9 +769,20 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                               showToast("Speech synthesis not supported on this browser.");
                             }
                           }}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontSize: "12px",
+                            background: "transparent",
+                            border: "none",
+                            color: speakingMessageId === message.id ? "var(--gemini-accent, #1a73e8)" : "var(--text-secondary)",
+                            fontWeight: speakingMessageId === message.id ? "600" : "normal",
+                            cursor: "pointer",
+                          }}
                         >
-                          <Volume2 size={13} /> Read Aloud
+                          {speakingMessageId === message.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                          {speakingMessageId === message.id ? "Stop Reading" : "Read Aloud"}
                         </button>
 
                         <button
@@ -993,6 +1027,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
       case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
       case "contributors": content = <ContributorsPage onBack={handleBack} />; break;
+      case "projects": content = <ProjectsPage onBack={handleBack} />; break;
       default: return renderChatPage();
     }
     return <div className="workspace-body custom-scroll">{content}</div>;
@@ -1207,35 +1242,131 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       {/* Schedule Task Modal */}
       {showScheduleTaskModal && (
         <div className="modal-overlay" onClick={() => setShowScheduleTaskModal(false)}>
-          <div className="modal-content" style={{ maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: "460px", padding: "20px" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Schedule Task</h3>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Calendar size={16} style={{ color: "var(--gemini-accent)" }} /> Schedule Task
+              </h3>
               <button onClick={() => setShowScheduleTaskModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
             </div>
-            <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)" }}>
-              Schedule Hanna to automatically re-run or perform this action later.
+            <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+              Specify the prompt, execution time, tools to use, and repetition frequency for automated execution.
             </p>
-            <div style={{ display: "grid", gap: "10px", marginBottom: "18px" }}>
-              <input
-                type="text"
-                value={taskTitle}
-                onChange={e => setTaskTitle(e.target.value)}
-                placeholder="Task description..."
-                style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
-              />
-              <input
-                type="datetime-local"
-                value={taskDate}
-                onChange={e => setTaskDate(e.target.value)}
-                style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
-              />
+            <div style={{ display: "grid", gap: "12px", marginBottom: "18px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px", color: "var(--text-secondary)" }}>
+                  Task Title
+                </label>
+                <input
+                  type="text"
+                  value={taskTitle}
+                  onChange={e => setTaskTitle(e.target.value)}
+                  placeholder="Task title..."
+                  style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px", color: "var(--text-secondary)" }}>
+                  Task Prompt / Action Instructions
+                </label>
+                <textarea
+                  value={taskPrompt}
+                  onChange={e => setTaskPrompt(e.target.value)}
+                  placeholder="Provide the exact instructions for Hanna to execute..."
+                  rows={3}
+                  style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px", color: "var(--text-secondary)" }}>
+                    Execution Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={taskDate}
+                    onChange={e => setTaskDate(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px", color: "var(--text-secondary)" }}>
+                    Repeat Schedule
+                  </label>
+                  <select
+                    value={taskRepeat}
+                    onChange={e => setTaskRepeat(e.target.value as any)}
+                    style={{ width: "100%", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px" }}
+                  >
+                    <option value="once">Once</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
+                  Tools to Use
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {["Web Search", "Deep Think", "Shopify Connector", "Slack Connector", "Google Workspace"].map(tool => {
+                    const isSelected = taskTools.includes(tool);
+                    return (
+                      <button
+                        key={tool}
+                        type="button"
+                        onClick={() => {
+                          setTaskTools(prev =>
+                            isSelected ? prev.filter(t => t !== tool) : [...prev, tool]
+                          );
+                        }}
+                        style={{
+                          fontSize: "12px",
+                          padding: "5px 10px",
+                          borderRadius: "8px",
+                          border: `1px solid ${isSelected ? "var(--gemini-accent)" : "var(--border)"}`,
+                          background: isSelected ? "rgba(26, 115, 232, 0.15)" : "var(--surface)",
+                          color: isSelected ? "var(--gemini-accent)" : "var(--text-secondary)",
+                          cursor: "pointer",
+                          fontWeight: isSelected ? "600" : "400",
+                        }}
+                      >
+                        {isSelected ? "✓ " : "+ "}{tool}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
+
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <Button variant="outline" onClick={() => setShowScheduleTaskModal(false)}>Cancel</Button>
               <Button onClick={() => {
+                if (!taskTitle.trim() || !taskPrompt.trim()) {
+                  showToast("Please enter a task title and prompt instructions.");
+                  return;
+                }
+                fetch("/api/trpc/hanna.scheduleTask?batch=1", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    "0": {
+                      title: taskTitle.trim(),
+                      prompt: taskPrompt.trim(),
+                      executionTime: taskDate || new Date().toISOString(),
+                      repeat: taskRepeat,
+                      tools: taskTools,
+                    }
+                  }),
+                }).catch(() => undefined);
                 setShowScheduleTaskModal(false);
-                showToast("Task scheduled successfully!");
-              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Schedule</Button>
+                setTaskPrompt("");
+                showToast(`Task "${taskTitle.trim()}" scheduled successfully!`);
+              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Schedule Task</Button>
             </div>
           </div>
         </div>
@@ -1243,73 +1374,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
       {showShareModal && (
         <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
-          <div className="modal-content" style={{ maxWidth: "460px", padding: "18px 20px" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+          <div className="modal-content" style={{ maxWidth: "440px", padding: "20px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
                 <Share2 size={16} style={{ color: "var(--gemini-accent)" }} /> Share Conversation
               </h3>
               <button onClick={() => setShowShareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}><X size={16} /></button>
             </div>
-            <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-              Share <strong>"{activeChat.title}"</strong> directly to messaging apps or with workspace contributors.
+            <p style={{ margin: "0 0 16px", fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+              Share <strong>"{activeChat.title}"</strong> using a direct workspace link or invite team contributors.
             </p>
 
-            {/* Direct Messaging Apps Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "14px" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  const shareText = encodeURIComponent(`Check out this Hanna conversation: "${activeChat.title}"\n${window.location.href}`);
-                  window.open(`https://wa.me/?text=${shareText}`, "_blank");
-                  showToast("Opening WhatsApp...");
-                }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#25D366", color: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "none", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
-              >
-                <span>WhatsApp</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const url = encodeURIComponent(window.location.href);
-                  const text = encodeURIComponent(`Hanna Chat: "${activeChat.title}"`);
-                  window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank");
-                  showToast("Opening Telegram...");
-                }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#0088cc", color: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "none", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
-              >
-                <span>Telegram</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const text = encodeURIComponent(`Exploring "${activeChat.title}" with Hanna AI Commerce Operator!`);
-                  const url = encodeURIComponent(window.location.href);
-                  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
-                  showToast("Opening X (Twitter)...");
-                }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "#000000", color: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
-              >
-                <span>X / Twitter</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const subject = encodeURIComponent(`Hanna Conversation: ${activeChat.title}`);
-                  const body = encodeURIComponent(`Take a look at this conversation:\n\nTitle: ${activeChat.title}\nLink: ${window.location.href}`);
-                  window.open(`mailto:?subject=${subject}&body=${body}`);
-                  showToast("Opening Mail app...");
-                }}
-                style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--surface-raised)", color: "var(--text-primary)", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", fontWeight: "600", fontSize: "12px", cursor: "pointer" }}
-              >
-                <span>Email</span>
-              </button>
-            </div>
-
-            {/* Quick Copy Link & Native Web Share */}
-            <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+            {/* Fixed Action Buttons: Copy Link and Native Share */}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
               <Button
                 variant="outline"
                 className="w-full"
@@ -1317,29 +1394,32 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   navigator.clipboard.writeText(window.location.href);
                   showToast("Conversation link copied!");
                 }}
-                style={{ fontSize: "12px", borderRadius: "8px", padding: "6px 12px" }}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "13px", borderRadius: "10px", padding: "10px 14px", fontWeight: "600" }}
               >
-                Copy Link
+                <Copy size={14} /> Copy Link
               </Button>
-              {typeof navigator !== "undefined" && navigator.share && (
-                <Button
-                  className="w-full"
-                  onClick={() => {
+              <Button
+                className="w-full"
+                onClick={() => {
+                  if (typeof navigator !== "undefined" && navigator.share) {
                     navigator.share({
                       title: activeChat.title,
                       text: `Hanna Conversation: ${activeChat.title}`,
                       url: window.location.href,
                     }).catch(() => undefined);
-                  }}
-                  style={{ background: "var(--gemini-accent)", color: "#ffffff", fontSize: "12px", borderRadius: "8px", padding: "6px 12px" }}
-                >
-                  Share
-                </Button>
-              )}
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    showToast("Conversation link copied!");
+                  }
+                }}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "var(--gemini-accent)", color: "#ffffff", fontSize: "13px", borderRadius: "10px", padding: "10px 14px", fontWeight: "600" }}
+              >
+                <Share2 size={14} /> Share
+              </Button>
             </div>
 
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "14px", marginBottom: "14px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: "var(--text-secondary)" }}>
                 Share directly with Workspace Contributors
               </label>
               <textarea
@@ -1347,7 +1427,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 onChange={e => setShareEmails(e.target.value)}
                 placeholder="colleague1@company.com, colleague2@company.com"
                 rows={2}
-                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 10px", color: "var(--text-primary)", fontSize: "12px" }}
+                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px", color: "var(--text-primary)", fontSize: "13px" }}
               />
             </div>
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>

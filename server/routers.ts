@@ -21,6 +21,7 @@ import {
   DynamicToolRegistry,
   runAgentLoop,
   synthesizeFallbackResponse,
+  taskScheduler,
   type AgentTool,
 } from "./agentCore";
 import { integrations } from "../shared/integrations";
@@ -656,6 +657,36 @@ export const appRouter = router({
           provider: input?.provider,
         })
       ),
+    scheduleTask: publicProcedure
+      .input(
+        z.object({
+          title: z.string().min(1).max(300),
+          prompt: z.string().min(1).max(20000),
+          executionTime: z.string().min(1),
+          repeat: z.enum(["once", "daily", "weekly", "monthly"]).default("once"),
+          tools: z.array(z.string()).default([]),
+        })
+      )
+      .mutation(({ ctx, input }) => {
+        const scheduled = taskScheduler.scheduleTask({
+          userId: ctx.user?.id,
+          title: input.title,
+          description: input.prompt,
+          cronOrSchedule: `${input.executionTime} (${input.repeat})`,
+          action: "scheduled_agent_run",
+          parameters: {
+            prompt: input.prompt,
+            executionTime: input.executionTime,
+            repeat: input.repeat,
+            tools: input.tools,
+          },
+        });
+        return { success: true, task: scheduled };
+      }),
+    listScheduledTasks: publicProcedure.query(({ ctx }) => {
+      const tasks = taskScheduler.listTasks(ctx.user?.id);
+      return { tasks };
+    }),
   }),
 });
 
