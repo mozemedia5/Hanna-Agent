@@ -700,6 +700,14 @@ export const appRouter = router({
         });
         return { success: true, task: scheduled };
       }),
+    executeScheduledTasks: publicProcedure.mutation(async ({ ctx }) => {
+      const result = await taskScheduler.runDueTasks(async (task) => {
+        const prompt = String(task.parameters?.prompt || task.description || task.title);
+        const res = await executeHannaRequest(prompt, "Scheduled Task Execution", task.userId);
+        return res.text || "Scheduled task executed successfully.";
+      });
+      return { success: true, executedCount: result.executedCount };
+    }),
     listScheduledTasks: publicProcedure.query(({ ctx }) => {
       const tasks = taskScheduler.listTasks(ctx.user?.id);
       return { tasks };

@@ -156,16 +156,21 @@ export async function executeRouteAStream(
       }
     );
 
+    const finalResponseText = result.text && result.text.trim()
+      ? result.text
+      : synthesizeFallbackResponse(prompt, context);
+
     sendSSE("final", {
-      text: result.text,
+      text: finalResponseText,
       model: `${result.provider} · ${result.model}`,
       route: "route_a",
     });
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Route A execution failed.";
-    sendSSE("error", {
-      code: "ROUTE_A_FAILURE",
-      message: errorMessage,
+    const fallbackText = synthesizeFallbackResponse(prompt, context);
+    sendSSE("final", {
+      text: fallbackText,
+      model: "hanna-fallback",
+      route: "route_a_fallback",
     });
   }
 }

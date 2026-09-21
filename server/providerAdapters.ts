@@ -330,6 +330,13 @@ export async function streamUserProvider(
 
         if (fullText.trim()) {
           return { text: fullText, provider: "gemini", model: modelName };
+        } else {
+          // Fallback to direct invocation if stream yielded empty text
+          const directText = await invokeUserProvider({ ...request, model: modelName }).catch(() => "");
+          if (directText && directText.trim()) {
+            onChunk(directText);
+            return { text: directText, provider: "gemini", model: modelName };
+          }
         }
       } catch (err) {
         if (err instanceof Error) {

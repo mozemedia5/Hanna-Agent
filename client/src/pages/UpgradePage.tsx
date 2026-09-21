@@ -154,7 +154,7 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
         maxWidth: "1180px",
         margin: "0 auto"
       }}>
-        {/* Starter Free Plan */}
+        {/* Starter Plan ($5.99 USD) */}
         <div className="pricing-card" style={{
           background: "var(--surface-raised)",
           border: "1px solid var(--border)",
@@ -170,13 +170,14 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
                 Starter
               </span>
               <span style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: "11px", padding: "3px 8px", borderRadius: "999px", color: "var(--text-secondary)" }}>
-                Free
+                Entry
               </span>
             </div>
 
             <div style={{ marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                <span style={{ fontSize: "32px", fontWeight: "800", color: "var(--text-primary)" }}>Free</span>
+                <span style={{ fontSize: "32px", fontWeight: "800", color: "var(--text-primary)" }}>$5.99</span>
+                <span style={{ color: "var(--text-tertiary)", fontSize: "13px" }}>/ mo</span>
               </div>
               <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
                 500 credits weekly. Great for single workspace creators.
@@ -206,9 +207,9 @@ export default function UpgradePage({ onBack }: UpgradePageProps) {
           <Button
             variant="outline"
             style={{ width: "100%", borderRadius: "10px", padding: "10px" }}
-            onClick={() => showToast("You are on the Starter Free Plan")}
+            onClick={() => handleSelectPlan("Starter")}
           >
-            Current Plan
+            Get Starter Plan
           </Button>
         </div>
 

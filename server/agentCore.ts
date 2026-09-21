@@ -100,9 +100,11 @@ export type ScheduledTask = {
   title: string;
   description?: string;
   cronOrSchedule: string;
-  status: "scheduled" | "active" | "completed" | "cancelled";
+  status: "scheduled" | "active" | "completed" | "cancelled" | "failed";
   action: string;
   parameters?: Record<string, unknown>;
+  lastExecutionResult?: string;
+  executedAt?: string;
   createdAt: string;
 };
 
@@ -129,6 +131,53 @@ export class TaskSchedulerManager {
     };
     this.tasks.set(id, created);
     return created;
+  }
+
+  markCompleted(taskId: string, resultSummary: string): boolean {
+    const existing = this.tasks.get(taskId);
+    if (!existing) return false;
+    existing.status = "completed";
+    existing.lastExecutionResult = resultSummary;
+    existing.executedAt = new Date().toISOString();
+    this.tasks.set(taskId, existing);
+    return true;
+  }
+
+  markFailed(taskId: string, errorMsg: string): boolean {
+    const existing = this.tasks.get(taskId);
+    if (!existing) return false;
+    existing.status = "failed";
+    existing.lastExecutionResult = errorMsg;
+    existing.executedAt = new Date().toISOString();
+    this.tasks.set(taskId, existing);
+    return true;
+  }
+
+  async runDueTasks(
+    executor: (task: ScheduledTask) => Promise<string>
+  ): Promise<{ executedCount: number }> {
+    const now = new Date();
+    let executedCount = 0;
+    for (const task of Array.from(this.tasks.values())) {
+      if (task.status === "scheduled") {
+        const timeStr = String(task.parameters?.executionTime || "");
+        const parseTime = timeStr ? new Date(timeStr) : null;
+        const isDue = parseTime && !isNaN(parseTime.getTime()) ? parseTime <= now : true;
+
+        if (isDue) {
+          task.status = "active";
+          try {
+            const summary = await executor(task);
+            this.markCompleted(task.id, summary);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Execution error";
+            this.markFailed(task.id, msg);
+          }
+          executedCount++;
+        }
+      }
+    }
+    return { executedCount };
   }
 
   listTasks(userId?: number): ScheduledTask[] {
