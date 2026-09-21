@@ -545,15 +545,59 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <button className="icon-button" onClick={() => setSidebarOpen(c => !c)} aria-label="Toggle sidebar" style={{ flexShrink: 0 }}>
             <Menu size={18} />
           </button>
+
+          {/* Gemini-style Model Picker Pill */}
+          <div className="model-picker" style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              type="button"
+              className="model-button"
+              onClick={() => setModelMenuOpen(o => !o)}
+              title="Select AI Model"
+            >
+              <Sparkles size={14} style={{ color: "var(--gemini-accent)" }} />
+              <span>{model}</span>
+              <ChevronDown size={14} style={{ color: "var(--text-tertiary)" }} />
+            </button>
+
+            {modelMenuOpen && (
+              <div className="model-menu">
+                {[
+                  { id: "Hanna Lite (default)", label: "Hanna Lite (default)", desc: "Fast & lightweight intelligence" },
+                  { id: "Hanna Pro", label: "Hanna Pro", desc: "Deep reasoning & multimodal research" },
+                  { id: "Hanna Speed", label: "Hanna Speed", desc: "Ultra-fast response synthesis" },
+                  { id: "Hanna Vision & Research", label: "Hanna Vision & Research", desc: "Advanced visual & document intelligence" },
+                  { id: "Hanna Enterprise", label: "Hanna Enterprise", desc: "Maximum capacity & high precision" },
+                ].map(mOpt => (
+                  <button
+                    key={mOpt.id}
+                    type="button"
+                    className={`model-option ${model === mOpt.id ? "is-selected" : ""}`}
+                    onClick={() => {
+                      setModel(mOpt.id);
+                      setModelMenuOpen(false);
+                      showToast(`Model switched to ${mOpt.label}`);
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                      <span>{mOpt.label}</span>
+                      <small style={{ fontSize: "10px", color: "var(--text-tertiary)" }}>{mOpt.desc}</small>
+                    </div>
+                    {model === mOpt.id && <Check size={14} style={{ color: "var(--gemini-accent)" }} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div
             style={{
-              fontSize: "14px",
+              fontSize: "13px",
               fontWeight: "600",
-              color: "var(--text-primary)",
+              color: "var(--text-secondary)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              maxWidth: "220px",
+              maxWidth: "180px",
               flexShrink: 1,
             }}
             title={activeChat.title}
@@ -571,9 +615,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               border: "1px solid var(--border)",
               borderRadius: "9999px",
               padding: "4px 10px",
-              maxWidth: "240px",
+              maxWidth: "200px",
               width: "100%",
-              marginLeft: "8px",
+              marginLeft: "4px",
             }}
           >
             <Search size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
@@ -603,7 +647,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           </div>
         </div>
 
-        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
           {/* New chat button in top header */}
           <button
             type="button"
@@ -612,8 +656,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              padding: "6px 12px",
-              borderRadius: "8px",
+              padding: "6px 14px",
+              borderRadius: "9999px",
               background: "var(--surface-raised)",
               border: "1px solid var(--border)",
               color: "var(--text-primary)",
