@@ -6,12 +6,27 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read, write: if owns(uid);
+
       match /conversations/{conversationId} {
         allow read, create, update, delete: if owns(uid);
       }
+
+      match /scheduled_tasks/{taskId} {
+        allow read, create, update, delete: if owns(uid);
+      }
+
+      match /projects/{projectId} {
+        allow read, create, update, delete: if owns(uid);
+      }
+
+      match /contributors/{contributorId} {
+        allow read, create, update, delete: if owns(uid);
+      }
+
       match /private/{documentId} {
         allow read, create, update, delete: if owns(uid);
       }
+
       match /usage/{usageId} {
         allow read: if owns(uid);
         allow create, update: if owns(uid) && request.resource.data.uid == uid;

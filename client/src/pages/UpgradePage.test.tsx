@@ -15,7 +15,7 @@ describe("UpgradePage Component", () => {
 
     expect(screen.getByText(/Upgrade your Hanna Experience/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Starter/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Free/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\$5\.99/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/500 credits weekly/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/1,000 credits per week/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Max/i).length).toBeGreaterThan(0);

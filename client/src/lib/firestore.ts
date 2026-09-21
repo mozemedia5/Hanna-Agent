@@ -53,6 +53,17 @@ export async function saveUserConversation(conversation: ClientConversation) {
     { merge: true }
   );
 }
+
+export async function deleteUserConversation(conversationId: string) {
+  try {
+    const { db, uid } = requireStore();
+    const ref = doc(db, "users", uid, "conversations", conversationId);
+    const { deleteDoc } = await import("firebase/firestore");
+    await deleteDoc(ref);
+  } catch {
+    // Session offline or unauthenticated fallback
+  }
+}
 export async function getUserProfile() {
   const { db, uid } = requireStore();
   const authUser = getFirebaseAuth()?.currentUser;

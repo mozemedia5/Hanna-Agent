@@ -59,6 +59,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
 import {
+  deleteUserConversation,
   listUserConversations,
   saveUserConversation,
   type ClientConversation,
@@ -195,6 +196,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [taskRepeat, setTaskRepeat] = useState<"once" | "daily" | "weekly" | "monthly">("once");
   const [taskTools, setTaskTools] = useState<string[]>(["Web Search"]);
 
+  // Lightbox Modal for full-resolution view of uploaded images
+  const [lightboxImageUrl, setLightboxModalImageUrl] = useState<string | null>(null);
+
+  // Confirmatory Delete Chat Modal
+  const [deleteChatId, setDeleteChatId] = useState<number | null>(null);
+
   // SpeechSynthesis active message & audio player state
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [isAudioPaused, setIsAudioPaused] = useState(false);
@@ -298,9 +305,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     window.setTimeout(() => composerRef.current?.focus(), 0);
   };
 
-  const deleteChat = (id: number) => {
+  const confirmDeleteChat = (id: number) => {
+    setDeleteChatId(id);
+  };
+
+  const executeDeleteChat = (id: number) => {
     const remaining = chats.filter(c => c.id !== id);
     setChats(remaining);
+    void deleteUserConversation(String(id)).catch(() => undefined);
     if (activeChatId === id) {
       if (remaining.length) {
         setActiveChatId(remaining[0].id);
@@ -308,7 +320,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         createChat();
       }
     }
-    showToast("Chat deleted");
+    setDeleteChatId(null);
+    showToast("Chat deleted successfully");
   };
 
   const archiveChat = (id: number) => {
@@ -528,16 +541,69 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const renderChatPage = () => (
     <>
       <header className="workspace-header">
-        <div className="header-leading" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <button className="icon-button" onClick={() => setSidebarOpen(c => !c)} aria-label="Toggle sidebar">
+        <div className="header-leading" style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: "1 1 auto", marginRight: "12px" }}>
+          <button className="icon-button" onClick={() => setSidebarOpen(c => !c)} aria-label="Toggle sidebar" style={{ flexShrink: 0 }}>
             <Menu size={18} />
           </button>
-          <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-primary)" }}>
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "var(--text-primary)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "220px",
+              flexShrink: 1,
+            }}
+            title={activeChat.title}
+          >
             {activeChat.title}
+          </div>
+
+          {/* Inline Chat Search Input in Navbar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "var(--surface-raised)",
+              border: "1px solid var(--border)",
+              borderRadius: "9999px",
+              padding: "4px 10px",
+              maxWidth: "240px",
+              width: "100%",
+              marginLeft: "8px",
+            }}
+          >
+            <Search size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search chats..."
+              style={{
+                width: "100%",
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                fontSize: "12px",
+                color: "var(--text-primary)",
+                padding: 0,
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                style={{ background: "transparent", border: "none", color: "var(--text-tertiary)", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
           {/* New chat button in top header */}
           <button
             type="button"
@@ -647,7 +713,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   style={{ color: "#ea4335" }}
                   onClick={() => {
                     setHeaderMenuOpen(false);
-                    deleteChat(activeChat.id);
+                    confirmDeleteChat(activeChat.id);
                   }}
                 >
                   <Trash2 size={15} /> <span>Delete chat</span>
@@ -735,13 +801,24 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       <strong>{message.role === "assistant" ? "Hanna" : "You"}</strong>
                       <span>{message.time}</span>
                     </div>
-                    {/* Attachment preview for user message */}
+                    {/* Attachment preview for user message - styled like input thumbnail badges with click-to-view */}
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="message-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", marginBottom: message.content ? "8px" : "0" }}>
                         {message.attachments.map(att => (
-                          <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface)" }}>
+                          <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-raised)", display: "inline-flex", alignItems: "center" }}>
                             {att.type === "image" ? (
-                              <img src={att.dataUrl || att.url} alt="Attachment" style={{ maxWidth: "240px", maxHeight: "200px", objectFit: "cover", display: "block", borderRadius: "12px" }} />
+                              <button
+                                type="button"
+                                onClick={() => setLightboxModalImageUrl(att.dataUrl || att.url)}
+                                style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", display: "block" }}
+                                title="Click to view image"
+                              >
+                                <img
+                                  src={att.dataUrl || att.url}
+                                  alt={att.name || "Uploaded image"}
+                                  style={{ width: "64px", height: "56px", objectFit: "cover", display: "block", borderRadius: "10px", transition: "transform 0.15s ease" }}
+                                />
+                              </button>
                             ) : (
                               <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)" }}>
                                 {att.type === "pdf" ? <FileText size={16} style={{ color: "#ea4335" }} /> : <Paperclip size={16} style={{ color: "var(--gemini-accent)" }} />}
@@ -1300,10 +1377,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           <button className="sidebar-link" onClick={() => showToast("Search is ready")} style={{ marginTop: "8px" }}>
             <Search size={16} /><span>Search chats</span>
           </button>
-          <div className="history-label">Recent chats</div>
+          <div className="history-label">Recent chats {searchQuery ? `(matching "${searchQuery}")` : ""}</div>
           <div className="history-list">
             {(["Today", "Yesterday", "Previous 7 days"] as const).map(period => {
-              const group = chats.filter(c => c.period === period);
+              const group = chats
+                .filter(c => c.period === period)
+                .filter(c => {
+                  if (!searchQuery.trim()) return true;
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    c.title.toLowerCase().includes(q) ||
+                    c.messages.some(m => m.content.toLowerCase().includes(q))
+                  );
+                });
               if (!group.length) return null;
               return (
                 <div className="history-group" key={period}>
@@ -1379,6 +1465,25 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
               <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancel</Button>
               <Button onClick={async () => { setShowLogoutDialog(false); await onLogout?.(); }} style={{ background: "#ea4335", color: "#ffffff" }}>Log out</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmatory Chat Deletion Modal Dialog */}
+      {deleteChatId !== null && (
+        <div className="modal-overlay" onClick={() => setDeleteChatId(null)}>
+          <div className="modal-content" style={{ maxWidth: "400px", textAlign: "center", padding: "24px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "rgba(234,67,53,0.12)", color: "#ea4335", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "12px" }}>
+              <Trash2 size={22} />
+            </div>
+            <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: "700" }}>Delete Conversation?</h3>
+            <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Are you sure you want to delete this chat? This action cannot be undone and important message history will be permanently deleted.
+            </p>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+              <Button variant="outline" onClick={() => setDeleteChatId(null)}>Cancel</Button>
+              <Button onClick={() => executeDeleteChat(deleteChatId)} style={{ background: "#ea4335", color: "#ffffff", fontWeight: "600" }}>Delete Chat</Button>
             </div>
           </div>
         </div>
@@ -1682,6 +1787,30 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           </div>
         </div>
       )}
+      {/* Lightbox Modal for Full Resolution Image Viewing */}
+      {lightboxImageUrl && (
+        <div
+          className="modal-overlay"
+          onClick={() => setLightboxModalImageUrl(null)}
+          style={{ zIndex: 10000, background: "rgba(0, 0, 0, 0.85)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setLightboxModalImageUrl(null)}
+              style={{ position: "absolute", top: "-40px", right: "0", background: "rgba(255, 255, 255, 0.2)", border: "none", color: "#ffffff", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              aria-label="Close image viewer"
+            >
+              <X size={18} />
+            </button>
+            <img
+              src={lightboxImageUrl}
+              alt="Uploaded full view"
+              style={{ maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain", borderRadius: "16px", boxShadow: "0 20px 40px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)" }}
+            />
+          </div>
+        </div>
+      )}
+
       {toast && <div className="hanna-toast"><Check size={15} /> {toast}</div>}
     </div>
   );

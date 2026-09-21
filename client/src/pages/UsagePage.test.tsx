@@ -10,12 +10,12 @@ afterEach(() => {
 });
 
 describe("UsagePage Component", () => {
-  it("renders Starter Free plan, credit allowance, and usage stats", () => {
+  it("renders Starter plan, credit allowance, and usage stats", () => {
     render(<UsagePage />);
 
     expect(screen.getByText(/Usage & Credit Limits/i)).toBeInTheDocument();
-    expect(screen.getByText(/Starter Free Plan/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Free/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Starter Plan/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/\$5\.99 USD/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/500 Credits/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Weekly Credit Usage/i)).toBeInTheDocument();
     expect(screen.getByText(/Conversation Analytics/i)).toBeInTheDocument();

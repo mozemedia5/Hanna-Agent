@@ -94,7 +94,7 @@ export default function UsagePage({
             <CreditCard size={20} />
           </div>
           <div>
-            <h3>Starter Free Plan</h3>
+            <h3>Starter Plan</h3>
             <span className="settings-card-subtitle">Default Workspace Plan</span>
           </div>
           <span
@@ -133,9 +133,9 @@ export default function UsagePage({
             <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block", marginBottom: "4px" }}>
               Plan Price
             </span>
-            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>Free</strong>
+            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>$5.99 USD</strong>
             <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>
-              Free forever
+              Monthly billing
             </span>
           </div>
 
