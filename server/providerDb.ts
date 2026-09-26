@@ -53,15 +53,13 @@ export const providerCatalog = [
   },
   {
     id: "llama",
-    name: "Llama / Groq",
+    name: "Hanna Fast Engine",
     category: "AI model",
     placeholder: "gsk_...",
     docUrl: "https://console.groq.com/keys",
     instructions: [
-      "Log into console.groq.com.",
-      "Navigate to API Keys under Developer settings.",
-      "Click 'Create API Key'.",
-      "Copy your Groq key starting with 'gsk_' and paste below.",
+      "Server uses GROQ_API_KEY for Hanna Fast / Instant / Advanced models.",
+      "Optionally add a personal key here to override the workspace default.",
     ],
   },
   {
@@ -91,110 +89,6 @@ export const providerCatalog = [
     ],
   },
   {
-    id: "heygen",
-    name: "HeyGen Video AI",
-    category: "Content Creation",
-    placeholder: "heygen_...",
-    docUrl: "https://docs.heygen.com/reference/api-key-1",
-    instructions: [
-      "Log into HeyGen Space Settings.",
-      "Go to Space -> API Keys.",
-      "Generate an API token.",
-      "Paste your key below.",
-    ],
-  },
-  {
-    id: "lovable",
-    name: "Lovable AI",
-    category: "Developer",
-    placeholder: "lovable_...",
-    docUrl: "https://docs.lovable.dev",
-    instructions: [
-      "Log into lovable.dev.",
-      "Go to Account Settings -> API Keys.",
-      "Generate an API key.",
-      "Paste your key below.",
-    ],
-  },
-  {
-    id: "synthesia",
-    name: "Synthesia AI",
-    category: "Content Creation",
-    placeholder: "synth_...",
-    docUrl: "https://docs.synthesia.io/getting-started/api-keys",
-    instructions: [
-      "Log into your Synthesia account.",
-      "Go to Settings -> API Keys.",
-      "Generate a new key.",
-      "Paste your key below.",
-    ],
-  },
-  {
-    id: "elevenlabs",
-    name: "ElevenLabs Voice AI",
-    category: "Content Creation",
-    placeholder: "xi-...",
-    docUrl: "https://elevenlabs.io/docs/api-reference/text-to-speech",
-    instructions: [
-      "Log into ElevenLabs.",
-      "Click Profile icon -> Profile & API Keys.",
-      "Copy your API key.",
-      "Paste below.",
-    ],
-  },
-  {
-    id: "cloudinary",
-    name: "Cloudinary",
-    category: "Media",
-    placeholder: "cloudinary://...",
-    docUrl: "https://cloudinary.com/documentation/cloudinary_references",
-    instructions: [
-      "Log into Cloudinary Console.",
-      "Go to Dashboard -> Product Environment Credentials.",
-      "Copy your API Environment variable / key.",
-      "Paste below.",
-    ],
-  },
-  {
-    id: "jules",
-    name: "Jules Agent",
-    category: "Developer",
-    placeholder: "jules_...",
-    docUrl: "https://jules.google/docs",
-    instructions: [
-      "Access Google Jules Developer Portal.",
-      "Go to API Settings.",
-      "Generate a Jules Agent Token.",
-      "Paste your API key below.",
-    ],
-  },
-  {
-    id: "stitch",
-    name: "Stitch UI",
-    category: "Design",
-    placeholder: "stitch_...",
-    docUrl: "https://stitch.google/docs",
-    instructions: [
-      "Access Google Stitch UI Console.",
-      "Navigate to API Keys.",
-      "Generate a new API Token.",
-      "Paste your key below.",
-    ],
-  },
-  {
-    id: "v0",
-    name: "v0 Generator",
-    category: "Developer",
-    placeholder: "v0_...",
-    docUrl: "https://v0.dev/docs/api",
-    instructions: [
-      "Log into v0.dev.",
-      "Go to Account Settings -> API Keys.",
-      "Create a secret token.",
-      "Paste your key below.",
-    ],
-  },
-  {
     id: "custom",
     name: "Custom provider",
     category: "OpenAI-compatible",
@@ -202,7 +96,7 @@ export const providerCatalog = [
     docUrl: "https://platform.openai.com/docs/api-reference",
     instructions: [
       "Enter any OpenAI-compatible API key.",
-      "Provide custom base endpoint if needed (e.g. https://my-custom-llm.com/v1).",
+      "Provide custom base endpoint if needed.",
       "Save key below.",
     ],
   },
@@ -256,15 +150,9 @@ export async function getProviderCredentialById(
   };
 }
 
-/**
- * Resolves user credentials and model pairs deterministically.
- * Hierarchy:
- * 1. User selected custom provider/model -> use user's credential.
- * 2. If no custom credential or "Hanna Default" selected -> default to Gemini 2.5 Flash using server GEMINI_API_KEY.
- */
 export async function getProviderCredentialForRequest(
   userId: number | undefined,
-  prompt: string,
+  _prompt: string,
   requestedProviderOrModel?: string
 ) {
   const resolved = resolveProviderAndModel(requestedProviderOrModel);
@@ -281,13 +169,26 @@ export async function getProviderCredentialForRequest(
     }
   }
 
-  // Canonical Fallback / Default: Hanna's Gemini 2.5 Flash
-  const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
+  // Server defaults: Gemini or Groq (for Hanna Fast family)
+  if (resolved.provider === "llama") {
+    const groqKey = (
+      process.env.GROQ_API_KEY ||
+      process.env.LLAMA_API_KEY ||
+      ""
+    ).trim();
+    return {
+      provider: "llama",
+      apiKey: groqKey,
+      model: resolved.model,
+      endpoint: "",
+    };
+  }
 
+  const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
   return {
     provider: "gemini",
     apiKey: defaultGeminiKey,
-    model: resolved.model,
+    model: resolved.model || process.env.GEMINI_MODEL || "gemini-3.5-flash",
     endpoint: "",
   };
 }
