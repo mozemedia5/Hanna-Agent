@@ -32,9 +32,6 @@ describe("providers and integrations routing & management", () => {
         "llama",
         "mistral",
         "openrouter",
-        "heygen",
-        "synthesia",
-        "elevenlabs",
         "custom",
       ])
     );

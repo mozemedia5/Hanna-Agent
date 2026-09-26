@@ -48,7 +48,7 @@ export async function startConnectorOAuth(
   }
 }
 
-/** Read OAuth callback query params after redirect from /api/oauth/*/callback */
+/** Read OAuth callback query params after redirect from OAuth callback */
 export function readOAuthReturnParams(): {
   status: "success" | "error" | null;
   connector?: string;
