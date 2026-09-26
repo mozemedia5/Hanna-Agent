@@ -21,8 +21,35 @@ import {
   startOAuthInput,
 } from "./integrationsOAuth";
 import { performAiHealthCheck } from "./aiHealth";
+import { getProviderCredentialForRequest } from "./providerDb";
+import { invokeUserProvider } from "./providerAdapters";
+import { HANNA_UI_MODELS, resolveProviderAndModel } from "./aiConfig";
+import {
+  consumeDailyTokens,
+  estimatePromptCredits,
+  getDailyQuota,
+  resolveTierFromModel,
+  type HannaTier,
+} from "./usage";
+import { taskScheduler } from "./agentCore";
 
-// Full agent loop will be restored in a follow-up; OAuth + integrations are live.
+function resolveApiKeyForProvider(
+  provider: string,
+  userKey: string
+): string {
+  if (userKey && userKey.trim()) return userKey.trim();
+  if (provider === "gemini") return (process.env.GEMINI_API_KEY || "").trim();
+  if (provider === "llama")
+    return (
+      process.env.GROQ_API_KEY ||
+      process.env.LLAMA_API_KEY ||
+      ""
+    ).trim();
+  if (provider === "openai") return (process.env.OPENAI_API_KEY || "").trim();
+  if (provider === "anthropic")
+    return (process.env.ANTHROPIC_API_KEY || "").trim();
+  return "";
+}
 
 export async function executeHannaRequest(
   prompt: string,
@@ -30,13 +57,110 @@ export async function executeHannaRequest(
   userId?: number,
   requestedModel?: string,
   clientIp?: string,
-  agenticModeInput: boolean = false
+  _agenticModeInput: boolean = false
 ) {
-  return {
-    text: "Hanna router recovered with OAuth connectors enabled. Full agent loop restore is next.",
-    model: "hanna-recovery",
-    providerError: false,
-  };
+  if (!userId) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Please sign in to use Hanna AI.",
+    });
+  }
+
+  const tier: HannaTier = resolveTierFromModel(requestedModel);
+  const cost = estimatePromptCredits(prompt, context);
+  const quota = consumeDailyTokens(String(userId), cost, tier);
+  if (!quota.allowed) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Daily credit limit reached (${quota.used}/${quota.limit}). Resets at ${quota.resetAt}. Upgrade for more credits.`,
+    });
+  }
+
+  const resolved = resolveProviderAndModel(requestedModel);
+  let providerBundle = await getProviderCredentialForRequest(
+    userId,
+    prompt,
+    requestedModel
+  );
+
+  // Prefer server GROQ key when Hanna Fast/Advanced/etc. is selected
+  if (resolved.provider === "llama") {
+    const groqKey = resolveApiKeyForProvider("llama", providerBundle.apiKey);
+    providerBundle = {
+      provider: "llama",
+      apiKey: groqKey,
+      model: resolved.model,
+      endpoint: providerBundle.endpoint || "",
+    };
+  } else if (resolved.provider === "gemini") {
+    providerBundle = {
+      ...providerBundle,
+      provider: "gemini",
+      apiKey: resolveApiKeyForProvider("gemini", providerBundle.apiKey),
+      model: resolved.model,
+    };
+  }
+
+  if (!providerBundle.apiKey) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message:
+        resolved.provider === "llama"
+          ? "Hanna Fast models are not configured (missing GROQ_API_KEY)."
+          : "Hanna AI is not configured (missing GEMINI_API_KEY).",
+    });
+  }
+
+  // Inject connected connectors into context so the model can follow up on them
+  const connected = await listConnectorCredentials(userId);
+  const connectorLine =
+    connected.length > 0
+      ? `[Connected plugins: ${connected
+          .map(c => {
+            const def = integrations.find(i => i.id === c.connector);
+            return `${c.connector}${def ? ` (${def.capabilities.slice(0, 4).join(", ")})` : ""}`;
+          })
+          .join("; ")}]`
+      : "[Connected plugins: none — ask user to connect tools in Plugins if needed]";
+
+  const enrichedContext = [context?.trim(), connectorLine]
+    .filter(Boolean)
+    .join("\n\n");
+
+  try {
+    const text = await invokeUserProvider({
+      provider: providerBundle.provider,
+      apiKey: providerBundle.apiKey,
+      model: providerBundle.model,
+      prompt,
+      context: enrichedContext,
+      endpoint: providerBundle.endpoint,
+    });
+    return {
+      text,
+      model: `${providerBundle.provider} · ${providerBundle.model}`,
+      providerError: false,
+      credits: {
+        used: quota.used,
+        limit: quota.limit,
+        remaining: quota.remaining,
+        tier: quota.tier,
+      },
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Provider error";
+    return {
+      text: `I could not complete that request (${msg}). Please try again or switch model.`,
+      model: providerBundle.model,
+      providerError: true,
+      credits: {
+        used: quota.used,
+        limit: quota.limit,
+        remaining: quota.remaining,
+        tier: quota.tier,
+      },
+    };
+  }
 }
 
 export const appRouter = router({
@@ -118,7 +242,8 @@ export const appRouter = router({
       }),
   }),
   hanna: router({
-    ask: publicProcedure
+    /** Chat requires authentication — no anonymous AI usage */
+    ask: protectedProcedure
       .input(
         z.object({
           prompt: z.string().min(1).max(6000),
@@ -131,12 +256,19 @@ export const appRouter = router({
         executeHannaRequest(
           input.prompt,
           input.context,
-          ctx.user?.id,
+          ctx.user.id,
           input.model,
           undefined,
           input.agenticMode
         )
       ),
+    models: publicProcedure.query(() => HANNA_UI_MODELS),
+    credits: protectedProcedure
+      .input(z.object({ model: z.string().optional() }).optional())
+      .query(({ ctx, input }) => {
+        const tier = resolveTierFromModel(input?.model);
+        return getDailyQuota(String(ctx.user.id), tier);
+      }),
     healthCheck: publicProcedure
       .input(
         z
@@ -153,6 +285,71 @@ export const appRouter = router({
           provider: input?.provider,
         })
       ),
+    scheduleTask: protectedProcedure
+      .input(
+        z.object({
+          title: z.string().min(1).max(300),
+          prompt: z.string().min(1).max(20000),
+          executionTime: z.string().min(1),
+          repeat: z.enum(["once", "daily", "weekly", "monthly"]).default("once"),
+          tools: z.array(z.string()).default([]),
+        })
+      )
+      .mutation(({ ctx, input }) => {
+        const scheduled = taskScheduler.scheduleTask({
+          userId: ctx.user.id,
+          title: input.title,
+          description: input.prompt,
+          cronOrSchedule: `${input.executionTime} (${input.repeat})`,
+          action: "scheduled_agent_run",
+          parameters: {
+            prompt: input.prompt,
+            executionTime: input.executionTime,
+            repeat: input.repeat,
+            tools: input.tools,
+          },
+        });
+        return { success: true, task: scheduled };
+      }),
+    executeScheduledTasks: protectedProcedure.mutation(async ({ ctx }) => {
+      const result = await taskScheduler.runDueTasks(async task => {
+        const prompt = String(
+          task.parameters?.prompt || task.description || task.title
+        );
+        const res = await executeHannaRequest(
+          prompt,
+          "Scheduled Task Execution",
+          task.userId || ctx.user.id
+        );
+        return res.text || "Scheduled task executed successfully.";
+      });
+      return { success: true, executedCount: result.executedCount };
+    }),
+    listScheduledTasks: protectedProcedure.query(({ ctx }) => ({
+      tasks: taskScheduler.listTasks(ctx.user.id),
+    })),
+  }),
+  affiliate: router({
+    trackClick: publicProcedure
+      .input(z.object({ code: z.string().min(2).max(64) }))
+      .mutation(({ input }) => ({
+        ok: true,
+        code: input.code,
+        trackedAt: new Date().toISOString(),
+      })),
+    getLink: protectedProcedure.query(({ ctx }) => {
+      const code = `hn_${ctx.user.id.toString(36)}`;
+      const base =
+        process.env.APP_BASE_URL ||
+        process.env.VERCEL_URL ||
+        "https://hanna.ai";
+      const origin = base.startsWith("http") ? base : `https://${base}`;
+      return {
+        code,
+        url: `${origin.replace(/\/$/, "")}/?ref=${code}`,
+        rewardCredits: 500,
+      };
+    }),
   }),
 });
 
