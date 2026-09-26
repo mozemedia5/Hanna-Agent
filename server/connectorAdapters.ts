@@ -450,24 +450,49 @@ export async function executeConnectorAction(
     };
   }
 
-  // Gmail
+  // Gmail Advanced Marketing Hub MCP Tools & General Email
   if (action.connector === "gmail") {
     const parameters = action.parameters as Record<string, unknown>;
     if (action.action === "send_marketing_email" || action.action === "mail_send" || action.action === "mail:send") {
-      const recipient = String(parameters.to ?? parameters.recipient ?? "team@company.com");
-      const subject = String(parameters.subject ?? "Update from Hanna Agent");
+      const recipient = String(parameters.to ?? parameters.recipient ?? "vip-customers@company.com");
+      const subject = String(parameters.subject ?? "Exclusive Access: New AuraGlow Smart Sunset Lamp Released!");
       const trackingPixelId = String(parameters.tracking_pixel_id || `px_${Math.floor(Math.random() * 8999 + 1000)}`);
       return {
         connector: "gmail",
         action: action.action,
         summary: `Drafted and sent email to ${recipient} with subject '${subject}'.`,
-        verification: {
-          status: "verified",
-          detail: "Gmail API / MCP endpoint confirmed message delivery.",
+        verification: { status: "verified", detail: "Gmail Advanced Marketing Hub API delivered marketing campaign message." },
+        data: {
+          message_id: `gmail_msg_${Date.now()}`,
+          recipient,
+          subject,
+          tracking_pixel_id: trackingPixelId,
+          status: "sent",
+          sent_at: new Date().toISOString(),
         },
-        data: { messageId: `msg_${Date.now()}`, recipient, subject, tracking_pixel_id: trackingPixelId, status: "sent" },
       };
     }
+
+    if (action.action === "draft_advanced_sequence") {
+      const segment = String(parameters.customer_segment || "post-purchase-buyers");
+      return {
+        connector: "gmail",
+        action: action.action,
+        summary: `Generated and primed 3-stage post-purchase email sequence for segment '${segment}'.`,
+        verification: { status: "verified", detail: "Gmail API generated automated post-purchase sequence drafts." },
+        data: {
+          segment,
+          sequence_id: `seq_post_purchase_${Date.now()}`,
+          steps: [
+            { step: 1, trigger: "Immediate post-purchase", subject: "Thank you for your order! Your AuraGlow Lamp is on its way" },
+            { step: 2, trigger: "+2 days post-delivery", subject: "How to customize your AuraGlow Sunset Lamp RGB scenes" },
+            { step: 3, trigger: "+7 days post-delivery", subject: "Claim 20% off your next order — VIP Creator Club Invite" },
+          ],
+          status: "primed",
+        },
+      };
+    }
+
     const query = String(parameters.query ?? parameters.q ?? "all");
     return {
       connector: "gmail",
@@ -634,46 +659,6 @@ export async function executeConnectorAction(
     };
   }
 
-  // Gmail Advanced Marketing Hub MCP Tools
-  if (action.connector === "gmail" && action.action === "send_marketing_email") {
-    const to = String(action.parameters.to || "vip-customers@company.com");
-    const subject = String(action.parameters.subject || "Exclusive Access: New AuraGlow Smart Sunset Lamp Released!");
-    const pixelId = String(action.parameters.tracking_pixel_id || `px_${Math.floor(Math.random() * 8999 + 1000)}`);
-    return {
-      connector: "gmail",
-      action: action.action,
-      summary: `Dispatched marketing email to '${to}' with tracking pixel '${pixelId}'.`,
-      verification: { status: "verified", detail: "Gmail Advanced Marketing Hub API delivered marketing campaign message." },
-      data: {
-        message_id: `gmail_msg_${Date.now()}`,
-        recipient: to,
-        subject,
-        tracking_pixel_id: pixelId,
-        status: "sent",
-        sent_at: new Date().toISOString(),
-      },
-    };
-  }
-
-  if (action.connector === "gmail" && action.action === "draft_advanced_sequence") {
-    const segment = String(action.parameters.customer_segment || "post-purchase-buyers");
-    return {
-      connector: "gmail",
-      action: action.action,
-      summary: `Generated and primed 3-stage post-purchase email sequence for segment '${segment}'.`,
-      verification: { status: "verified", detail: "Gmail API generated automated post-purchase sequence drafts." },
-      data: {
-        segment,
-        sequence_id: `seq_post_purchase_${Date.now()}`,
-        steps: [
-          { step: 1, trigger: "Immediate post-purchase", subject: "Thank you for your order! Your AuraGlow Lamp is on its way" },
-          { step: 2, trigger: "+2 days post-delivery", subject: "How to customize your AuraGlow Sunset Lamp RGB scenes" },
-          { step: 3, trigger: "+7 days post-delivery", subject: "Claim 20% off your next order — VIP Creator Club Invite" },
-        ],
-        status: "primed",
-      },
-    };
-  }
 
   // Integrated Payment Framework MCP Tools
   if (action.connector === "integrated-payment" && action.action === "authorize_api_payment") {
