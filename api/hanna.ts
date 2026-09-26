@@ -1,10 +1,18 @@
+/**
+ * Vercel serverless entrypoint for Hanna Agent.
+ * Must register OAuth, MCP, health, chat, config, and tRPC.
+ */
 import { performAiHealthCheck } from "../server/aiHealth";
-import { getFirebasePublicConfig, missingFirebaseConfigFields } from "../server/firebaseConfig";
+import {
+  getFirebasePublicConfig,
+  missingFirebaseConfigFields,
+} from "../server/firebaseConfig";
 import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
 import { handleApiChatRoute } from "./chat/route";
 import { createContext } from "../server/_core/context";
 import { appRouter } from "../server/routers";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { registerOAuthRoutes } from "../server/oauthRoutes";
 
 type RequestLike = {
   method?: string;
@@ -19,6 +27,7 @@ type ResponseLike = {
   setHeader: (name: string, value: string) => void;
   json?: (value: unknown) => ResponseLike;
   end: (value?: string) => void;
+  redirect?: (status: number, url: string) => void;
 };
 
 function respond(res: ResponseLike, status: number, payload: unknown) {
@@ -44,6 +53,47 @@ function requestBody(req: RequestLike) {
   return req.body;
 }
 
+/** Lazy Express app that includes OAuth + tRPC + MCP */
+let expressApp: import("express").Express | null = null;
+
+async function getExpressApp() {
+  if (expressApp) return expressApp;
+  const express = (await import("express")).default;
+  const app = express();
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // OAuth must be registered on the production entrypoint
+  registerOAuthRoutes(app);
+
+  const middleware = createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  });
+  app.use("/api/trpc", middleware);
+  app.use("/trpc", middleware);
+
+  app.use(
+    (
+      error: unknown,
+      _req: unknown,
+      response: ResponseLike,
+      _next: unknown
+    ) => {
+      respond(
+        response,
+        500,
+        {
+          error:
+            error instanceof Error ? error.message : "Hanna API failed.",
+        }
+      );
+    }
+  );
+  expressApp = app;
+  return app;
+}
+
 export default async function handler(req: RequestLike, res: ResponseLike) {
   const path = requestPath(req);
   const method = req.method || "GET";
@@ -58,21 +108,31 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     }
 
     if (path === "/api/config" || path === "/config") {
-      if (method !== "GET") return respond(res, 405, { error: "Method not allowed." });
+      if (method !== "GET")
+        return respond(res, 405, { error: "Method not allowed." });
       const config = getFirebasePublicConfig();
       const missing = missingFirebaseConfigFields(config);
-      if (missing.length) return respond(res, 503, { error: "Firebase configuration is incomplete.", missing });
+      if (missing.length)
+        return respond(res, 503, {
+          error: "Firebase configuration is incomplete.",
+          missing,
+        });
       res.setHeader("cache-control", "no-store");
       return respond(res, 200, config);
     }
 
     if (path === "/api/health" || path === "/health") {
-      if (method !== "GET") return respond(res, 405, { error: "Method not allowed." });
+      if (method !== "GET")
+        return respond(res, 405, { error: "Method not allowed." });
       const query = new URLSearchParams((req.url || "").split("?")[1] || "");
       const model = query.get("model") || undefined;
       const provider = query.get("provider") || undefined;
       const report = await performAiHealthCheck({ model, provider });
-      return respond(res, report.status === "AI_READY" ? 200 : 503, report);
+      return respond(
+        res,
+        report.status === "AI_READY" ? 200 : 503,
+        report
+      );
     }
 
     if (path === "/api/mcp" || path === "/mcp") {
@@ -84,28 +144,30 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
           tools: listMcpTools(),
         });
       }
-      return respond(res, 200, await handleMcpRequest(requestBody(req) as never));
+      return respond(
+        res,
+        200,
+        await handleMcpRequest(requestBody(req) as never)
+      );
     }
 
-    if (path.startsWith("/api/trpc/") || path.startsWith("/trpc/")) {
-      const express = (await import("express")).default;
-      
-      const app = express();
-      app.use(express.json({ limit: "50mb" }));
-      app.use(express.urlencoded({ limit: "50mb", extended: true }));
-      const middleware = createExpressMiddleware({ router: appRouter, createContext });
-      app.use("/api/trpc", middleware);
-      app.use("/trpc", middleware);
-      app.use((error: unknown, _req: unknown, response: ResponseLike, _next: unknown) => {
-        respond(response, 500, { error: error instanceof Error ? error.message : "Hanna API failed." });
-      });
+    // OAuth + tRPC via Express (includes /api/oauth/*)
+    if (
+      path.startsWith("/api/oauth") ||
+      path.startsWith("/api/trpc/") ||
+      path.startsWith("/trpc/")
+    ) {
+      const app = await getExpressApp();
       return app(req as never, res as never);
     }
 
     return respond(res, 404, { error: "Not found." });
   } catch (error) {
     return respond(res, 500, {
-      error: error instanceof Error ? error.message : "Hanna API failed to initialize.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Hanna API failed to initialize.",
     });
   }
 }
