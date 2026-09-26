@@ -21,8 +21,8 @@ import {
 import { useEffect, useState } from "react";
 
 type ProfilePageProps = {
-  onLogout: () => void;
-  onNavigateToSettings: () => void;
+  onLogout?: () => void;
+  onNavigateToSettings?: () => void;
   onNavigateToUpgrade?: () => void;
   onNavigateToUsage?: () => void;
   onBack?: () => void;
