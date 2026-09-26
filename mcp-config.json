@@ -1,0 +1,127 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schema/config.v1.json",
+  "mcpServers": {
+    "shopify": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shopify/mcp-server-shopify"
+      ],
+      "env": {
+        "SHOPIFY_STORE_DOMAIN": "${SHOPIFY_STORE_DOMAIN}",
+        "SHOPIFY_ACCESS_TOKEN": "${SHOPIFY_ACCESS_TOKEN}"
+      },
+      "transport": "stdio",
+      "description": "Shopify Core Engine for inventory monitoring and product metadata management",
+      "tools": [
+        "get_product_details",
+        "fetch_recent_products",
+        "update_product_metafield"
+      ]
+    },
+    "heygen": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@heygen/mcp-server-heygen"
+      ],
+      "env": {
+        "HEYGEN_API_KEY": "${HEYGEN_API_KEY}"
+      },
+      "transport": "stdio",
+      "description": "HeyGen Digital Twin Media for constructing realistic AI avatar video ads",
+      "tools": [
+        "generate_avatar_video",
+        "check_video_status"
+      ]
+    },
+    "creatify": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@creatify/mcp-server-creatify"
+      ],
+      "env": {
+        "CREATIFY_API_KEY": "${CREATIFY_API_KEY}"
+      },
+      "transport": "stdio",
+      "description": "Creatify AI Creative Studio for converting product URLs into multi-hook ad variations",
+      "tools": [
+        "generate_ads_from_url",
+        "get_creative_assets"
+      ]
+    },
+    "gmail": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@google/mcp-server-gmail"
+      ],
+      "env": {
+        "GMAIL_CLIENT_ID": "${GMAIL_CLIENT_ID}",
+        "GMAIL_CLIENT_SECRET": "${GMAIL_CLIENT_SECRET}"
+      },
+      "transport": "sse",
+      "description": "Gmail Advanced Marketing Hub for conversational post-purchase automated sequences",
+      "tools": [
+        "send_marketing_email",
+        "draft_advanced_sequence"
+      ]
+    },
+    "integrated-payment": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@hanna/mcp-server-payment"
+      ],
+      "env": {
+        "PAYMENT_CAP_USD": "500.00",
+        "PAYMENT_APPROVAL_REQUIRED": "true"
+      },
+      "transport": "stdio",
+      "description": "Integrated Payment Framework for automated API wallet spend with strict billing caps",
+      "tools": [
+        "authorize_api_payment",
+        "get_wallet_balance"
+      ]
+    },
+    "meta-ads": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@meta/mcp-server-meta-ads"
+      ],
+      "env": {
+        "META_ACCESS_TOKEN": "${META_ACCESS_TOKEN}",
+        "META_AD_ACCOUNT_ID": "${META_AD_ACCOUNT_ID}"
+      },
+      "transport": "sse",
+      "description": "Meta Ads Manager Suite for managing conversion ad campaigns and creative uploads",
+      "tools": [
+        "create_ad_campaign",
+        "upload_ad_creative",
+        "launch_ad_set",
+        "fetch_ad_performance_analytics"
+      ]
+    },
+    "omnichannel-social": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@hanna/mcp-server-omnichannel-social"
+      ],
+      "env": {
+        "TIKTOK_ACCESS_TOKEN": "${TIKTOK_ACCESS_TOKEN}",
+        "INSTAGRAM_ACCESS_TOKEN": "${INSTAGRAM_ACCESS_TOKEN}",
+        "FACEBOOK_PAGE_TOKEN": "${FACEBOOK_PAGE_TOKEN}",
+        "X_BEARER_TOKEN": "${X_BEARER_TOKEN}"
+      },
+      "transport": "stdio",
+      "description": "Omnichannel Social Media Manager for cross-platform UGC post publishing & scheduling",
+      "tools": [
+        "publish_ugc_post",
+        "schedule_social_post"
+      ]
+    }
+  }
+}
