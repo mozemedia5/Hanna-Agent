@@ -2,7 +2,7 @@
  * Settings Page — Unified Settings & Workspace Personalization
  * Unifies profile identity, customize instructions, tokens, usage, affiliate rewards, what's new & help.
  */
-import { useAuth, getFirebaseIdToken } from "@/_core/hooks/useAuth";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   getUserProfile,
   saveUserProfile,
@@ -138,30 +138,7 @@ export default function SettingsPage({
   ];
 
   const currentVoiceObj = voices.find(v => v.id === voiceChoice) || voices[0];
-  const [affiliateLink, setAffiliateLink] = useState(`https://hanna.ai/?ref=hn_user`);
-  const [affiliateReward, setAffiliateReward] = useState(500);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = await getFirebaseIdToken?.();
-        const headers: Record<string, string> = { "content-type": "application/json" };
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch("/api/trpc/affiliate.getLink", { headers, credentials: "include" });
-        if (!res.ok) return;
-        const json = await res.json();
-        const data = json?.result?.data ?? json?.result?.data?.json ?? json;
-        if (!cancelled && data?.url) {
-          setAffiliateLink(data.url);
-          if (typeof data.rewardCredits === "number") setAffiliateReward(data.rewardCredits);
-        }
-      } catch {
-        /* keep fallback */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user?.uid, user?.email]);
+  const affiliateLink = `https://hanna.ai/ref/${(user?.email || "user").split("@")[0]}`;
 
   return (
     <div className="page-container">
@@ -337,14 +314,14 @@ export default function SettingsPage({
             <div className="credits-header">
               <CreditCard size={18} />
               <span>Workspace Allowance</span>
-              <span className="credits-amount">Daily credits by tier</span>
+              <span className="credits-amount">2,500 credits left</span>
             </div>
             <div className="credits-bar">
               <div className="credits-bar-fill" style={{ width: "80%" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-secondary)", marginTop: "8px" }}>
-              <span>Free 2,500 · Lite 8,000 · Pro 40,000 · Max 120,000 / day</span>
-              <span>Resets daily UTC</span>
+              <span>Daily Token Quota: 300 tokens/day (Hanna Lite)</span>
+              <span>Refreshes daily at 00:00 UTC</span>
             </div>
           </div>
         </div>
@@ -356,7 +333,7 @@ export default function SettingsPage({
           <div>
             <h3>Affiliate Program</h3>
             <span className="settings-card-subtitle">
-              Invite businesses or creators — earn reward credits when they sign up via your link
+              Invite businesses or creators and earn 100% commission on referrals
             </span>
           </div>
         </div>
@@ -365,7 +342,6 @@ export default function SettingsPage({
             <div>
               <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block" }}>Your Affiliate Referral Link</strong>
               <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{affiliateLink}</span>
-              <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block", marginTop: "4px" }}>+{affiliateReward} credits per successful referral signup</span>
             </div>
             <Button
               variant="outline"
@@ -492,42 +468,60 @@ export default function SettingsPage({
                 transition: "all 0.15s ease",
               }}
             >
-              {playingVoiceId === currentVoiceObj.id ? "Playing..." : "Play sample"}
+              {playingVoiceId === currentVoiceObj.id ? "Playing..." : "Play Sample"}
             </button>
           </div>
         </div>
       </section>
 
-      {/* Theme */}
+      {/* Appearance */}
       <section className="settings-card">
         <div className="settings-card-header">
           <div>
             <h3>Appearance</h3>
-            <span className="settings-card-subtitle">Choose light, dark, or system theme</span>
+            <span className="settings-card-subtitle">
+              Choose how Hanna looks on your device
+            </span>
           </div>
         </div>
-        <div className="theme-grid" style={{ marginTop: "16px" }}>
+        <div className="theme-options-grid">
           {themeOptions.map(opt => (
             <button
               key={opt.value}
-              type="button"
-              className={`theme-option ${theme === opt.value ? "is-selected" : ""}`}
+              className={`theme-option-card ${theme === opt.value ? "is-selected" : ""}`}
               onClick={() => onThemeChange(opt.value)}
             >
-              <opt.icon size={18} />
-              <strong>{opt.label}</strong>
-              <span>{opt.desc}</span>
-              {theme === opt.value && <Check size={14} />}
+              <opt.icon size={20} />
+              <span className="theme-option-label">{opt.label}</span>
+              <span className="theme-option-desc">{opt.desc}</span>
+              {theme === opt.value && (
+                <span className="theme-check">
+                  <Check size={14} />
+                </span>
+              )}
             </button>
           ))}
         </div>
       </section>
 
       {/* Save */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
-        <Button onClick={handleSave} disabled={saving}>
-          <Save size={16} />
-          {saving ? "Saving..." : saved ? "Saved" : "Save changes"}
+      <div className="settings-save-bar">
+        <Button
+          onClick={handleSave}
+          disabled={saving || !profile.displayName.trim()}
+          style={{
+            background: "var(--text-primary)",
+            color: "var(--surface)",
+            border: "1px solid var(--text-primary)",
+            borderRadius: "10px",
+            padding: "10px 24px",
+            fontWeight: "600",
+            fontSize: "14px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          {saved ? "Saved" : saving ? "Saving..." : "Save settings"}
         </Button>
       </div>
     </div>

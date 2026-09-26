@@ -44,12 +44,12 @@ const nonceTimestamps = new Map<string, number>();
 
 function rememberNonce(nonce: string): boolean {
   const now = Date.now();
-  for (const [n, t] of nonceTimestamps) {
+  nonceTimestamps.forEach((t, n) => {
     if (now - t > NONCE_TTL_MS) {
       nonceTimestamps.delete(n);
       usedNonces.delete(n);
     }
-  }
+  });
   if (usedNonces.has(nonce)) return false;
   usedNonces.add(nonce);
   nonceTimestamps.set(nonce, now);
