@@ -266,7 +266,17 @@ export default function Home({
     if (currentPage === "notifications")
       return <NotificationsPage onBack={() => setCurrentPage("chat")} />;
     if (currentPage === "profile")
-      return <ProfilePage onBack={() => setCurrentPage("chat")} />;
+      return (
+        <ProfilePage
+          onLogout={() => {
+            void onLogout?.();
+          }}
+          onNavigateToSettings={() => setCurrentPage("settings")}
+          onNavigateToUpgrade={() => setCurrentPage("upgrade")}
+          onNavigateToUsage={() => setCurrentPage("usage")}
+          onBack={() => setCurrentPage("chat")}
+        />
+      );
 
     return (
       <div className="workspace-body custom-scroll" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
