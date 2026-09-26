@@ -84,6 +84,43 @@ function SimpleBrandIcon({ icon, size = 20, className = "" }: IconProps & { icon
   );
 }
 
+export function IntegratedPaymentIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <defs>
+        <linearGradient id="pay-g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#059669" />
+        </linearGradient>
+      </defs>
+      <rect width="24" height="24" rx="6" fill="url(#pay-g)" />
+      <rect x="4" y="6" width="16" height="12" rx="2" fill="#fff" fillOpacity="0.2" />
+      <path fill="#fff" d="M4 10h16v2H4v-2zm3 4h4v1.5H7V14z" />
+    </svg>
+  );
+}
+
+export function OmnichannelSocialIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <defs>
+        <linearGradient id="omni-g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#EC4899" />
+          <stop offset="50%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#3B82F6" />
+        </linearGradient>
+      </defs>
+      <rect width="24" height="24" rx="6" fill="url(#omni-g)" />
+      <circle cx="12" cy="12" r="3" fill="#fff" />
+      <circle cx="6" cy="6" r="2" fill="#fff" opacity="0.8" />
+      <circle cx="18" cy="6" r="2" fill="#fff" opacity="0.8" />
+      <circle cx="6" cy="18" r="2" fill="#fff" opacity="0.8" />
+      <circle cx="18" cy="18" r="2" fill="#fff" opacity="0.8" />
+      <path d="M7.5 7.5l3 3m3 3l3 3m-9 0l3-3m3-3l3-3" stroke="#fff" strokeWidth="1.2" opacity="0.7" />
+    </svg>
+  );
+}
+
 function ConnectorAssetIcon({ src, size = 20, className = "" }: IconProps & { src: string }) {
   return (
     <img
@@ -651,6 +688,8 @@ export function renderBrandIcon(
   if (lower.includes("gmail")) return <GmailIcon size={size} className={className} />;
 
   // Marketing & Finance
+  if (lower.includes("integrated payment") || lower.includes("payment framework")) return <IntegratedPaymentIcon size={size} className={className} />;
+  if (lower.includes("omnichannel") || lower.includes("social media manager")) return <OmnichannelSocialIcon size={size} className={className} />;
   if (lower.includes("meta")) return <MetaAdsIcon size={size} className={className} />;
   if (lower.includes("stripe")) return <StripeIcon size={size} className={className} />;
   if (lower.includes("paypal")) return <PayPalIcon size={size} className={className} />;

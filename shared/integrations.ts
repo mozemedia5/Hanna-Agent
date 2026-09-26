@@ -49,6 +49,8 @@ export type ConnectorId =
   | "anthropic"
   | "gemini"
   | "meta-ads"
+  | "integrated-payment"
+  | "omnichannel-social"
   | "google-ads"
   | "mcp-custom"
   | "hubspot"
@@ -113,7 +115,15 @@ export const integrations: IntegrationDefinition[] = [
     credentialFields: ["storeDomain"],
     supportsOAuth: true,
     supportsMcp: true,
-    capabilities: ["read_products", "write_products", "read_orders", "write_orders"],
+    capabilities: [
+      "get_product_details",
+      "fetch_recent_products",
+      "update_product_metafield",
+      "read_products",
+      "write_products",
+      "read_orders",
+      "write_orders"
+    ],
     requiresApproval: true,
     description: "Connect your Shopify store through server-side credentials or a verified Storefront MCP endpoint to automate product catalog, inventory, and order fulfillment.",
     docUrl: "https://shopify.dev/docs/apps/build/storefront-mcp/servers/storefront",
@@ -162,7 +172,13 @@ export const integrations: IntegrationDefinition[] = [
     credentialFields: ["accountEmail"],
     supportsOAuth: true,
     supportsMcp: true,
-    capabilities: ["generate_ugc_video", "product_to_video", "list_templates"],
+    capabilities: [
+      "generate_ads_from_url",
+      "get_creative_assets",
+      "generate_ugc_video",
+      "product_to_video",
+      "list_templates"
+    ],
     requiresApproval: true,
     description: "Automate short-form UGC marketing video creation from product URLs and script prompts.",
     docUrl: "https://creatify.ai/docs/api",
@@ -255,7 +271,12 @@ export const integrations: IntegrationDefinition[] = [
     credentialFields: ["accountEmail"],
     supportsOAuth: true,
     supportsMcp: true,
-    capabilities: ["generate_avatar_video", "translate_video", "list_avatars"],
+    capabilities: [
+      "generate_avatar_video",
+      "check_video_status",
+      "translate_video",
+      "list_avatars"
+    ],
     requiresApproval: true,
     description: "Generate studio-grade AI avatar videos, video translations, and custom digital humans.",
     docUrl: "https://docs.heygen.com/reference/api-key-1",
@@ -576,7 +597,15 @@ export const integrations: IntegrationDefinition[] = [
     credentialFields: ["accountEmail"],
     supportsOAuth: true,
     supportsMcp: true,
-    capabilities: ["mail:search", "mail:read", "mail:send", "mail:draft", "labels:read"],
+    capabilities: [
+      "send_marketing_email",
+      "draft_advanced_sequence",
+      "mail:search",
+      "mail:read",
+      "mail:send",
+      "mail:draft",
+      "labels:read"
+    ],
     requiresApproval: true,
     description: "Read, send, and manage Gmail messages for automated outreach and support workflows.",
     docUrl: "https://developers.google.com/gmail/api/guides",
@@ -1244,12 +1273,51 @@ export const integrations: IntegrationDefinition[] = [
     credentialFields: ["adAccountId"],
     supportsOAuth: true,
     supportsMcp: true,
-    capabilities: ["campaigns:read", "campaigns:create", "insights:read"],
+    capabilities: [
+      "create_ad_campaign",
+      "upload_ad_creative",
+      "launch_ad_set",
+      "fetch_ad_performance_analytics",
+      "campaigns:read",
+      "campaigns:create",
+      "insights:read"
+    ],
     requiresApproval: true,
     description: "Manage Facebook and Instagram ad campaigns, audiences, and performance reporting.",
     docUrl: "https://developers.facebook.com/docs/marketing-apis",
     instructions: [
       "Enter the provider credentials to log into Meta Ads Manager.",
+    ],
+  },
+  {
+    id: "integrated-payment",
+    name: "Integrated Payment Framework",
+    category: "finance",
+    credentialFields: ["apiKey", "billingCapUsd"],
+    supportsOAuth: true,
+    supportsMcp: true,
+    capabilities: ["authorize_api_payment", "get_wallet_balance"],
+    requiresApproval: true,
+    description: "Unblock agent from premium API actions and funding ad spend wallets within strict user-defined billing caps.",
+    docUrl: "https://modelcontextprotocol.io/examples/payments",
+    instructions: [
+      "Enter your payment billing key and monthly spend cap parameters.",
+      "Authorize Hanna to issue API payment signatures up to your configured cap.",
+    ],
+  },
+  {
+    id: "omnichannel-social",
+    name: "Omnichannel Social Media Manager",
+    category: "social",
+    credentialFields: ["accountEmail"],
+    supportsOAuth: true,
+    supportsMcp: true,
+    capabilities: ["publish_ugc_post", "schedule_social_post"],
+    requiresApproval: true,
+    description: "Multi-network publisher for TikTok, Instagram Reels, Facebook, Threads, and X.",
+    docUrl: "https://modelcontextprotocol.io/examples/social",
+    instructions: [
+      "Connect your social publishing credentials to cross-post UGC and schedule posts.",
     ],
   },
   {
