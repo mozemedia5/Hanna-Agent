@@ -16,6 +16,7 @@ import ProjectsPage from "./ProjectsPage";
 import ContributorsPage from "./ContributorsPage";
 import NotificationsPage from "./NotificationsPage";
 import ProfilePage from "./ProfilePage";
+import { Link } from "wouter";
 import {
   Bell,
   Calendar,
@@ -31,6 +32,8 @@ import {
   Sparkles,
   Users,
   X,
+  FileText,
+  ShieldCheck,
 } from "lucide-react";
 
 type Page =
@@ -580,6 +583,18 @@ export default function Home({
             <LogOut size={14} /> Sign out
           </button>
         </div>
+
+        {/* Legal Links Footer */}
+        <div style={{ padding: "8px 12px", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-around", fontSize: "11px" }}>
+          <Link href="/privacypolicy" style={{ color: "var(--text-tertiary)", textDecoration: "none" }}>
+            Privacy Policy
+          </Link>
+          <span style={{ color: "var(--border)" }}>•</span>
+          <Link href="/terms" style={{ color: "var(--text-tertiary)", textDecoration: "none" }}>
+            Terms of Service
+          </Link>
+        </div>
+
         <div style={{ padding: "8px 12px 16px" }}>
           <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6 }}>Recent</div>
           {chats.slice(0, 8).map(c => (

@@ -1,3 +1,4 @@
+import React, { useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -6,8 +7,7 @@ import {
   LockKeyhole,
   Mail,
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 type AuthApi = {
   error: Error | null;
@@ -108,12 +108,17 @@ export default function LoginPage({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState("");
   const isSignup = mode === "signup";
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!agreedToTerms) {
+      setLocalError("You must agree to the Terms of Service and Privacy Policy to proceed.");
+      return;
+    }
     setBusy(true);
     setLocalError("");
     try {
@@ -133,6 +138,10 @@ export default function LoginPage({
   };
 
   const social = async (action: () => Promise<unknown>) => {
+    if (!agreedToTerms) {
+      setLocalError("You must agree to the Terms of Service and Privacy Policy to proceed.");
+      return;
+    }
     setBusy(true);
     setLocalError("");
     try {
@@ -262,6 +271,29 @@ export default function LoginPage({
                 </button>
               </div>
             </label>
+
+            {/* Mandatory Terms & Privacy Checkbox */}
+            <div style={{ margin: "12px 0 4px", display: "flex", alignItems: "flex-start", gap: "10px" }}>
+              <input
+                type="checkbox"
+                id="terms-checkbox"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                style={{ marginTop: "3px", width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--gemini-accent)" }}
+              />
+              <label htmlFor="terms-checkbox" style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.45, cursor: "pointer" }}>
+                I agree to Hanna's{" "}
+                <Link href="/terms" style={{ color: "var(--gemini-accent)", textDecoration: "underline" }}>
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacypolicy" style={{ color: "var(--gemini-accent)", textDecoration: "underline" }}>
+                  Privacy Policy
+                </Link>
+                .
+              </label>
+            </div>
+
             {!isSignup && (
               <button
                 type="button"
@@ -295,9 +327,8 @@ export default function LoginPage({
             </button>
           </p>
           <p className="auth-legal">
-            By continuing, you agree to Hanna's{" "}
-            <a href="#terms">Terms of Service</a> and{" "}
-            <a href="#privacy">Privacy Policy</a>.
+            By continuing, you accept our platform terms &amp; encrypted connector data practices. See{" "}
+            <Link href="/terms">Terms</Link> &amp; <Link href="/privacypolicy">Privacy</Link>.
           </p>
         </div>
       </section>

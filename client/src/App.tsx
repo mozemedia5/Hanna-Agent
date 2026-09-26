@@ -2,6 +2,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
 import { DashboardLayoutSkeleton } from "./components/DashboardLayoutSkeleton";
 import { useAuth } from "./_core/hooks/useAuth";
 import { Route, Switch } from "wouter";
@@ -11,16 +13,35 @@ function App() {
 
   if (auth.loading) return <DashboardLayoutSkeleton />;
 
-  // Authenticated users get the full dashboard / agent workspace.
+  // Authenticated users get the full dashboard / agent workspace with legal route overlays.
   if (auth.isAuthenticated && auth.user) {
     return (
       <ErrorBoundary>
-        <Home user={auth.user} onLogout={auth.logout} />
+        <Switch>
+          <Route path="/privacypolicy">
+            <PrivacyPolicyPage isAuthenticated={true} />
+          </Route>
+          <Route path="/privacy">
+            <PrivacyPolicyPage isAuthenticated={true} />
+          </Route>
+          <Route path="/terms">
+            <TermsOfServicePage isAuthenticated={true} />
+          </Route>
+          <Route path="/terms-of-service">
+            <TermsOfServicePage isAuthenticated={true} />
+          </Route>
+          <Route path="/">
+            <Home user={auth.user} onLogout={auth.logout} />
+          </Route>
+          <Route>
+            <Home user={auth.user} onLogout={auth.logout} />
+          </Route>
+        </Switch>
       </ErrorBoundary>
     );
   }
 
-  // Everyone else: marketing landing + auth routes only (no AI chat).
+  // Unauthenticated users: marketing landing, auth, and legal routes.
   return (
     <ErrorBoundary>
       <Switch>
@@ -29,6 +50,18 @@ function App() {
         </Route>
         <Route path="/create-account">
           <LoginPage auth={auth} mode="signup" />
+        </Route>
+        <Route path="/privacypolicy">
+          <PrivacyPolicyPage isAuthenticated={false} />
+        </Route>
+        <Route path="/privacy">
+          <PrivacyPolicyPage isAuthenticated={false} />
+        </Route>
+        <Route path="/terms">
+          <TermsOfServicePage isAuthenticated={false} />
+        </Route>
+        <Route path="/terms-of-service">
+          <TermsOfServicePage isAuthenticated={false} />
         </Route>
         <Route path="/">
           <LandingPage />
