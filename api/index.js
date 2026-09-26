@@ -5584,12 +5584,12 @@ var NONCE_TTL_MS = 20 * 60 * 1e3;
 var nonceTimestamps = /* @__PURE__ */ new Map();
 function rememberNonce(nonce) {
   const now2 = Date.now();
-  for (const [n, t2] of nonceTimestamps) {
+  nonceTimestamps.forEach((t2, n) => {
     if (now2 - t2 > NONCE_TTL_MS) {
       nonceTimestamps.delete(n);
       usedNonces.delete(n);
     }
-  }
+  });
   if (usedNonces.has(nonce)) return false;
   usedNonces.add(nonce);
   nonceTimestamps.set(nonce, now2);

@@ -5,10 +5,13 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import LandingPage from "./LandingPage";
 
-// Mock wouter useLocation
+// Mock wouter useLocation and Link
 const mockNavigate = vi.fn();
 vi.mock("wouter", () => ({
   useLocation: () => ["/", mockNavigate],
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 describe("LandingPage Component", () => {
