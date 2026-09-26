@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 function secretKey() {
   const secret =
+    process.env.CREDENTIAL_ENCRYPTION_KEY ??
     process.env.HANNA_ENCRYPTION_KEY ??
     process.env.JWT_SECRET ??
     (process.env.NODE_ENV === "test"
@@ -10,7 +11,7 @@ function secretKey() {
 
   if (!secret) {
     throw new Error(
-      "Server encryption key is missing. HANNA_ENCRYPTION_KEY must be configured in environment variables."
+      "Server encryption key is missing. CREDENTIAL_ENCRYPTION_KEY (or HANNA_ENCRYPTION_KEY) must be configured in environment variables."
     );
   }
   return crypto.createHash("sha256").update(secret).digest();
