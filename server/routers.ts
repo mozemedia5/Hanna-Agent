@@ -57,11 +57,6 @@ import {
   shareChatWithContributors,
   updateContributorCredits,
 } from "./contributorsDb";
-import {
-  buildStartOAuthResult,
-  getOAuthStatusMap,
-  startOAuthInput,
-} from "./integrationsOAuth";
 
 import { TRPCError } from "@trpc/server";
 
@@ -432,12 +427,6 @@ export const appRouter = router({
   }),
   integrations: router({
     catalog: publicProcedure.query(() => integrations),
-    startOAuth: protectedProcedure
-      .input(startOAuthInput)
-      .mutation(({ ctx, input }) =>
-        buildStartOAuthResult(ctx.user.id, input.connector, input.shop)
-      ),
-    oauthStatus: publicProcedure.query(() => getOAuthStatusMap()),
     listCredentials: protectedProcedure.query(({ ctx }) =>
       listConnectorCredentials(ctx.user.id)
     ),

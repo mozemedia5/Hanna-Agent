@@ -1,0 +1,466 @@
+# Prompt Report: Reverted Commits Analysis (September 26, 2026)
+
+## Executive Summary
+This report documents the total 46 commits that were made 3 days ago on **September 26, 2026**, which have been fully reverted from the repository. Each entry details what was done in the commit, who authored and committed it, and the review / PR context.
+
+---
+
+## Reverted Commits Detailed Audit Log
+
+### Commit 1
+- **Hash:** `83d32bfa0b9a49f5066878a0fbd4801c693f1f97`
+- **Date:** 2026-09-29T22:20:03+03:00 (Merge Commit for Sep 26 PR #68)
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** GitHub (`noreply@github.com`) / Muslim Musa (PR #68 review)
+- **Subject:** Merge pull request #68 from mozemedia5/revert-recent-commit-2317163329592043691
+- **What Was Done:** Merged PR #68 reverting commit `2317163329592043691` from branch `revert-recent-commit`.
+
+---
+
+### Commit 2
+- **Hash:** `6870c9ef83531f83d650a44b90457fb3c559511e`
+- **Date:** 2026-09-26T19:57:42Z
+- **Author:** google-labs-jules[bot] (`161369871+google-labs-jules[bot]@users.noreply.github.com`)
+- **Committer / Reviewer:** google-labs-jules[bot]
+- **Subject:** Revert "Merge pull request #67 from mozemedia5/feat/chatgpt-style-connectors-page-7132799171948299603"
+- **What Was Done:** Reverted PR #67 containing ChatGPT design changes on the connectors page.
+
+---
+
+### Commit 3
+- **Hash:** `d791fec17324abc8869ce13ef89b309b00fb902b`
+- **Date:** 2026-09-26T20:31:35+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** GitHub (`noreply@github.com`) / Muslim Musa (PR #67 review)
+- **Subject:** Merge pull request #67 from mozemedia5/feat/chatgpt-style-connectors-page-7132799171948299603
+- **What Was Done:** Merged pull request #67 for redesigning Connectors & Integrations page.
+
+---
+
+### Commit 4
+- **Hash:** `26032af12bd15f1f0e20ec4e26922aa16eaeb729`
+- **Date:** 2026-09-26T17:22:29Z
+- **Author:** google-labs-jules[bot] (`161369871+google-labs-jules[bot]@users.noreply.github.com`)
+- **Committer / Reviewer:** google-labs-jules[bot]
+- **Subject:** feat: redesign Connectors & Integrations page to ChatGPT design language
+- **What Was Done:** Updated `IntegrationsPage.tsx` and related styles to match ChatGPT dark card design.
+
+---
+
+### Commit 5
+- **Hash:** `24b6abe45a86ce887cd874f63c87f2fa8ef1cc52`
+- **Date:** 2026-09-26T19:16:10+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** GitHub (`noreply@github.com`) / Muslim Musa (PR #66 review)
+- **Subject:** Merge pull request #66 from mozemedia5/feature/privacy-terms-pages-9517996394065806253
+- **What Was Done:** Merged PR #66 adding Privacy Policy and Terms of Service pages.
+
+---
+
+### Commit 6
+- **Hash:** `b390ba45a703d154ee42cf95a12d1b74507bd3b8`
+- **Date:** 2026-09-26T16:09:58Z
+- **Author:** google-labs-jules[bot] (`161369871+google-labs-jules[bot]@users.noreply.github.com`)
+- **Committer / Reviewer:** google-labs-jules[bot]
+- **Subject:** feat: add privacy policy and terms of service pages with routing and login checkbox
+- **What Was Done:** Created `PrivacyPolicyPage.tsx`, `TermsOfServicePage.tsx`, `LegalPages.test.tsx`, registered routes in `App.tsx`, and enforced terms agreement on `LoginPage.tsx`.
+
+---
+
+### Commit 7
+- **Hash:** `5c469e8537c35586940842e47e5b12ee98e54e4e`
+- **Date:** 2026-09-26T18:33:07+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** GitHub (`noreply@github.com`) / Muslim Musa (PR #63 review)
+- **Subject:** Merge pull request #63 from mozemedia5/fix/ci-typecheck-errors-5621469717781599257
+- **What Was Done:** Merged PR #63 fixing CI TypeScript typecheck errors.
+
+---
+
+### Commit 8
+- **Hash:** `10d33246eb76ebc51722ec780ebbd23a36db209e`
+- **Date:** 2026-09-26T15:26:20Z
+- **Author:** google-labs-jules[bot] (`161369871+google-labs-jules[bot]@users.noreply.github.com`)
+- **Committer / Reviewer:** google-labs-jules[bot]
+- **Subject:** fix(ci): resolve TypeScript typecheck errors in Home.tsx and oauthRoutes.ts
+- **What Was Done:** Adjusted types and optional chaining in `Home.tsx` and `oauthRoutes.ts`.
+
+---
+
+### Commit 9
+- **Hash:** `9b05f70eb47596c561a357fbbcc9a7cf09a64e1c`
+- **Date:** 2026-09-26T18:06:28+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** GitHub (`noreply@github.com`) / Muslim Musa (PR #62 review)
+- **Subject:** Merge pull request #62 from mozemedia5/jules-3208762648950399942-6285958a
+- **What Was Done:** Merged PR #62 restoring integrations, routers, and connector adapters.
+
+---
+
+### Commit 10
+- **Hash:** `b61c8f5ed8d1d81f21eb7e49aa2bf4ddfb9795f5`
+- **Date:** 2026-09-26T15:04:10Z
+- **Author:** google-labs-jules[bot] (`161369871+google-labs-jules[bot]@users.noreply.github.com`)
+- **Committer / Reviewer:** google-labs-jules[bot]
+- **Subject:** restore: integrations, routers, and connector adapters with real OAuth and MCP health
+- **What Was Done:** Restored original OAuth and MCP health check handlers across server endpoints.
+
+---
+
+### Commit 11
+- **Hash:** `e20ff0d6bb6ed10fa4ccdf9a770308d519b5c3ff`
+- **Date:** 2026-09-26T15:54:17+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** restore: oauthProviders after bad push; keep production base URL + required state secret
+- **What Was Done:** Restored `oauthProviders.ts` keeping production `APP_BASE_URL` logic.
+
+---
+
+### Commit 12
+- **Hash:** `d860c5ca80ec189bd1e155c56e3001a1db939986`
+- **Date:** 2026-09-26T15:53:01+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** security: OAuth state secret required in production; APP_BASE_URL defaults to hanna-agent.vercel.app; remove fake connector responses; real OAuth UI; agent Route A/B
+- **What Was Done:** Enforced state signing secret requirements in production, updated default Vercel domain, and removed mock connector responses.
+
+---
+
+### Commit 13
+- **Hash:** `a025e3b5df56f9ee5bbf71191338575a7cdd99d5`
+- **Date:** 2026-09-26T15:52:14+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** fix(vercel): register OAuth routes on production serverless entrypoint
+- **What Was Done:** Registered express OAuth routes inside `server/api.ts` serverless handler.
+
+---
+
+### Commit 14
+- **Hash:** `9cf837549cdedeb12c8a2b53bd7db02ca14ea0cb`
+- **Date:** 2026-09-26T15:51:50+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** docs: set APP_BASE_URL=https://hanna-agent.vercel.app; document GROQ + encryption keys for Vercel
+- **What Was Done:** Updated documentation in `.env.example` and setup guide for environment variables.
+
+---
+
+### Commit 15
+- **Hash:** `159f0e7ebceb5e0225d3df41f2a3dc26fce7c0ca`
+- **Date:** 2026-09-26T15:51:45+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** fix: accept CREDENTIAL_ENCRYPTION_KEY for AES-256-GCM credential encryption
+- **What Was Done:** Updated `server/credentialCrypto.ts` to fallback to `CREDENTIAL_ENCRYPTION_KEY`.
+
+---
+
+### Commit 16
+- **Hash:** `05f1296ddcece839e380f33108c90b0e50f38b0d`
+- **Date:** 2026-09-26T15:51:29+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** security(oauth): bind identity to Firebase Bearer + signed state; no query userId; nonce replay protection
+- **What Was Done:** Enforced signed JWT tokens and nonces in OAuth callback handlers.
+
+---
+
+### Commit 17
+- **Hash:** `ad2594d4d122ca8ea460df06ae0436d65c3eb8be`
+- **Date:** 2026-09-26T15:50:21+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** security(oauth): bind identity to Firebase auth + signed state only; reject query userId; nonce replay protection
+- **What Was Done:** Removed insecure `userId` URL parameter acceptance in OAuth route logic.
+
+---
+
+### Commit 18
+- **Hash:** `3d1fd35c85fe049d3de3208aa4d1ac48c57f410b`
+- **Date:** 2026-09-26T15:27:51+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** Restore functional Home: auth workspace, model picker (Hanna Fast/Instant/Advanced/Presentation/Image/Video), no suggested prompts, schedule/integrations routes
+- **What Was Done:** Updated `Home.tsx` to include Groq model choices and routing updates.
+
+---
+
+### Commit 19
+- **Hash:** `9ded570d037ed3f5bb8cc3d59166523f0ca0bbb7`
+- **Date:** 2026-09-26T15:26:31+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** Restore full Home UI: no suggested prompts; Hanna models Lite/Pro/Fast/Instant/Advanced/Presentation/Image/Video
+- **What Was Done:** Modified UI model selection dropdown in `Home.tsx`.
+
+---
+
+### Commit 20
+- **Hash:** `eac71066a2f338c1881ac71130139b07e76dc20d`
+- **Date:** 2026-09-26T15:26:06+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** emergency: restore Home shell after accidental PLACEHOLDER (full UI next)
+- **What Was Done:** Temporary home shell fix during refactoring.
+
+---
+
+### Commit 21
+- **Hash:** `84d6a55a7c9996c9309eb39870b1619d2eb5cf7c`
+- **Date:** 2026-09-26T15:25:00+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** Wire Settings affiliate link to affiliate.getLink API with reward credits
+- **What Was Done:** Updated `SettingsPage.tsx` to request affiliate referral links from backend API.
+
+---
+
+### Commit 22
+- **Hash:** `236f4e266d3fa260c289b52d20ccdefbcc8b1c0f`
+- **Date:** 2026-09-26T15:23:37+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** UX: remove suggested prompts; Hanna model picker (Fast/Instant/Advanced/Presentation/Image/Video); wire affiliate getLink API
+- **What Was Done:** Removed prompt chips and modified UI choices.
+
+---
+
+### Commit 23
+- **Hash:** `d0595335f1952f06466bb7f95f6f530542726b7f`
+- **Date:** 2026-09-26T15:20:55+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat: resolve GROQ_API_KEY for Hanna Fast/Advanced models
+- **What Was Done:** Added Groq API key checking logic in `server/aiConfig.ts`.
+
+---
+
+### Commit 24
+- **Hash:** `4429127c876c680e9596461e528b016f76eecb6e`
+- **Date:** 2026-09-26T15:20:06+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(auth): strict auth gate — unauthenticated users only see landing/login
+- **What Was Done:** Redirected unauthenticated requests in `App.tsx` and `Home.tsx`.
+
+---
+
+### Commit 25
+- **Hash:** `e656507a0881f4c121abeeab2cda31f36fdd224e`
+- **Date:** 2026-09-26T15:19:51+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat: shared Hanna UI model list for client model picker
+- **What Was Done:** Created `shared/hannaModels.ts` to export model definitions.
+
+---
+
+### Commit 26
+- **Hash:** `38c42a2f9c234d50c90e9609ae6e05bc0942db39`
+- **Date:** 2026-09-26T15:19:45+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(auth): landing prompt box redirects unauthenticated users to login
+- **What Was Done:** Updated `LandingPromptBox.tsx` to trigger login redirect on prompt entry.
+
+---
+
+### Commit 27
+- **Hash:** `c16557e5b80520ec811ebcac669b372a5e9c4625`
+- **Date:** 2026-09-26T15:19:29+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(media): render images and videos in chat markdown
+- **What Was Done:** Updated `MarkdownMessage.tsx` to parse image and webm video tags in markdown.
+
+---
+
+### Commit 28
+- **Hash:** `8d9fce28a07cb8a9c471064e531025397beb2775`
+- **Date:** 2026-09-26T15:18:54+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat: restore AI chat with login gate, credits, connectors context, Groq/Gemini
+- **What Was Done:** Restored full agent router and context injection in `server/routers.ts`.
+
+---
+
+### Commit 29
+- **Hash:** `a0940e5ac4200f351723ea4c5635ecf47d0f1987`
+- **Date:** 2026-09-26T15:18:02+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(models): add Hanna-branded Groq models (fast, vision, video, advanced)
+- **What Was Done:** Extended model dictionary with Groq model identifiers.
+
+---
+
+### Commit 30
+- **Hash:** `e66da3f12fef268892e994058cd708413333d415`
+- **Date:** 2026-09-26T15:17:33+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(credits): expand functional daily credit limits and accounting
+- **What Was Done:** Updated `server/usage.ts` credit tracking logic.
+
+---
+
+### Commit 31
+- **Hash:** `defb2694d428ab01368ec410e09428e5c2a5375a`
+- **Date:** 2026-09-26T15:01:18+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): add client helper startConnectorOAuth for real OAuth redirects
+- **What Was Done:** Added `client/src/hooks/useConnectorOAuth.ts` client hook.
+
+---
+
+### Commit 32
+- **Hash:** `800957ba9e3f134ee69c6791ce172d4593f50923`
+- **Date:** 2026-09-26T15:00:47+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** fix: restore working routers.ts with OAuth startOAuth (slim agent recovery)
+- **What Was Done:** Restored `server/routers.ts` during development recovery.
+
+---
+
+### Commit 33
+- **Hash:** `0c1e677fa8dfb36fd33db4f413a63dc31f105a83`
+- **Date:** 2026-09-26T14:57:56+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** fix: restore full server/routers.ts (critical)
+- **What Was Done:** Critical restore step for `server/routers.ts`.
+
+---
+
+### Commit 34
+- **Hash:** `9c665fbc0d630ce9cfbae9ab07b589a4c4971b41`
+- **Date:** 2026-09-26T14:56:36+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): restore routers with startOAuth and oauthStatus
+- **What Was Done:** Re-exposed tRPC endpoints `startOAuth` and `oauthStatus`.
+
+---
+
+### Commit 35
+- **Hash:** `4ece29a9752087b2e500132f117c03ddb6f990d4`
+- **Date:** 2026-09-26T14:54:18+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): wire startOAuth and oauthStatus into integrations router
+- **What Was Done:** Connected integration routers to OAuth handlers.
+
+---
+
+### Commit 36
+- **Hash:** `fba1619a2f171aca7395f0ff56cf7ab695576d7e`
+- **Date:** 2026-09-26T14:53:48+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): add integrationsOAuth helpers for startOAuth URL builder
+- **What Was Done:** Created `server/integrationsOAuth.ts`.
+
+---
+
+### Commit 37
+- **Hash:** `182f3b656902ef6e8bc19569bd7cdbe9ecabc7ca`
+- **Date:** 2026-09-26T14:47:22+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): register OAuth routes in local dev server
+- **What Was Done:** Registered express routes in `server/_core/index.ts`.
+
+---
+
+### Commit 38
+- **Hash:** `8da58d71710b1c89d6e39f1aeeb98cd6a27235f1`
+- **Date:** 2026-09-26T14:47:08+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): register OAuth routes on Express API entrypoint
+- **What Was Done:** Connected OAuth middleware in `server/api.ts`.
+
+---
+
+### Commit 39
+- **Hash:** `72cbb20ddfad224da036a009bb78afa0854b4721`
+- **Date:** 2026-09-26T14:46:47+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): add OAuth start/callback Express routes
+- **What Was Done:** Created `server/oauthRoutes.ts`.
+
+---
+
+### Commit 40
+- **Hash:** `4f891afd70485f5e371cbbe88716a0fe9fdd6ac4`
+- **Date:** 2026-09-26T14:46:16+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** chore: remove placeholder oauthRoutes before real implementation
+- **What Was Done:** Cleared old placeholder files.
+
+---
+
+### Commit 41
+- **Hash:** `b1e1202062742bfcedb1c3578d17b4a1d2c7841f`
+- **Date:** 2026-09-26T14:45:06+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): implement oauthProviders.ts multi-provider helpers
+- **What Was Done:** Created `server/oauthProviders.ts`.
+
+---
+
+### Commit 42
+- **Hash:** `4b5c9a18e2283ef330dd8c4f7f3fc2ab90e768b6`
+- **Date:** 2026-09-26T14:42:25+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** chore: extend .env.example with OAuth client credentials
+- **What Was Done:** Added placeholder OAuth environment keys to `.env.example`.
+
+---
+
+### Commit 43
+- **Hash:** `3a4c060e81f653a652635dd8b82c3df52b28bc10`
+- **Date:** 2026-09-26T14:41:46+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** docs: add OAUTH_SETUP.md for OAuth 2.0 connector integration
+- **What Was Done:** Created documentation guide `OAUTH_SETUP.md`.
+
+---
+
+### Commit 44
+- **Hash:** `b52194a6e39e453b6323baef0af65617fa189418`
+- **Date:** 2026-09-26T14:41:09+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): real OAuth providers, routes, and tRPC startOAuth (part 1)
+- **What Was Done:** Initial setup of OAuth provider structures.
+
+---
+
+### Commit 45
+- **Hash:** `52d66149ec9a6ab8541fbe2bfbd909a261895474`
+- **Date:** 2026-09-26T14:40:13+03:00
+- **Author:** Muslim Musa (`mozemedia5@gmail.com`)
+- **Committer / Reviewer:** Muslim Musa
+- **Subject:** feat(oauth): implement real OAuth 2.0 API integration for connectors
+- **What Was Done:** Initial implementation of OAuth 2.0 API connector logic.
+
+---
+
+### Commit 46
+- **Hash:** `d6518a4c854b26b2902b1186d29556052d8fb400` / `d41dabaae52538c2dba28a48322ecf6e779d633d`
+- **Date:** 2026-09-26T13:13:33+03:00 / 2026-09-26T10:09:57Z
+- **Author:** google-labs-jules[bot] (`161369871+google-labs-jules[bot]@users.noreply.github.com`) / Muslim Musa (PR #61 merge)
+- **Committer / Reviewer:** GitHub (`noreply@github.com`) / Muslim Musa (PR #61 review)
+- **Subject:** Merge pull request #61 from mozemedia5/feat/mcp-ecommerce-autonomy-engine-17510322251197086061
+- **What Was Done:** Implemented MCP client architecture, e-commerce autonomy engine, `server/mcpServer.ts`, `server/mcpEcommercePipeline.test.ts`, and updated `mcp-config.json`.
