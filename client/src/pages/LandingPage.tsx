@@ -22,7 +22,7 @@ import {
   Wand2,
   Zap,
 } from "lucide-react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 
 function HannaLogo({ withWordmark = true }: { withWordmark?: boolean }) {
   return (
@@ -836,10 +836,10 @@ export default function LandingPage() {
             </div>
 
             <div className="footer-column">
-              <h4>Legal &amp; Privacy</h4>
-              <Link href="/privacypolicy">Privacy Policy</Link>
-              <Link href="/terms">Terms of Service</Link>
+              <h4>Platform</h4>
               <span>AES-256 Encrypted</span>
+              <span>Sub-100ms Latency</span>
+              <span>Private by Default</span>
             </div>
           </div>
         </div>

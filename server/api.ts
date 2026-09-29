@@ -11,7 +11,6 @@ import {
 } from "./firebaseConfig";
 import { handleMcpRequest, listMcpTools } from "./mcpServer";
 import { handleApiChatRoute } from "../api/chat/route";
-import { registerOAuthRoutes } from "./oauthRoutes";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -133,9 +132,6 @@ app.all(["/api/mcp", "/mcp"], async (req, res) => {
   const result = await handleMcpRequest(req.body);
   res.json(result);
 });
-
-// OAuth 2.0 connector authorization
-registerOAuthRoutes(app);
 
 const trpcMiddleware: RequestHandler = createExpressMiddleware({
   router: appRouter,
