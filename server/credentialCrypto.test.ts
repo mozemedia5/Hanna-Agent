@@ -18,17 +18,20 @@ describe("credentialCrypto", () => {
     expect(credentialHint(original)).toBe("…1234");
   });
 
-  it("fails safely when HANNA_ENCRYPTION_KEY is missing outside test environment", () => {
+  it("fails safely when CREDENTIAL_ENCRYPTION_KEY is missing outside test environment", () => {
     const originalEnv = process.env.NODE_ENV;
+    const originalCredKey = process.env.CREDENTIAL_ENCRYPTION_KEY;
     const originalKey = process.env.HANNA_ENCRYPTION_KEY;
     const originalJwt = process.env.JWT_SECRET;
     try {
+      delete process.env.CREDENTIAL_ENCRYPTION_KEY;
       delete process.env.HANNA_ENCRYPTION_KEY;
       delete process.env.JWT_SECRET;
       process.env.NODE_ENV = "production";
-      expect(() => encryptCredential("test-val")).toThrow("HANNA_ENCRYPTION_KEY");
+      expect(() => encryptCredential("test-val")).toThrow("CREDENTIAL_ENCRYPTION_KEY");
     } finally {
       process.env.NODE_ENV = originalEnv;
+      if (originalCredKey !== undefined) process.env.CREDENTIAL_ENCRYPTION_KEY = originalCredKey;
       if (originalKey !== undefined) process.env.HANNA_ENCRYPTION_KEY = originalKey;
       if (originalJwt !== undefined) process.env.JWT_SECRET = originalJwt;
     }

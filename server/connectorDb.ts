@@ -110,11 +110,11 @@ type ApprovalRequest = {
 };
 
 const approvals = new Map<string, ApprovalRequest>();
-const keyFor = (userId: number, connector: ConnectorId) =>
+const keyFor = (userId: string | number, connector: ConnectorId) =>
   `${userId}:${connector}`;
 
 export async function saveConnectorCredential(
-  userId: number,
+  userId: string | number,
   connector: ConnectorId,
   values: ConnectorValues
 ) {
@@ -140,7 +140,7 @@ export async function saveConnectorCredential(
 }
 
 export async function listConnectorCredentials(
-  userId: number
+  userId: string | number
 ): Promise<ConnectorSummary[]> {
   const all = getStoredConnectorCredentials();
   const userPrefix = `${userId}:`;
@@ -167,7 +167,7 @@ export async function listConnectorCredentials(
 }
 
 export async function getConnectorCredential(
-  userId: number,
+  userId: string | number,
   connector: ConnectorId
 ): Promise<ConnectorCredential | undefined> {
   const all = getStoredConnectorCredentials();
@@ -183,7 +183,7 @@ export async function getConnectorCredential(
 }
 
 export async function deleteConnectorCredential(
-  userId: number,
+  userId: string | number,
   connector: ConnectorId
 ) {
   deleteStoredConnectorCredential(keyFor(userId, connector));

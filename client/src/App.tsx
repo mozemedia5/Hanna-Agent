@@ -11,24 +11,23 @@ function App() {
   if (auth.loading) return <DashboardLayoutSkeleton />;
   return (
     <ErrorBoundary>
-      {auth.isAuthenticated || auth.error ? (
-        <Home user={auth.user} onLogout={auth.logout} />
-      ) : (
-        <Switch>
-          <Route path="/login">
-            <LoginPage auth={auth} mode="login" />
-          </Route>
-          <Route path="/create-account">
-            <LoginPage auth={auth} mode="signup" />
-          </Route>
-          <Route path="/">
-            <LandingPage />
-          </Route>
-          <Route>
-            <LandingPage />
-          </Route>
-        </Switch>
-      )}
+      <Switch>
+        <Route path="/login">
+          {auth.isAuthenticated ? <Home user={auth.user} onLogout={auth.logout} /> : <LoginPage auth={auth} mode="login" />}
+        </Route>
+        <Route path="/create-account">
+          {auth.isAuthenticated ? <Home user={auth.user} onLogout={auth.logout} /> : <LoginPage auth={auth} mode="signup" />}
+        </Route>
+        <Route path="/landing">
+          <LandingPage />
+        </Route>
+        <Route path="/">
+          {auth.isAuthenticated ? <Home user={auth.user} onLogout={auth.logout} /> : <LoginPage auth={auth} mode="login" />}
+        </Route>
+        <Route>
+          {auth.isAuthenticated ? <Home user={auth.user} onLogout={auth.logout} /> : <LoginPage auth={auth} mode="login" />}
+        </Route>
+      </Switch>
     </ErrorBoundary>
   );
 }

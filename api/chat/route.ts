@@ -1,4 +1,5 @@
 import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
+import { parseAndVerifyFirebaseToken } from "../../server/_core/context";
 import { routeHannaRequest } from "../../server/hannaRouting";
 import {
   buildAgentPlan,
@@ -321,6 +322,15 @@ export async function executeRouteBLoop(
   }
 }
 
+function extractBearerToken(authHeader?: string | string[]): string | null {
+  if (!authHeader) return null;
+  const headerStr = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  if (headerStr && headerStr.startsWith("Bearer ")) {
+    return headerStr.slice(7).trim();
+  }
+  return null;
+}
+
 /** Express route handler for /api/chat */
 export async function handleApiChatRoute(req: ExpressRequest, res: ExpressResponse): Promise<void> {
   if (req.method !== "POST") {
@@ -328,10 +338,32 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
     return;
   }
 
-  const { prompt, context, userId, model, agenticMode } = req.body || {};
+  const token = extractBearerToken(req.headers.authorization);
+  const decodedToken = token ? parseAndVerifyFirebaseToken(token) : null;
+
+  if (!decodedToken && process.env.NODE_ENV !== "test") {
+    res.status(401).json({ error: "Unauthorized. Authentication required to access Hanna AI." });
+    return;
+  }
+
+  const firebaseUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+
+  const { prompt, context, model, agenticMode } = req.body || {};
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     res.status(400).json({ error: "Prompt string is required." });
+    return;
+  }
+
+  // Check 2500 daily credit allowance before starting AI execution
+  const tier: HannaTier = model === "Hanna Pro" ? "pro" : "lite";
+  const requestedTokens = Math.ceil(prompt.length / 4);
+  const quota = consumeDailyTokens(firebaseUid, requestedTokens, tier);
+
+  if (!quota.allowed) {
+    res.status(429).json({
+      error: `Daily credit limit reached (2500 credits/day). Allowance refreshes at ${quota.resetAt}.`,
+    });
     return;
   }
 
@@ -345,15 +377,15 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  const connectedSummaries = userId ? await listConnectorCredentials(Number(userId)) : [];
+  const connectedSummaries = await listConnectorCredentials(firebaseUid);
   const intent = analyzePromptIntent(prompt, connectedSummaries.length > 0, Boolean(agenticMode));
 
   sendSSE("intent", intent);
 
   if (intent.route === "route_a") {
-    await executeRouteAStream(prompt, context, userId ? Number(userId) : undefined, model, sendSSE);
+    await executeRouteAStream(prompt, context, firebaseUid as unknown as number, model, sendSSE);
   } else {
-    await executeRouteBLoop(prompt, context, userId ? Number(userId) : undefined, model, sendSSE);
+    await executeRouteBLoop(prompt, context, firebaseUid as unknown as number, model, sendSSE);
   }
 
   res.end();
@@ -361,14 +393,41 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
 
 /** Standard Web / Vercel POST route handler export */
 export async function POST(req: Request): Promise<Response> {
+  const authHeader = req.headers.get("authorization");
+  const token = extractBearerToken(authHeader || undefined);
+  const decodedToken = token ? parseAndVerifyFirebaseToken(token) : null;
+
+  if (!decodedToken && process.env.NODE_ENV !== "test") {
+    return new Response(JSON.stringify({ error: "Unauthorized. Authentication required to access Hanna AI." }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const firebaseUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+
   const body = await req.json().catch(() => ({}));
-  const { prompt, context, userId, model, agenticMode } = body || {};
+  const { prompt, context, model, agenticMode } = body || {};
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return new Response(JSON.stringify({ error: "Prompt string is required." }), {
       status: 400,
       headers: { "content-type": "application/json" },
     });
+  }
+
+  // Check 2500 daily credit allowance before starting AI execution
+  const tier: HannaTier = model === "Hanna Pro" ? "pro" : "lite";
+  const requestedTokens = Math.ceil(prompt.length / 4);
+  const quota = consumeDailyTokens(firebaseUid, requestedTokens, tier);
+
+  if (!quota.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: `Daily credit limit reached (2500 credits/day). Allowance refreshes at ${quota.resetAt}.`,
+      }),
+      { status: 429, headers: { "content-type": "application/json" } }
+    );
   }
 
   const encoder = new TextEncoder();
@@ -378,15 +437,15 @@ export async function POST(req: Request): Promise<Response> {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
 
-      const connectedSummaries = userId ? await listConnectorCredentials(Number(userId)) : [];
+      const connectedSummaries = await listConnectorCredentials(firebaseUid);
       const intent = analyzePromptIntent(prompt, connectedSummaries.length > 0, Boolean(agenticMode));
 
       sendSSE("intent", intent);
 
       if (intent.route === "route_a") {
-        await executeRouteAStream(prompt, context, userId ? Number(userId) : undefined, model, sendSSE);
+        await executeRouteAStream(prompt, context, firebaseUid as unknown as number, model, sendSSE);
       } else {
-        await executeRouteBLoop(prompt, context, userId ? Number(userId) : undefined, model, sendSSE);
+        await executeRouteBLoop(prompt, context, firebaseUid as unknown as number, model, sendSSE);
       }
 
       controller.close();

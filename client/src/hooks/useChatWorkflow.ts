@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 
 export type WorkflowStatus =
   | "idle"
@@ -133,9 +134,17 @@ export function useChatWorkflow() {
       let accumulatedText = "";
 
       try {
+        const idToken = await getFirebaseIdToken();
+        const headers: Record<string, string> = {
+          "content-type": "application/json",
+        };
+        if (idToken) {
+          headers["authorization"] = `Bearer ${idToken}`;
+        }
+
         const response = await fetch("/api/chat", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers,
           signal: controller.signal,
           body: JSON.stringify({
             prompt,

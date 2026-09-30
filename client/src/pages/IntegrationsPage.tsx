@@ -158,10 +158,48 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     setFormInputs({});
   };
 
+  const handleConnect = async (integration: IntegrationDefinition) => {
+    if (integration.id === "google-workspace" || integration.id === "gmail") {
+      const token = await getFirebaseIdToken();
+      const authUrl = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
+      window.location.href = authUrl;
+      return;
+    }
+    openModal(integration);
+  };
+
+  const handleDisconnect = async (integrationId: string, integrationName: string) => {
+    setSaving(true);
+    try {
+      const token = await getFirebaseIdToken();
+      const response = await fetch("/api/trpc/integrations.removeCredential?batch=1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ 0: { json: { connector: integrationId } } }),
+      });
+      if (response.ok) {
+        setConnected(prev => prev.filter(id => id !== integrationId));
+        setToast(`${integrationName} disconnected`);
+      }
+    } catch {
+      setToast(`Failed to disconnect ${integrationName}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleOAuthConnect = async () => {
     if (!activeModal) return;
     setSaving(true);
     try {
+      if (activeModal.id === "google-workspace" || activeModal.id === "gmail") {
+        const token = await getFirebaseIdToken();
+        window.location.href = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
+        return;
+      }
       const token = await getFirebaseIdToken();
       const response = await fetch("/api/trpc/integrations.saveCredential?batch=1", {
         method: "POST",
@@ -329,20 +367,23 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                         <strong>{integration.name}</strong>
                         <span>{integration.description}</span>
                       </div>
-                      <button
-                        className={`integration-card-action ${isConnected ? "is-connected" : ""}`}
-                        onClick={() => openModal(integration)}
-                      >
-                        {isConnected ? (
-                          <>
+                      {isConnected ? (
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            className="integration-card-action is-connected"
+                            onClick={() => handleDisconnect(integration.id, integration.name)}
+                          >
                             <Check size={13} /> Connected
-                          </>
-                        ) : (
-                          <>
-                            Add <ChevronRight size={13} />
-                          </>
-                        )}
-                      </button>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="integration-card-action"
+                          onClick={() => handleConnect(integration)}
+                        >
+                          Connect
+                        </button>
+                      )}
                     </div>
                   );
                 })}
