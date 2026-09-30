@@ -11,6 +11,10 @@ import {
 } from "./firebaseConfig";
 import { handleMcpRequest, listMcpTools } from "./mcpServer";
 import { handleApiChatRoute } from "../api/chat/route";
+import {
+  handleGoogleOAuthAuthorize,
+  handleGoogleOAuthCallback,
+} from "./oauthRoutes";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -43,6 +47,10 @@ app.get(["/api/config", "/config"], sendFirebaseConfig);
 
 // Dedicated Streaming & Intent Router Endpoint (/api/chat)
 app.post(["/api/chat", "/chat"], handleApiChatRoute);
+
+// Google OAuth Endpoints
+app.get(["/api/oauth/google/authorize", "/oauth/google/authorize"], handleGoogleOAuthAuthorize);
+app.get(["/api/oauth/google/callback", "/oauth/google/callback"], handleGoogleOAuthCallback);
 
 app.get(["/api/health", "/health"], async (req, res) => {
   const model = typeof req.query.model === "string" ? req.query.model : undefined;

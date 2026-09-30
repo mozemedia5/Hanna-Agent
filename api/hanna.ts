@@ -2,6 +2,7 @@ import { performAiHealthCheck } from "../server/aiHealth";
 import { getFirebasePublicConfig, missingFirebaseConfigFields } from "../server/firebaseConfig";
 import { handleMcpRequest, listMcpTools } from "../server/mcpServer";
 import { handleApiChatRoute } from "./chat/route";
+import { handleGoogleOAuthAuthorize, handleGoogleOAuthCallback } from "../server/oauthRoutes";
 import { createContext } from "../server/_core/context";
 import { appRouter } from "../server/routers";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -55,6 +56,14 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
 
     if (path === "/api/chat" || path === "/chat") {
       return handleApiChatRoute(req as never, res as never);
+    }
+
+    if (path === "/api/oauth/google/authorize" || path === "/oauth/google/authorize") {
+      return handleGoogleOAuthAuthorize(req as never, res as never);
+    }
+
+    if (path === "/api/oauth/google/callback" || path === "/oauth/google/callback") {
+      return handleGoogleOAuthCallback(req as never, res as never);
     }
 
     if (path === "/api/config" || path === "/config") {
