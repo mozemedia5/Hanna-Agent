@@ -62,16 +62,14 @@ describe("hanna.ask", () => {
     }
   });
 
-  it("returns a safe configuration error when default Gemini API key is missing", async () => {
+  it("returns explicit provider error when default Gemini API key is missing", async () => {
     const origKey = process.env.GEMINI_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
     try {
-      const result = await caller({ ...user, id: 9101 }).hanna.ask({
+      await expect(caller({ ...user, id: 9101 }).hanna.ask({
         prompt: "Help me think",
-      });
-      expect(result.text).toContain("Workspace Assistant Response");
-      expect(result.providerError).toBe(true);
+      })).rejects.toThrow(/not configured/i);
     } finally {
       process.env.GEMINI_API_KEY = origKey;
     }

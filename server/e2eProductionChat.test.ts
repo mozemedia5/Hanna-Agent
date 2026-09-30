@@ -112,7 +112,7 @@ describe("Production Chat & Vercel API Route Resolution E2E Test", () => {
     expect(data.providerError).toBe(false);
   });
 
-  it("handles provider failure gracefully with fallback response without hanging or crashing", async () => {
+  it("handles provider failure explicitly by surfacing error without fake AI response", async () => {
     globalThis.fetch = vi.fn().mockImplementation(async (url: string | URL | Request, init?: RequestInit) => {
       const urlString = url.toString();
       if (urlString.includes("generativelanguage.googleapis.com")) {
@@ -138,11 +138,10 @@ describe("Production Chat & Vercel API Route Resolution E2E Test", () => {
       }),
     });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(500);
     const payload = await res.json();
-    const data = payload[0]?.result?.data?.json;
-    expect(data).toBeDefined();
-    expect(data.providerError).toBe(true);
-    expect(data.text).toContain("Shopify");
+    const trpcError = payload[0]?.error?.json;
+    expect(trpcError).toBeDefined();
+    expect(trpcError.message).toContain("rate limit or quota exceeded");
   });
 });
