@@ -131,7 +131,7 @@ export async function invokeUserProvider(
 
   const model =
     request.provider === "llama"
-      ? request.model && request.model.startsWith("llama")
+      ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek"))
         ? request.model
         : "llama-3.3-70b-versatile"
       : request.provider === "custom"

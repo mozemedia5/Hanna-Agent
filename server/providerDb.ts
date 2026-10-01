@@ -281,7 +281,17 @@ export async function getProviderCredentialForRequest(
     }
   }
 
-  // Canonical Fallback / Default: Hanna's Gemini 2.5 Flash
+  // If Groq/Llama model requested, check GROQ_API_KEY env var
+  if (resolved.provider === "llama" && process.env.GROQ_API_KEY) {
+    return {
+      provider: "llama",
+      apiKey: process.env.GROQ_API_KEY.trim(),
+      model: resolved.model,
+      endpoint: "",
+    };
+  }
+
+  // Canonical Fallback / Default: Hanna's Gemini Flash
   const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
 
   return {

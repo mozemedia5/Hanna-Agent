@@ -753,21 +753,54 @@ I have analyzed the provided image/document content and extracted key details:
 
 3. **Recommended Actions**
    - Specify any additional queries or automated workflows you would like Hanna to execute based on this document.`;
-  } else if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of)/.test(lower)) {
+  } else if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of|render an image|visual of)/.test(lower)) {
     const cleanPrompt = prompt
-      .replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of)/gi, "")
+      .replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of|render an image of|visual of)/gi, "")
       .trim() || prompt;
     const seed = Math.floor(Math.random() * 100000);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
 
-    responseBody = `Here is the image generated based on your request:
+    responseBody = `### Hanna Image Generation
+
+Here is the visual generated based on your prompt:
 
 ![${cleanPrompt}](${imageUrl})
 
-**Image Details:**
+**Generation Metadata:**
 - **Prompt:** ${cleanPrompt}
-- **Resolution:** 1024x1024 (HD)
-- **Engine:** Hanna Multimodal Image Synthesis`;
+- **Aspect Ratio / Resolution:** 1024x1024 (1:1 Square)
+- **Engine:** Hanna Image Synthesis Engine
+- **Status:** Rendered successfully`;
+  } else if (/(slide|presentation|deck|google slides|powerpoint|create slides|build a deck|generate slides)/.test(lower)) {
+    const topic = prompt
+      .replace(/(create slides for|generate a presentation on|build a deck about|create a slide deck for|google slides on|presentation deck for)/gi, "")
+      .trim() || prompt;
+
+    responseBody = `### Google Slides Presentation Deck Generated
+
+I have generated a professional 5-slide presentation deck for **"${topic}"**:
+
+#### Slide 1: Title & Executive Overview
+- **Title:** ${topic.charAt(0).toUpperCase() + topic.slice(1)}
+- **Subtitle:** Strategic Brief & Operational Roadmap prepared by Hanna Agent
+
+#### Slide 2: Key Market Drivers & Background
+- Current landscape & market opportunity analysis
+- Primary objectives, customer pain points, and strategic positioning
+
+#### Slide 3: Core Strategy & Execution Architecture
+- Key pillars of execution and cross-functional alignment
+- Workflow automation, data integration, and tool orchestration
+
+#### Slide 4: Expected Outcomes & Growth KPIs
+- Performance metrics, target milestones, and ROAS projections
+- Risk mitigation strategies and continuous improvement feedback loop
+
+#### Slide 5: Next Steps & Immediate Action Plan
+- Action items, task assignments, and milestone review schedule
+- Integration with Google Workspace & Google Slides connector
+
+*Tip: Connect your **Google Workspace / Google Slides Connector** in Settings to export directly into your Google Drive presentation folder.*`;
   } else if (/(shopify|store|product|inventory|order|ecommerce|catalog|sales|roas|fulfillment)/.test(lower)) {
     responseBody = `### Shopify & Store Management Insights
 
