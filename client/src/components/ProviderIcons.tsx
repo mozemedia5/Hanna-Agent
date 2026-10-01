@@ -77,9 +77,14 @@ type IconProps = { size?: number; className?: string };
 type SimpleBrand = { path: string; hex: string };
 
 function SimpleBrandIcon({ icon, size = 20, className = "" }: IconProps & { icon: SimpleBrand }) {
+  // Brand color override for white/black/dark icons so they don't disappear in light or dark theme
+  const hex = icon.hex.toLowerCase();
+  const isDarkOrWhite = hex === "000000" || hex === "ffffff" || hex === "181717" || hex === "000" || hex === "fff" || hex === "24292e";
+  const fill = isDarkOrWhite ? "currentColor" : `#${icon.hex}`;
+
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className} role="img">
-      <path fill={`#${icon.hex}`} d={icon.path} />
+      <path fill={fill} d={icon.path} />
     </svg>
   );
 }
@@ -90,11 +95,15 @@ function ConnectorAssetIcon({ src, size = 20, className = "" }: IconProps & { sr
       src={`/plugin-icons/${src}`}
       width={size}
       height={size}
-      className={className}
+      className={`connector-asset-icon ${className}`}
       alt=""
       aria-hidden="true"
       loading="lazy"
       decoding="async"
+      style={{
+        objectFit: "contain",
+        filter: src.endsWith(".svg") ? "drop-shadow(0px 1px 2px rgba(0,0,0,0.15))" : undefined
+      }}
     />
   );
 }

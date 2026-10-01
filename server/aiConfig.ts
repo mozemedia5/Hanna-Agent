@@ -36,16 +36,7 @@ export function resolveProviderAndModel(
   const envModel = (process.env.GEMINI_MODEL || "").trim();
   const effectiveDefaultModel = envModel || DEFAULT_AI_MODEL;
 
-  if (
-    !requestedModelOrProvider ||
-    !requestedModelOrProvider.trim() ||
-    requestedModelOrProvider === "Hanna Default" ||
-    requestedModelOrProvider === "Hanna Lite" ||
-    requestedModelOrProvider === "Hanna Pro" ||
-    requestedModelOrProvider === "automatic" ||
-    requestedModelOrProvider === "default" ||
-    requestedModelOrProvider.toLowerCase().startsWith("hanna")
-  ) {
+  if (!requestedModelOrProvider || !requestedModelOrProvider.trim()) {
     return {
       provider: DEFAULT_AI_PROVIDER,
       model: effectiveDefaultModel,
@@ -55,6 +46,44 @@ export function resolveProviderAndModel(
 
   const input = requestedModelOrProvider.trim();
   const lower = input.toLowerCase();
+
+  // Groq models specifically requested under Hanna branding or Groq names
+  if (lower.includes("groq") || lower.includes("llama") || lower.includes("mixtral") || lower.includes("deepseek")) {
+    let modelName = "llama-3.3-70b-versatile";
+    if (lower.includes("8b") || lower.includes("instant") || lower.includes("speed")) {
+      modelName = "llama-3.1-8b-instant";
+    } else if (lower.includes("mixtral")) {
+      modelName = "mixtral-8x7b-32768";
+    } else if (lower.includes("deepseek")) {
+      modelName = "deepseek-r1-distill-llama-70b";
+    } else if (lower.includes("70b") || lower.includes("versatile") || lower.includes("pro")) {
+      modelName = "llama-3.3-70b-versatile";
+    } else if (input.startsWith("llama-") || input.startsWith("mixtral-") || input.startsWith("deepseek-")) {
+      modelName = input;
+    }
+
+    return {
+      provider: "llama",
+      model: modelName,
+      isCustom: true,
+    };
+  }
+
+  // General Hanna default aliases
+  if (
+    requestedModelOrProvider === "Hanna Default" ||
+    requestedModelOrProvider === "Hanna Lite" ||
+    requestedModelOrProvider === "Hanna Pro" ||
+    requestedModelOrProvider === "automatic" ||
+    requestedModelOrProvider === "default" ||
+    (lower.startsWith("hanna") && !lower.includes("groq"))
+  ) {
+    return {
+      provider: DEFAULT_AI_PROVIDER,
+      model: effectiveDefaultModel,
+      isCustom: false,
+    };
+  }
 
   // Gemini models
   if (lower.includes("gemini")) {
@@ -104,20 +133,6 @@ export function resolveProviderAndModel(
 
     return {
       provider: "openai",
-      model: modelName,
-      isCustom: true,
-    };
-  }
-
-  // Groq / Llama / Mixtral models
-  if (lower.includes("llama") || lower.includes("groq") || lower.includes("mixtral")) {
-    let modelName = "llama-3.3-70b-versatile";
-    if (lower.includes("8b")) modelName = "llama-3.1-8b-instant";
-    else if (lower.includes("mixtral")) modelName = "mixtral-8x7b-32768";
-    else if (input.startsWith("llama-")) modelName = input;
-
-    return {
-      provider: "llama",
       model: modelName,
       isCustom: true,
     };

@@ -562,9 +562,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             {modelMenuOpen && (
               <div className="model-menu">
                 {[
-                  { id: "Hanna Lite (default)", label: "Hanna Lite (default)", desc: "Fast & lightweight intelligence" },
+                  { id: "Hanna Lite (default)", label: "Hanna Lite (default)", desc: "Fast & lightweight intelligence (Gemini 3.5 Flash)" },
                   { id: "Hanna Pro", label: "Hanna Pro", desc: "Deep reasoning & multimodal research" },
-                  { id: "Hanna Speed", label: "Hanna Speed", desc: "Ultra-fast response synthesis" },
+                  { id: "Hanna Groq Llama 3.3 70B", label: "Hanna Groq Llama 3.3 70B", desc: "Ultra-fast open-weights reasoning (Groq)" },
+                  { id: "Hanna Groq Llama 3.1 8B", label: "Hanna Groq Llama 3.1 8B", desc: "Sub-second instant generation (Groq)" },
+                  { id: "Hanna Groq Mixtral 8x7B", label: "Hanna Groq Mixtral 8x7B", desc: "High-speed mixture of experts (Groq)" },
+                  { id: "Hanna Groq DeepSeek R1", label: "Hanna Groq DeepSeek R1", desc: "Deep reasoning & logic synthesis (Groq)" },
                   { id: "Hanna Vision & Research", label: "Hanna Vision & Research", desc: "Advanced visual & document intelligence" },
                   { id: "Hanna Enterprise", label: "Hanna Enterprise", desc: "Maximum capacity & high precision" },
                 ].map(mOpt => (
@@ -1190,7 +1193,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         {[
                           { id: "Hanna Lite (default)", label: "Hanna Lite (default)", desc: "Fast & lightweight intelligence" },
                           { id: "Hanna Pro", label: "Hanna Pro", desc: "Deep reasoning & multimodal research" },
-                          { id: "Hanna Speed", label: "Hanna Speed", desc: "Ultra-fast response synthesis" },
+                          { id: "Hanna Groq Llama 3.3 70B", label: "Hanna Groq Llama 3.3 70B", desc: "Ultra-fast open-weights reasoning (Groq)" },
+                          { id: "Hanna Groq Llama 3.1 8B", label: "Hanna Groq Llama 3.1 8B", desc: "Sub-second instant generation (Groq)" },
+                          { id: "Hanna Groq Mixtral 8x7B", label: "Hanna Groq Mixtral 8x7B", desc: "High-speed mixture of experts (Groq)" },
+                          { id: "Hanna Groq DeepSeek R1", label: "Hanna Groq DeepSeek R1", desc: "Deep reasoning & logic synthesis (Groq)" },
                           { id: "Hanna Vision & Research", label: "Hanna Vision & Research", desc: "Advanced visual & document intelligence" },
                           { id: "Hanna Enterprise", label: "Hanna Enterprise", desc: "Maximum capacity & high precision" },
                         ].map(mOption => (
