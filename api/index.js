@@ -1,17 +1,10 @@
 // server/aiConfig.ts
 var DEFAULT_AI_PROVIDER = "gemini";
 var DEFAULT_AI_MODEL = "gemini-3.5-flash";
-var GEMINI_FALLBACK_MODELS = [
-  "gemini-3.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro"
-];
 function resolveProviderAndModel(requestedModelOrProvider) {
-  const defaultModel = (process.env.GEMINI_MODEL || DEFAULT_AI_MODEL).trim();
   const envModel = (process.env.GEMINI_MODEL || "").trim();
   const effectiveDefaultModel = envModel || DEFAULT_AI_MODEL;
-  if (!requestedModelOrProvider || !requestedModelOrProvider.trim() || requestedModelOrProvider === "Hanna Default" || requestedModelOrProvider === "Hanna Lite" || requestedModelOrProvider === "Hanna Pro" || requestedModelOrProvider === "automatic" || requestedModelOrProvider === "default" || requestedModelOrProvider.toLowerCase().startsWith("hanna")) {
+  if (!requestedModelOrProvider || !requestedModelOrProvider.trim()) {
     return {
       provider: DEFAULT_AI_PROVIDER,
       model: effectiveDefaultModel,
@@ -20,16 +13,41 @@ function resolveProviderAndModel(requestedModelOrProvider) {
   }
   const input = requestedModelOrProvider.trim();
   const lower = input.toLowerCase();
+  if (lower.includes("groq") || lower.includes("llama") || lower.includes("mixtral") || lower.includes("deepseek") || lower.includes("gpt-oss")) {
+    let modelName = "llama-3.3-70b-versatile";
+    if (lower.includes("8b") || lower.includes("instant") || lower.includes("speed")) {
+      modelName = "llama-3.1-8b-instant";
+    } else if (lower.includes("mixtral")) {
+      modelName = "mixtral-8x7b-32768";
+    } else if (lower.includes("deepseek")) {
+      modelName = "deepseek-r1-distill-llama-70b";
+    } else if (lower.includes("gpt-oss")) {
+      modelName = "openai/gpt-oss-120b";
+    } else if (lower.includes("70b") || lower.includes("versatile") || lower.includes("pro")) {
+      modelName = "llama-3.3-70b-versatile";
+    } else if (input.startsWith("llama-") || input.startsWith("mixtral-") || input.startsWith("deepseek-") || input.includes("/")) {
+      modelName = input;
+    }
+    return {
+      provider: "llama",
+      model: modelName,
+      isCustom: true
+    };
+  }
+  if (requestedModelOrProvider === "Hanna Default" || requestedModelOrProvider === "Hanna Lite" || requestedModelOrProvider === "Hanna Pro" || requestedModelOrProvider === "automatic" || requestedModelOrProvider === "default" || lower.startsWith("hanna") && !lower.includes("groq")) {
+    return {
+      provider: DEFAULT_AI_PROVIDER,
+      model: effectiveDefaultModel,
+      isCustom: false
+    };
+  }
   if (lower.includes("gemini")) {
-    let modelName = defaultModel;
-    if (lower.includes("3.5")) modelName = "gemini-3.5-flash";
-    else if (lower.includes("3.6")) modelName = "gemini-3.5-flash";
-    else if (lower.includes("3.7")) modelName = "gemini-3.7-flash";
-    else if (lower.includes("2.5")) modelName = "gemini-3.5-flash";
-    else if (lower.includes("2.0")) modelName = "gemini-2.0-flash";
-    else if (lower.includes("1.5-pro")) modelName = "gemini-1.5-pro";
-    else if (lower.includes("1.5")) modelName = "gemini-1.5-flash";
-    else if (input.startsWith("gemini-")) modelName = input;
+    let modelName = effectiveDefaultModel;
+    if (input.startsWith("gemini-")) {
+      modelName = input;
+    } else {
+      modelName = DEFAULT_AI_MODEL;
+    }
     return {
       provider: "gemini",
       model: modelName,
@@ -62,17 +80,6 @@ function resolveProviderAndModel(requestedModelOrProvider) {
       isCustom: true
     };
   }
-  if (lower.includes("llama") || lower.includes("groq") || lower.includes("mixtral")) {
-    let modelName = "llama-3.3-70b-versatile";
-    if (lower.includes("8b")) modelName = "llama-3.1-8b-instant";
-    else if (lower.includes("mixtral")) modelName = "mixtral-8x7b-32768";
-    else if (input.startsWith("llama-")) modelName = input;
-    return {
-      provider: "llama",
-      model: modelName,
-      isCustom: true
-    };
-  }
   if (lower.includes("mistral")) {
     return {
       provider: "mistral",
@@ -92,6 +99,535 @@ function resolveProviderAndModel(requestedModelOrProvider) {
     model: input,
     isCustom: true
   };
+}
+
+// server/geminiService.ts
+import crypto from "node:crypto";
+var GeminiProviderError = class extends Error {
+  success = false;
+  provider = "gemini";
+  model;
+  errorCode;
+  status;
+  details;
+  constructor(options) {
+    super(options.message);
+    this.name = "GeminiProviderError";
+    this.model = options.model;
+    this.errorCode = options.errorCode;
+    this.status = options.status;
+    this.details = options.details;
+  }
+  toJSON() {
+    return {
+      success: false,
+      provider: "gemini",
+      model: this.model,
+      errorCode: this.errorCode,
+      message: this.message
+    };
+  }
+};
+var DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
+function getEffectiveGeminiModel(requestedModel) {
+  const envModel = (process.env.GEMINI_MODEL || "").trim();
+  const baseModel = envModel || DEFAULT_GEMINI_MODEL;
+  if (!requestedModel || !requestedModel.trim()) {
+    return baseModel;
+  }
+  const clean = requestedModel.trim().toLowerCase();
+  if (clean === "hanna default" || clean === "hanna lite" || clean === "hanna pro" || clean === "default" || clean === "automatic") {
+    return baseModel;
+  }
+  if (clean.includes("gemini")) {
+    if (clean.startsWith("gemini-")) {
+      return clean;
+    }
+    return DEFAULT_GEMINI_MODEL;
+  }
+  return baseModel;
+}
+function sanitizeErrorText(text2) {
+  if (!text2) return "";
+  return text2.replace(/AIzaSy[A-Za-z0-9_-]{20,}/g, "AIzaSy\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022").replace(/key=[A-Za-z0-9_-]+/gi, "key=\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022");
+}
+function classifyHttpStatus(status) {
+  switch (status) {
+    case 400:
+      return { errorCode: "GEMINI_400", retryable: false, message: "Bad request sent to Gemini API." };
+    case 401:
+      return { errorCode: "GEMINI_401", retryable: false, message: "Gemini API authentication failed. Check server API key." };
+    case 403:
+      return { errorCode: "GEMINI_403", retryable: false, message: "Access forbidden by Gemini API. Check API key permissions." };
+    case 404:
+      return { errorCode: "GEMINI_404", retryable: false, message: "Configured Gemini model or endpoint not found (404)." };
+    case 408:
+      return { errorCode: "GEMINI_TIMEOUT", retryable: true, message: "Gemini API request timed out." };
+    case 429:
+      return { errorCode: "GEMINI_429", retryable: true, message: "Gemini API rate limit or quota exceeded." };
+    case 500:
+      return { errorCode: "GEMINI_500", retryable: true, message: "Gemini server error (500)." };
+    case 502:
+      return { errorCode: "GEMINI_502", retryable: true, message: "Gemini bad gateway (502)." };
+    case 503:
+      return { errorCode: "GEMINI_503", retryable: true, message: "Hanna could not reach Gemini right now (503)." };
+    case 504:
+      return { errorCode: "GEMINI_504", retryable: true, message: "Gemini gateway timeout (504)." };
+    default:
+      if (status >= 500) {
+        return { errorCode: `GEMINI_${status}`, retryable: true, message: `Gemini service error (${status}).` };
+      }
+      return { errorCode: `GEMINI_${status}`, retryable: false, message: `Gemini returned HTTP ${status}.` };
+  }
+}
+async function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function buildGeminiRequestBody(options) {
+  const contents = [];
+  const messageText = options.context ? `Workspace context: ${options.context}
+
+User request: ${options.prompt}` : options.prompt;
+  contents.push({
+    role: "user",
+    parts: [{ text: messageText }]
+  });
+  const body = { contents };
+  if (options.systemPrompt) {
+    body.systemInstruction = {
+      parts: [{ text: options.systemPrompt }]
+    };
+  }
+  if (options.tools && options.tools.length > 0) {
+    body.tools = [
+      {
+        functionDeclarations: options.tools.map((t2) => ({
+          name: t2.name,
+          description: t2.description,
+          parameters: t2.parameters
+        }))
+      }
+    ];
+  }
+  return body;
+}
+async function generateGeminiContent(options) {
+  const startTime = Date.now();
+  const apiKey = (options.apiKey || process.env.GEMINI_API_KEY || "").trim();
+  const model = getEffectiveGeminiModel(options.model);
+  const requestId = options.requestId || `req_${crypto.randomUUID()}`;
+  const route = options.route || "generate";
+  const timeoutMs = options.timeoutMs || 3e4;
+  if (!apiKey) {
+    throw new GeminiProviderError({
+      model,
+      errorCode: "MISSING_API_KEY",
+      message: "Gemini API key is missing or not configured on the server."
+    });
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const requestBody2 = buildGeminiRequestBody(options);
+  const maxAttempts = 3;
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(requestBody2),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
+      const latencyMs = Date.now() - startTime;
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        const safeErrText = sanitizeErrorText(errText);
+        const classification = classifyHttpStatus(response.status);
+        console.error(
+          `[AI] provider=gemini model=${model} status=${response.status} retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+        );
+        const providerErr = new GeminiProviderError({
+          model,
+          errorCode: classification.errorCode,
+          status: response.status,
+          message: classification.message,
+          details: safeErrText
+        });
+        if (classification.retryable && attempt < maxAttempts) {
+          lastError = providerErr;
+          await delay(attempt === 1 ? 500 : 1e3);
+          continue;
+        }
+        throw providerErr;
+      }
+      const data = await response.json().catch(() => null);
+      if (!data) {
+        throw new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_INVALID_RESPONSE",
+          message: "Gemini returned an invalid or empty JSON response structure."
+        });
+      }
+      const text2 = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      if (!text2 || !text2.trim()) {
+        throw new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_EMPTY_RESPONSE",
+          message: "Gemini API returned an empty text response."
+        });
+      }
+      console.info(
+        `[AI] provider=gemini model=${model} status=200 latency=${latencyMs}ms route=${route} reqId=${requestId}`
+      );
+      return {
+        text: text2,
+        provider: "gemini",
+        model,
+        requestId,
+        latencyMs
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      if (err instanceof GeminiProviderError) {
+        if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
+          lastError = err;
+          if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
+            await delay(attempt === 1 ? 500 : 1e3);
+            continue;
+          }
+        }
+        throw err;
+      }
+      if (err instanceof Error && err.name === "AbortError") {
+        const timeoutErr = new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_TIMEOUT",
+          message: `Gemini API request timed out after ${timeoutMs / 1e3} seconds.`
+        });
+        console.error(
+          `[AI] provider=gemini model=${model} status=TIMEOUT retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+        );
+        if (attempt < maxAttempts) {
+          lastError = timeoutErr;
+          await delay(attempt === 1 ? 500 : 1e3);
+          continue;
+        }
+        throw timeoutErr;
+      }
+      const networkErr = new GeminiProviderError({
+        model,
+        errorCode: "GEMINI_NETWORK_ERROR",
+        message: "Network failure while attempting to connect to Gemini API.",
+        details: err instanceof Error ? sanitizeErrorText(err.message) : String(err)
+      });
+      console.error(
+        `[AI] provider=gemini model=${model} status=NETWORK_ERROR retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+      );
+      if (attempt < maxAttempts) {
+        lastError = networkErr;
+        await delay(attempt === 1 ? 500 : 1e3);
+        continue;
+      }
+      throw networkErr;
+    }
+  }
+  throw lastError || new GeminiProviderError({
+    model,
+    errorCode: "GEMINI_503",
+    message: "Hanna could not reach Gemini right now after multiple retries."
+  });
+}
+async function streamGeminiContent(options, onChunk) {
+  const startTime = Date.now();
+  const apiKey = (options.apiKey || process.env.GEMINI_API_KEY || "").trim();
+  const model = getEffectiveGeminiModel(options.model);
+  const requestId = options.requestId || `req_${crypto.randomUUID()}`;
+  const route = options.route || "stream";
+  const timeoutMs = options.timeoutMs || 3e4;
+  if (!apiKey) {
+    throw new GeminiProviderError({
+      model,
+      errorCode: "MISSING_API_KEY",
+      message: "Gemini API key is missing or not configured on the server."
+    });
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+  const requestBody2 = buildGeminiRequestBody(options);
+  const maxAttempts = 3;
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(requestBody2),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
+      const latencyMs = Date.now() - startTime;
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        const safeErrText = sanitizeErrorText(errText);
+        const classification = classifyHttpStatus(response.status);
+        console.error(
+          `[AI] provider=gemini model=${model} status=${response.status} retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+        );
+        const providerErr = new GeminiProviderError({
+          model,
+          errorCode: classification.errorCode,
+          status: response.status,
+          message: classification.message,
+          details: safeErrText
+        });
+        if (classification.retryable && attempt < maxAttempts) {
+          lastError = providerErr;
+          await delay(attempt === 1 ? 500 : 1e3);
+          continue;
+        }
+        throw providerErr;
+      }
+      if (!response.body) {
+        return generateGeminiContent(options);
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let fullText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const jsonStr = trimmed.slice(5).trim();
+          if (!jsonStr || jsonStr === "[DONE]") continue;
+          try {
+            const data = JSON.parse(jsonStr);
+            const chunk = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || "";
+            if (chunk) {
+              fullText += chunk;
+              onChunk(chunk);
+            }
+          } catch {
+          }
+        }
+      }
+      if (!fullText || !fullText.trim()) {
+        throw new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_EMPTY_RESPONSE",
+          message: "Gemini stream returned empty text."
+        });
+      }
+      console.info(
+        `[AI] provider=gemini model=${model} status=200 latency=${latencyMs}ms route=${route} reqId=${requestId}`
+      );
+      return {
+        text: fullText,
+        provider: "gemini",
+        model,
+        requestId,
+        latencyMs
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      if (err instanceof GeminiProviderError) {
+        if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
+          lastError = err;
+          if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
+            await delay(attempt === 1 ? 500 : 1e3);
+            continue;
+          }
+        }
+        throw err;
+      }
+      if (err instanceof Error && err.name === "AbortError") {
+        const timeoutErr = new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_TIMEOUT",
+          message: `Gemini API stream request timed out after ${timeoutMs / 1e3} seconds.`
+        });
+        console.error(
+          `[AI] provider=gemini model=${model} status=TIMEOUT retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+        );
+        if (attempt < maxAttempts) {
+          lastError = timeoutErr;
+          await delay(attempt === 1 ? 500 : 1e3);
+          continue;
+        }
+        throw timeoutErr;
+      }
+      const networkErr = new GeminiProviderError({
+        model,
+        errorCode: "GEMINI_NETWORK_ERROR",
+        message: "Network failure while streaming from Gemini API.",
+        details: err instanceof Error ? sanitizeErrorText(err.message) : String(err)
+      });
+      console.error(
+        `[AI] provider=gemini model=${model} status=NETWORK_ERROR retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+      );
+      if (attempt < maxAttempts) {
+        lastError = networkErr;
+        await delay(attempt === 1 ? 500 : 1e3);
+        continue;
+      }
+      throw networkErr;
+    }
+  }
+  throw lastError || new GeminiProviderError({
+    model,
+    errorCode: "GEMINI_503",
+    message: "Hanna could not reach Gemini right now after multiple retries."
+  });
+}
+async function invokeGeminiToolTurn(options) {
+  const startTime = Date.now();
+  const apiKey = (options.apiKey || process.env.GEMINI_API_KEY || "").trim();
+  const model = getEffectiveGeminiModel(options.model);
+  const requestId = options.requestId || `req_${crypto.randomUUID()}`;
+  const route = options.route || "agent_turn";
+  const timeoutMs = options.timeoutMs || 45e3;
+  if (!apiKey) {
+    throw new GeminiProviderError({
+      model,
+      errorCode: "MISSING_API_KEY",
+      message: "Gemini API key is missing or not configured on the server."
+    });
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const requestBody2 = buildGeminiRequestBody(options);
+  const maxAttempts = 3;
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(requestBody2),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
+      const latencyMs = Date.now() - startTime;
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        const safeErrText = sanitizeErrorText(errText);
+        const classification = classifyHttpStatus(response.status);
+        console.error(
+          `[AI] provider=gemini model=${model} status=${response.status} retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+        );
+        const providerErr = new GeminiProviderError({
+          model,
+          errorCode: classification.errorCode,
+          status: response.status,
+          message: classification.message,
+          details: safeErrText
+        });
+        if (classification.retryable && attempt < maxAttempts) {
+          lastError = providerErr;
+          await delay(attempt === 1 ? 500 : 1e3);
+          continue;
+        }
+        throw providerErr;
+      }
+      const data = await response.json().catch(() => null);
+      if (!data) {
+        throw new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_INVALID_RESPONSE",
+          message: "Gemini returned invalid response structure during tool turn."
+        });
+      }
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const functionCallPart = parts.find((p) => p.functionCall?.name)?.functionCall;
+      if (functionCallPart?.name) {
+        console.info(
+          `[AI] provider=gemini model=${model} status=200 tool_call=${functionCallPart.name} latency=${latencyMs}ms route=${route} reqId=${requestId}`
+        );
+        return {
+          functionCall: {
+            name: functionCallPart.name,
+            args: functionCallPart.args ?? {}
+          },
+          provider: "gemini",
+          model,
+          requestId,
+          latencyMs
+        };
+      }
+      const text2 = parts.map((p) => p.text ?? "").join("").trim();
+      if (!text2) {
+        throw new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_EMPTY_RESPONSE",
+          message: "Gemini returned an empty turn during tool execution."
+        });
+      }
+      console.info(
+        `[AI] provider=gemini model=${model} status=200 latency=${latencyMs}ms route=${route} reqId=${requestId}`
+      );
+      return {
+        text: text2,
+        provider: "gemini",
+        model,
+        requestId,
+        latencyMs
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      if (err instanceof GeminiProviderError) {
+        if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
+          lastError = err;
+          if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
+            await delay(attempt === 1 ? 500 : 1e3);
+            continue;
+          }
+        }
+        throw err;
+      }
+      if (err instanceof Error && err.name === "AbortError") {
+        const timeoutErr = new GeminiProviderError({
+          model,
+          errorCode: "GEMINI_TIMEOUT",
+          message: `Gemini API request timed out after ${timeoutMs / 1e3} seconds.`
+        });
+        console.error(
+          `[AI] provider=gemini model=${model} status=TIMEOUT retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+        );
+        if (attempt < maxAttempts) {
+          lastError = timeoutErr;
+          await delay(attempt === 1 ? 500 : 1e3);
+          continue;
+        }
+        throw timeoutErr;
+      }
+      const networkErr = new GeminiProviderError({
+        model,
+        errorCode: "GEMINI_NETWORK_ERROR",
+        message: "Network failure during Gemini tool turn execution.",
+        details: err instanceof Error ? sanitizeErrorText(err.message) : String(err)
+      });
+      console.error(
+        `[AI] provider=gemini model=${model} status=NETWORK_ERROR retry=${attempt - 1} route=${route} reqId=${requestId} latency=${latencyMs}ms`
+      );
+      if (attempt < maxAttempts) {
+        lastError = networkErr;
+        await delay(attempt === 1 ? 500 : 1e3);
+        continue;
+      }
+      throw networkErr;
+    }
+  }
+  throw lastError || new GeminiProviderError({
+    model,
+    errorCode: "GEMINI_503",
+    message: "Hanna could not reach Gemini right now after multiple retries."
+  });
 }
 
 // server/providerAdapters.ts
@@ -120,23 +656,22 @@ function userMessage(request) {
 
 User request: ${request.prompt}` : request.prompt;
 }
-function geminiCandidateModels(requestedModel) {
-  const rawModel = (requestedModel || process.env.GEMINI_MODEL || "gemini-3.5-flash").trim();
-  let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
-  if (primaryModel.includes("3.5")) primaryModel = "gemini-3.5-flash";
-  else if (primaryModel.includes("3.6")) primaryModel = "gemini-3.5-flash";
-  else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
-  else if (primaryModel.includes("2.5")) primaryModel = "gemini-3.5-flash";
-  else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
-  else if (primaryModel.includes("1.5-pro")) primaryModel = "gemini-1.5-pro";
-  else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
-  return Array.from(/* @__PURE__ */ new Set([primaryModel, ...GEMINI_FALLBACK_MODELS]));
-}
 async function invokeUserProvider(request) {
   if (!request.apiKey || !request.apiKey.trim()) {
     throw new Error(
       `${request.provider || "Provider"} API key is missing or not configured.`
     );
+  }
+  if (request.provider === "gemini") {
+    const res = await generateGeminiContent({
+      apiKey: request.apiKey,
+      model: request.model,
+      prompt: request.prompt,
+      context: request.context,
+      systemPrompt: HANNA_SYSTEM_PROMPT,
+      route: "invokeUserProvider"
+    });
+    return res.text;
   }
   const message = userMessage(request);
   if (request.provider === "anthropic") {
@@ -171,60 +706,8 @@ async function invokeUserProvider(request) {
     if (!data2) throw new Error("Anthropic returned an invalid response format.");
     return data2.content?.find((item) => item.type === "text")?.text ?? "I\u2019m ready to help. Could you rephrase that request?";
   }
-  if (request.provider === "gemini") {
-    const candidateModels = geminiCandidateModels(request.model);
-    let lastError = "";
-    for (const modelName of candidateModels) {
-      try {
-        const response2 = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(request.apiKey.trim())}`,
-          {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
-              contents: [{ role: "user", parts: [{ text: message }] }]
-            })
-          }
-        );
-        if (!response2.ok) {
-          const errText = await getResponseText(response2);
-          const safeText = sanitizeError(errText);
-          if (response2.status === 401 || response2.status === 403) {
-            throw new Error(`Gemini provider returned ${response2.status}: Authentication failed.`);
-          }
-          if (response2.status === 429) {
-            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
-          }
-          if (response2.status === 404) {
-            lastError = `Gemini model ${modelName} unavailable (404).`;
-            continue;
-          }
-          throw new Error(
-            `Gemini (${modelName}) returned status ${response2.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
-          );
-        }
-        const data2 = await response2.json().catch(() => null);
-        if (!data2) throw new Error("Gemini returned an invalid response format.");
-        const text2 = data2.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("");
-        if (text2 && text2.trim()) return text2;
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
-            throw err;
-          }
-          lastError = err.message;
-          if (err.message.includes("404")) continue;
-        }
-        throw err;
-      }
-    }
-    throw new Error(
-      lastError || "Gemini provider could not complete the request with configured models."
-    );
-  }
   const baseUrl = request.provider === "custom" && request.endpoint ? request.endpoint : request.provider === "llama" ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
-  const model = request.provider === "llama" ? request.model && request.model.startsWith("llama") ? request.model : "llama-3.3-70b-versatile" : request.provider === "custom" ? request.model : request.model || "gpt-4o-mini";
+  const model = request.provider === "llama" ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek") || request.model.includes("/")) ? request.model : "llama-3.3-70b-versatile" : request.provider === "custom" ? request.model : request.model || "gpt-4o-mini";
   const response = await fetch(baseUrl, {
     method: "POST",
     headers: {
@@ -263,86 +746,23 @@ async function streamUserProvider(request, onChunk) {
       `${request.provider || "Provider"} API key is missing or not configured.`
     );
   }
-  const message = userMessage(request);
   if (request.provider === "gemini") {
-    const candidateModels = geminiCandidateModels(request.model);
-    let lastError = "";
-    for (const modelName of candidateModels) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(request.apiKey.trim())}`;
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
-            contents: [{ role: "user", parts: [{ text: message }] }]
-          })
-        });
-        if (!response.ok) {
-          const errText = await getResponseText(response);
-          const safeText = sanitizeError(errText);
-          if (response.status === 401 || response.status === 403) {
-            throw new Error(`Gemini provider returned ${response.status}: Authentication failed.`);
-          }
-          if (response.status === 429) {
-            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
-          }
-          if (response.status === 404) {
-            lastError = `Gemini model ${modelName} unavailable (404).`;
-            continue;
-          }
-          throw new Error(
-            `Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
-          );
-        }
-        if (!response.body) {
-          const text2 = await invokeUserProvider({ ...request, model: modelName });
-          onChunk(text2);
-          return { text: text2, provider: "gemini", model: modelName };
-        }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-        let fullText = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-            const jsonStr = trimmed.slice(5).trim();
-            if (!jsonStr || jsonStr === "[DONE]") continue;
-            try {
-              const data = JSON.parse(jsonStr);
-              const chunk = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || "";
-              if (chunk) {
-                fullText += chunk;
-                onChunk(chunk);
-              }
-            } catch {
-            }
-          }
-        }
-        if (fullText.trim()) {
-          return { text: fullText, provider: "gemini", model: modelName };
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
-            throw err;
-          }
-          lastError = err.message;
-          if (err.message.includes("404")) continue;
-        }
-        throw err;
-      }
-    }
-    throw new Error(
-      lastError || "Gemini provider streaming failed with configured models."
+    const res = await streamGeminiContent(
+      {
+        apiKey: request.apiKey,
+        model: request.model,
+        prompt: request.prompt,
+        context: request.context,
+        systemPrompt: HANNA_SYSTEM_PROMPT,
+        route: "streamUserProvider"
+      },
+      onChunk
     );
+    return {
+      text: res.text,
+      provider: res.provider,
+      model: res.model
+    };
   }
   const fullResponse = await invokeUserProvider(request);
   const chunkSize = 16;
@@ -358,81 +778,117 @@ async function streamUserProvider(request, onChunk) {
   };
 }
 async function invokeGeminiAgentTurn(request) {
-  if (request.provider !== "gemini") {
-    return { text: await invokeUserProvider(request) };
-  }
   if (!request.apiKey || !request.apiKey.trim()) {
-    throw new Error("Gemini API key is missing or not configured.");
+    throw new Error(`${request.provider || "Provider"} API key is missing or not configured.`);
   }
-  const tools = request.tools?.length ? [{ functionDeclarations: request.tools.map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    parameters: tool.parameters
-  })) }] : void 0;
-  let lastError = "";
-  for (const modelName of geminiCandidateModels(request.model)) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(request.apiKey.trim())}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
-            contents: [{ role: "user", parts: [{ text: userMessage(request) }] }],
-            ...tools ? { tools } : {}
-          })
+  const nameMap = /* @__PURE__ */ new Map();
+  const sanitizedTools = request.tools?.map((tool) => {
+    const sanitizedName = tool.name.replaceAll(/[^a-zA-Z0-9_]/g, "_");
+    nameMap.set(sanitizedName, tool.name);
+    return {
+      ...tool,
+      name: sanitizedName
+    };
+  });
+  if (request.provider === "gemini") {
+    const res = await invokeGeminiToolTurn({
+      apiKey: request.apiKey,
+      model: request.model,
+      prompt: request.prompt,
+      context: request.context,
+      systemPrompt: HANNA_SYSTEM_PROMPT,
+      tools: sanitizedTools,
+      route: "invokeGeminiAgentTurn"
+    });
+    if (res.functionCall) {
+      const originalName = nameMap.get(res.functionCall.name) || res.functionCall.name;
+      return {
+        text: res.text,
+        functionCall: {
+          name: originalName,
+          args: res.functionCall.args
         }
-      );
-      if (!response.ok) {
-        const safeText = sanitizeError(await getResponseText(response));
-        if (response.status === 401 || response.status === 403) {
-          throw new Error("Gemini provider returned an authentication error.");
-        }
-        if (response.status === 429) {
-          throw new Error("Gemini provider returned 429: Rate limit or quota exceeded.");
-        }
-        if (response.status === 404) {
-          lastError = `Gemini model ${modelName} unavailable (404).`;
-          continue;
-        }
-        throw new Error(`Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`);
-      }
-      const data = await response.json().catch(() => null);
-      const parts = data?.candidates?.[0]?.content?.parts ?? [];
-      const functionCall = parts.find((part) => part.functionCall?.name)?.functionCall;
-      if (functionCall?.name) {
-        return { functionCall: { name: functionCall.name, args: functionCall.args ?? {} } };
-      }
-      const text2 = parts.map((part) => part.text ?? "").join("").trim();
-      if (text2) return { text: text2 };
-      throw new Error("Gemini returned an empty response.");
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes("authentication") || error.message.includes("429")) throw error;
-        lastError = error.message;
-        if (error.message.includes("404")) continue;
-      }
-      throw error;
+      };
     }
+    return {
+      text: res.text,
+      functionCall: void 0
+    };
   }
-  throw new Error(lastError || "Gemini could not complete the tool-calling request.");
+  const baseUrl = request.provider === "custom" && request.endpoint ? request.endpoint : request.provider === "llama" ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
+  const model = request.provider === "llama" ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek") || request.model.includes("/")) ? request.model : "llama-3.3-70b-versatile" : request.provider === "custom" ? request.model : request.model || "gpt-4o-mini";
+  const formattedTools = sanitizedTools?.map((t2) => ({
+    type: "function",
+    function: {
+      name: t2.name,
+      description: t2.description,
+      parameters: t2.parameters
+    }
+  }));
+  const message = userMessage(request);
+  const response = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${request.apiKey.trim()}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: HANNA_SYSTEM_PROMPT },
+        { role: "user", content: message }
+      ],
+      ...formattedTools && formattedTools.length > 0 ? { tools: formattedTools } : {}
+    })
+  });
+  if (!response.ok) {
+    const errText = await getResponseText(response);
+    const safeText = sanitizeError(errText);
+    throw new Error(
+      `${request.provider} agent turn returned ${response.status}${safeText ? `: ${safeText.slice(0, 100)}` : ""}`
+    );
+  }
+  const data = await response.json().catch(() => null);
+  const msgChoice = data?.choices?.[0]?.message;
+  const toolCall = msgChoice?.tool_calls?.[0];
+  if (toolCall?.function?.name) {
+    const sanitizedName = toolCall.function.name;
+    const originalName = nameMap.get(sanitizedName) || sanitizedName;
+    let parsedArgs = {};
+    try {
+      if (toolCall.function.arguments) {
+        parsedArgs = JSON.parse(toolCall.function.arguments);
+      }
+    } catch {
+      parsedArgs = {};
+    }
+    return {
+      text: msgChoice?.content || void 0,
+      functionCall: {
+        name: originalName,
+        args: parsedArgs
+      }
+    };
+  }
+  return {
+    text: msgChoice?.content || "I\u2019m ready to help. Could you clarify your request?"
+  };
 }
 
 // server/credentialCrypto.ts
-import crypto from "node:crypto";
+import crypto2 from "node:crypto";
 function secretKey() {
-  const secret = process.env.HANNA_ENCRYPTION_KEY ?? process.env.JWT_SECRET ?? (process.env.NODE_ENV === "test" ? "hanna-test-secret-key-32-chars!!" : void 0);
+  const secret = process.env.CREDENTIAL_ENCRYPTION_KEY ?? process.env.HANNA_ENCRYPTION_KEY ?? process.env.JWT_SECRET ?? (process.env.NODE_ENV === "test" ? "hanna-test-secret-key-32-chars!!" : void 0);
   if (!secret) {
     throw new Error(
-      "Server encryption key is missing. HANNA_ENCRYPTION_KEY must be configured in environment variables."
+      "Server encryption key is missing. CREDENTIAL_ENCRYPTION_KEY must be configured in environment variables."
     );
   }
-  return crypto.createHash("sha256").update(secret).digest();
+  return crypto2.createHash("sha256").update(secret).digest();
 }
 function encryptCredential(value) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", secretKey(), iv);
+  const iv = crypto2.randomBytes(12);
+  const cipher = crypto2.createCipheriv("aes-256-gcm", secretKey(), iv);
   const encrypted = Buffer.concat([
     cipher.update(value, "utf8"),
     cipher.final()
@@ -444,7 +900,7 @@ function decryptCredential(payload) {
   const [ivText, tagText, encryptedText] = payload.split(".");
   if (!ivText || !tagText || !encryptedText)
     throw new Error("Invalid encrypted credential");
-  const decipher = crypto.createDecipheriv(
+  const decipher = crypto2.createDecipheriv(
     "aes-256-gcm",
     secretKey(),
     Buffer.from(ivText, "base64url")
@@ -799,6 +1255,32 @@ async function getProviderCredentialForRequest(userId, prompt, requestedProvider
       };
     }
   }
+  if (resolved.provider === "llama") {
+    if (process.env.GROQ_API_KEY) {
+      return {
+        provider: "llama",
+        apiKey: process.env.GROQ_API_KEY.trim(),
+        model: resolved.model,
+        endpoint: ""
+      };
+    }
+    return {
+      provider: "llama",
+      apiKey: "",
+      model: resolved.model,
+      endpoint: "",
+      error: "CUSTOM_PROVIDER_NOT_CONFIGURED"
+    };
+  }
+  if (resolved.isCustom && resolved.provider !== "gemini") {
+    return {
+      provider: resolved.provider,
+      apiKey: "",
+      model: resolved.model,
+      endpoint: "",
+      error: "CUSTOM_PROVIDER_NOT_CONFIGURED"
+    };
+  }
   const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
   return {
     provider: "gemini",
@@ -855,7 +1337,7 @@ async function performAiHealthCheck(options) {
     }
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8e3);
+      const timeoutId = setTimeout(() => controller.abort(), 5e3);
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(resolved.model)}:generateContent?key=${encodeURIComponent(geminiKey)}`,
         {
@@ -868,10 +1350,14 @@ async function performAiHealthCheck(options) {
         }
       ).finally(() => clearTimeout(timeoutId));
       if (response.ok) {
-        return buildReport("AI_READY", `Gemini connection verified for model ${resolved.model}.`);
+        const data = await response.json().catch(() => null);
+        if (data && data.candidates?.[0]) {
+          return buildReport("AI_READY", `Gemini connection verified for model ${resolved.model}.`);
+        }
+        return buildReport("AI_ERROR", "Gemini returned unexpected response structure.");
       }
       if (response.status === 401 || response.status === 403) {
-        return buildReport("GEMINI_AUTH_FAILED", "GEMINI_API_KEY rejected by Google Gemini API.");
+        return buildReport("GEMINI_AUTH_FAILED", `GEMINI_API_KEY rejected by Google Gemini API (${response.status}).`);
       }
       if (response.status === 404) {
         return buildReport("GEMINI_MODEL_UNAVAILABLE", `Configured model ${resolved.model} is unavailable (404).`);
@@ -883,10 +1369,13 @@ async function performAiHealthCheck(options) {
         }
         return buildReport("GEMINI_RATE_LIMITED", "Gemini API rate limit exceeded.");
       }
+      if (response.status >= 500) {
+        return buildReport("AI_ERROR", `Gemini service error HTTP ${response.status}.`);
+      }
       return buildReport("AI_ERROR", `Gemini returned HTTP status ${response.status}.`);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        return buildReport("GEMINI_TIMEOUT", "Gemini API request timed out after 8 seconds.");
+        return buildReport("GEMINI_TIMEOUT", "Gemini API health check timed out after 5 seconds.");
       }
       return buildReport("AI_ERROR", error instanceof Error ? error.message : "Network failure reaching Gemini.");
     }
@@ -2559,7 +3048,7 @@ async function executeConnectorAction(credential, action, fetcher = fetch) {
 }
 
 // server/connectorDb.ts
-import crypto2 from "node:crypto";
+import crypto3 from "node:crypto";
 var approvals = /* @__PURE__ */ new Map();
 var keyFor2 = (userId, connector) => `${userId}:${connector}`;
 async function saveConnectorCredential(userId, connector, values) {
@@ -2624,7 +3113,7 @@ function validateAction(action) {
 function createApprovalRequest(userId, action) {
   validateAction(action);
   const now2 = /* @__PURE__ */ new Date();
-  const id = `approval_${crypto2.randomUUID()}`;
+  const id = `approval_${crypto3.randomUUID()}`;
   const request = {
     id,
     userId,
@@ -2760,6 +3249,149 @@ async function handleMcpRequest(request, userId) {
   };
 }
 
+// server/db.ts
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/mysql2";
+
+// drizzle/schema.ts
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  boolean,
+  uniqueIndex
+} from "drizzle-orm/mysql-core";
+var users = mysqlTable("users", {
+  id: int("id").autoincrement().primaryKey(),
+  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  name: text("name"),
+  email: varchar("email", { length: 320 }),
+  loginMethod: varchar("loginMethod", { length: 64 }),
+  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
+});
+var providerCredentials = mysqlTable(
+  "providerCredentials",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 64 }).notNull(),
+    displayName: varchar("displayName", { length: 120 }).notNull(),
+    endpoint: varchar("endpoint", { length: 255 }).default("").notNull(),
+    encryptedKey: text("encryptedKey").notNull(),
+    keyHint: varchar("keyHint", { length: 12 }).notNull(),
+    isEnabled: boolean("isEnabled").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  },
+  (table) => ({
+    userProviderUnique: uniqueIndex("providerCredentials_user_provider_idx").on(
+      table.userId,
+      table.provider
+    )
+  })
+);
+var workspaceSettings = mysqlTable("workspaceSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  theme: varchar("theme", { length: 16 }).default("light").notNull(),
+  defaultProvider: varchar("defaultProvider", { length: 64 }).default("automatic").notNull(),
+  autoRouting: boolean("autoRouting").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
+
+// server/db.ts
+var _db = null;
+async function getDb() {
+  if (!_db && process.env.DATABASE_URL) {
+    try {
+      _db = drizzle(process.env.DATABASE_URL);
+    } catch (error) {
+      console.warn("[Database] Failed to connect:", error);
+      _db = null;
+    }
+  }
+  return _db;
+}
+async function getUserByOpenId(openId) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return void 0;
+  }
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : void 0;
+}
+
+// server/_core/context.ts
+function parseAndVerifyFirebaseToken(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payloadRaw = Buffer.from(parts[1], "base64url").toString("utf8");
+    const payload = JSON.parse(payloadRaw);
+    const nowSec = Math.floor(Date.now() / 1e3);
+    if (typeof payload.exp === "number" && payload.exp <= nowSec) {
+      return null;
+    }
+    if (typeof payload.iat === "number" && payload.iat > nowSec + 300) {
+      return null;
+    }
+    const configuredProjectId = (process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "").trim();
+    if (configuredProjectId) {
+      if (payload.aud !== configuredProjectId) {
+        return null;
+      }
+      const expectedIss = `https://securetoken.google.com/${configuredProjectId}`;
+      if (payload.iss && payload.iss !== expectedIss) {
+        return null;
+      }
+    }
+    const uid = payload.user_id || payload.sub;
+    if (!uid || typeof uid !== "string" || !uid.trim()) {
+      return null;
+    }
+    return payload;
+  } catch {
+    return null;
+  }
+}
+function deriveUserId(uid) {
+  let hash = 0;
+  for (let i = 0; i < uid.length; i += 1) {
+    hash = (hash << 5) - hash + uid.charCodeAt(i) | 0;
+  }
+  return Math.abs(hash) || 1;
+}
+async function createContext(opts) {
+  const header = opts.req.headers.authorization;
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
+  const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
+  const uid = decoded?.user_id || decoded?.sub;
+  if (!uid) {
+    return { req: opts.req, res: opts.res, user: null };
+  }
+  const dbUser = await getUserByOpenId(uid).catch(() => void 0);
+  const user = dbUser ?? {
+    id: deriveUserId(uid),
+    openId: uid,
+    name: decoded?.name ?? decoded?.email ?? "Hanna user",
+    email: decoded?.email ?? null,
+    loginMethod: decoded?.firebase?.sign_in_provider ?? "firebase",
+    role: "user",
+    createdAt: /* @__PURE__ */ new Date(),
+    updatedAt: /* @__PURE__ */ new Date(),
+    lastSignedIn: /* @__PURE__ */ new Date()
+  };
+  return { req: opts.req, res: opts.res, user };
+}
+
 // server/hannaRouting.ts
 function routeHannaRequest(prompt) {
   const value = prompt.toLowerCase();
@@ -2823,6 +3455,47 @@ var TaskSchedulerManager = class _TaskSchedulerManager {
     };
     this.tasks.set(id, created);
     return created;
+  }
+  markCompleted(taskId, resultSummary) {
+    const existing = this.tasks.get(taskId);
+    if (!existing) return false;
+    existing.status = "completed";
+    existing.lastExecutionResult = resultSummary;
+    existing.executedAt = (/* @__PURE__ */ new Date()).toISOString();
+    this.tasks.set(taskId, existing);
+    return true;
+  }
+  markFailed(taskId, errorMsg) {
+    const existing = this.tasks.get(taskId);
+    if (!existing) return false;
+    existing.status = "failed";
+    existing.lastExecutionResult = errorMsg;
+    existing.executedAt = (/* @__PURE__ */ new Date()).toISOString();
+    this.tasks.set(taskId, existing);
+    return true;
+  }
+  async runDueTasks(executor) {
+    const now2 = /* @__PURE__ */ new Date();
+    let executedCount = 0;
+    for (const task of Array.from(this.tasks.values())) {
+      if (task.status === "scheduled") {
+        const timeStr = String(task.parameters?.executionTime || "");
+        const parseTime = timeStr ? new Date(timeStr) : null;
+        const isDue = parseTime && !isNaN(parseTime.getTime()) ? parseTime <= now2 : true;
+        if (isDue) {
+          task.status = "active";
+          try {
+            const summary = await executor(task);
+            this.markCompleted(task.id, summary);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Execution error";
+            this.markFailed(task.id, msg);
+          }
+          executedCount++;
+        }
+      }
+    }
+    return { executedCount };
   }
   listTasks(userId) {
     const all = Array.from(this.tasks.values());
@@ -3215,126 +3888,12 @@ function buildAgentTrace(plan, providerError = false) {
     }
   ];
 }
-function synthesizeFallbackResponse(prompt, _context, plan) {
-  const cleanedPrompt = prompt.replace(/\[Attached \(metadata-only\): [^\]]+\]/gi, "").replace(/\[Attachment \(metadata-only\): [^\]]+\]/gi, "").replace(/\[Tools: [^\]]+\]/gi, "").trim() || prompt;
-  const lower = cleanedPrompt.toLowerCase();
-  let responseBody = "";
-  if (/(analyze|tell me what|what does|read|explain|scan|describe|inspect|summary|overview)/.test(lower) && /(image|screenshot|photo|picture|doc|pdf|file|attachment)/.test(prompt.toLowerCase())) {
-    responseBody = `### Multimodal Analysis & Visual Insights
-
-I have analyzed the provided image/document content and extracted key details:
-
-1. **Content & Structural Breakdown**
-   - **Primary Subject:** Visual document / image analysis.
-   - **Key Text & Data Points:** Scanned layout elements, visual headings, text content, and interface components.
-
-2. **Observations & Key Takeaways**
-   - Extracted primary informational structure and metadata elements.
-   - Processed visual presentation and textual context for actionable insights.
-
-3. **Recommended Actions**
-   - Specify any additional queries or automated workflows you would like Hanna to execute based on this document.`;
-  } else if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of)/.test(lower)) {
-    const cleanPrompt = prompt.replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of)/gi, "").trim() || prompt;
-    const seed = Math.floor(Math.random() * 1e5);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
-    responseBody = `Here is the image generated based on your request:
-
-![${cleanPrompt}](${imageUrl})
-
-**Image Details:**
-- **Prompt:** ${cleanPrompt}
-- **Resolution:** 1024x1024 (HD)
-- **Engine:** Hanna Multimodal Image Synthesis`;
-  } else if (/(shopify|store|product|inventory|order|ecommerce|catalog|sales|roas|fulfillment)/.test(lower)) {
-    responseBody = `### Shopify & Store Management Insights
-
-Here is the operational strategy for **"${cleanedPrompt}"**:
-
-1. **Catalog & Inventory Analysis**
-   - Audit current product performance and identify top-tier convertors.
-   - Verify inventory stock levels and pricing competitiveness across key categories.
-
-2. **Conversion & Growth Action Plan**
-   - Optimize product descriptions with benefit-driven copy and high-intent keywords.
-   - Implement post-purchase upselling and automated cart abandonment sequences.
-
-3. **Recommended Next Steps**
-   - Connect your **Shopify Store Integration** in Settings to execute automated inventory sync and store analytics directly through Hanna.`;
-  } else if (/(study|learn|tutor|explain|concept|homework|biology|math|science|physics|history|chemistry)/.test(lower)) {
-    responseBody = `### Socratic Study & Learning Guide
-
-Here is a step-by-step breakdown for **"${cleanedPrompt}"**:
-
-1. **Core Concept**
-   - Understanding the core principles and underlying mechanisms.
-   - Breaking down key components into clear, digestible steps.
-
-2. **Detailed Step-by-Step Explanation**
-   - Step 1: Identify the fundamental inputs and definitions.
-   - Step 2: Analyze the process and relationships between components.
-   - Step 3: Summarize the primary outcome or solution.
-
-3. **Check for Understanding**
-   - *Question for reflection:* How does changing one key variable impact the overall result?`;
-  } else if (/(code|github|debug|deploy|react|typescript|python|bug|api|function|build|error)/.test(lower)) {
-    responseBody = `### Software Development & Debugging Analysis
-
-Here is the technical review for **"${cleanedPrompt}"**:
-
-1. **System & Code Evaluation**
-   - Analyzed component structure, dependencies, and execution path.
-   - Verified potential edge cases and error handling requirements.
-
-2. **Recommended Code Architecture**
-   - Ensure clean modular functions, typed interfaces, and async error boundaries.
-   - Validate state transformations and API contract alignment.
-
-3. **Actionable Implementation**
-   - Test locally with unit tests (\`pnpm test\`) and type checks (\`pnpm check\`).`;
-  } else if (/(market|campaign|ad|social|copy|seo|marketing|content|research|strategy)/.test(lower)) {
-    responseBody = `### Marketing & Growth Strategy Brief
-
-Here is the strategic plan for **"${cleanedPrompt}"**:
-
-1. **Target Audience & Positioning**
-   - Define high-converting customer personas and key pain points.
-   - Craft compelling hook angles for social and advertising channels.
-
-2. **Campaign & Copy Outline**
-   - Hook: Attention-grabbing value statement highlighting immediate benefits.
-   - Body: Problem-agitation-solution narrative backed by social proof.
-   - CTA: Single, clear action prompting immediate conversion.
-
-3. **Channel Execution**
-   - Deploy across Meta Ads, TikTok, and Email Marketing sequences for maximum reach.`;
-  } else {
-    responseBody = `### Workspace Assistant Response
-
-I have analyzed your request: **"${cleanedPrompt}"**
-
-1. **Analysis & Strategy**
-   - Evaluated workspace context and execution parameters.
-   - Structured step-by-step action plan to address your desired outcome.
-
-2. **Key Action Steps**
-   - Step 1: Process request context and identify primary deliverables.
-   - Step 2: Execute required workspace capabilities and verify output quality.
-   - Step 3: Synthesize recommendations for implementation.`;
-  }
-  const stepsList = plan?.steps.length ? plan.steps.map((s, i) => `${i + 1}. ${s}`).join("\n") : "";
-  const planSection = stepsList ? `
-
-#### Execution Plan Overview
-${stepsList}` : "";
-  return `${responseBody}${planSection}`;
-}
 
 // server/usage.ts
 var DAILY_TOKEN_LIMITS = {
-  free: 300,
-  lite: 300,
-  pro: 1500,
+  free: 2500,
+  lite: 2500,
+  pro: 2500,
   max: 5e3,
   enterprise: 2e4
 };
@@ -3512,7 +4071,10 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
       sendSSE("error", {
-        code: "MISSING_API_KEY",
+        success: false,
+        provider: "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured."
       });
       return;
@@ -3521,7 +4083,10 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
     const quota = consumeDailyTokens(userId ? String(userId) : "guest", Math.ceil(prompt.length / 4), tier);
     if (!quota.allowed) {
       sendSSE("error", {
-        code: "RATE_LIMIT_EXCEEDED",
+        success: false,
+        provider: "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "RATE_LIMIT_EXCEEDED",
         message: `Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`
       });
       return;
@@ -3536,17 +4101,36 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
         sendSSE("token", { chunk });
       }
     );
+    if (!result.text || !result.text.trim()) {
+      sendSSE("error", {
+        success: false,
+        provider: result.provider || "gemini",
+        model: result.model || "gemini-3.5-flash",
+        errorCode: "GEMINI_EMPTY_RESPONSE",
+        message: "Gemini API returned an empty response."
+      });
+      return;
+    }
     sendSSE("final", {
+      success: true,
       text: result.text,
-      model: `${result.provider} \xB7 ${result.model}`,
+      provider: result.provider,
+      model: result.model,
       route: "route_a"
     });
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Route A execution failed.";
-    sendSSE("error", {
-      code: "ROUTE_A_FAILURE",
-      message: errorMessage
-    });
+    if (err instanceof GeminiProviderError) {
+      sendSSE("error", err.toJSON());
+    } else {
+      const message = err instanceof Error ? sanitizeErrorText(err.message) : "Hanna could not reach Gemini right now.";
+      sendSSE("error", {
+        success: false,
+        provider: "gemini",
+        model: "gemini-3.5-flash",
+        errorCode: "AI_ERROR",
+        message
+      });
+    }
   }
 }
 async function executeRouteBLoop(prompt, context, userId, model, sendSSE) {
@@ -3557,7 +4141,10 @@ async function executeRouteBLoop(prompt, context, userId, model, sendSSE) {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
       sendSSE("error", {
-        code: "MISSING_API_KEY",
+        success: false,
+        provider: "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured."
       });
       return;
@@ -3634,7 +4221,17 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
       { maxSteps: 6, maxToolCalls: 6, timeoutMs: 45e3 }
     );
     sendSSE("trace", { stage: "synthesize", detail: "Synthesizing dynamic markdown component breakdown..." });
-    const finalResponse = execution.response || synthesizeFallbackResponse(prompt, context, basePlan);
+    if (execution.status === "failed" || !execution.response) {
+      sendSSE("error", {
+        success: false,
+        provider: provider.provider || "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "AGENT_EXECUTION_FAILED",
+        message: "Agentic execution loop could not complete."
+      });
+      return;
+    }
+    const finalResponse = execution.response;
     sendSSE("markdown_card", {
       type: "agent_breakdown",
       title: "Agentic Loop Execution Summary",
@@ -3648,29 +4245,61 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     sendSSE("final", {
+      success: true,
       text: finalResponse,
-      model: `${provider.provider} \xB7 ${provider.model}`,
+      provider: provider.provider,
+      model: provider.model,
       route: "route_b",
       trace: buildAgentTrace(basePlan),
       plan: basePlan
     });
   } catch (err) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context, basePlan);
-    sendSSE("fallback", {
-      text: fallbackText,
-      error: err instanceof Error ? err.message : "Route B agentic execution failed.",
-      route: "route_b_fallback"
-    });
+    if (err instanceof GeminiProviderError) {
+      sendSSE("error", err.toJSON());
+    } else {
+      const message = err instanceof Error ? sanitizeErrorText(err.message) : "Route B agentic execution failed.";
+      sendSSE("error", {
+        success: false,
+        provider: "gemini",
+        model: "gemini-3.5-flash",
+        errorCode: "AI_ERROR",
+        message
+      });
+    }
   }
+}
+function extractBearerToken(authHeader) {
+  if (!authHeader) return null;
+  const headerStr = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  if (headerStr && headerStr.startsWith("Bearer ")) {
+    return headerStr.slice(7).trim();
+  }
+  return null;
 }
 async function handleApiChatRoute(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed. Use POST." });
     return;
   }
-  const { prompt, context, userId, model, agenticMode } = req.body || {};
+  const token = extractBearerToken(req.headers.authorization);
+  const decodedToken = token ? parseAndVerifyFirebaseToken(token) : null;
+  if (!decodedToken && process.env.NODE_ENV !== "test") {
+    res.status(401).json({ error: "Unauthorized. Authentication required to access Hanna AI." });
+    return;
+  }
+  const firebaseUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+  const { prompt, context, model, agenticMode } = req.body || {};
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     res.status(400).json({ error: "Prompt string is required." });
+    return;
+  }
+  const tier = model === "Hanna Pro" ? "pro" : "lite";
+  const requestedTokens = Math.ceil(prompt.length / 4);
+  const quota = consumeDailyTokens(firebaseUid, requestedTokens, tier);
+  if (!quota.allowed) {
+    res.status(429).json({
+      error: `Daily credit limit reached (2500 credits/day). Allowance refreshes at ${quota.resetAt}.`
+    });
     return;
   }
   res.setHeader("content-type", "text/event-stream");
@@ -3683,158 +4312,147 @@ data: ${JSON.stringify(data)}
 
 `);
   };
-  const connectedSummaries = userId ? await listConnectorCredentials(Number(userId)) : [];
+  const connectedSummaries = await listConnectorCredentials(firebaseUid);
   const intent = analyzePromptIntent(prompt, connectedSummaries.length > 0, Boolean(agenticMode));
   sendSSE("intent", intent);
   if (intent.route === "route_a") {
-    await executeRouteAStream(prompt, context, userId ? Number(userId) : void 0, model, sendSSE);
+    await executeRouteAStream(prompt, context, firebaseUid, model, sendSSE);
   } else {
-    await executeRouteBLoop(prompt, context, userId ? Number(userId) : void 0, model, sendSSE);
+    await executeRouteBLoop(prompt, context, firebaseUid, model, sendSSE);
   }
   res.end();
 }
 
-// server/db.ts
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-
-// drizzle/schema.ts
-import {
-  int,
-  mysqlEnum,
-  mysqlTable,
-  text,
-  timestamp,
-  varchar,
-  boolean,
-  uniqueIndex
-} from "drizzle-orm/mysql-core";
-var users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
-});
-var providerCredentials = mysqlTable(
-  "providerCredentials",
-  {
-    id: int("id").autoincrement().primaryKey(),
-    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-    provider: varchar("provider", { length: 64 }).notNull(),
-    displayName: varchar("displayName", { length: 120 }).notNull(),
-    endpoint: varchar("endpoint", { length: 255 }).default("").notNull(),
-    encryptedKey: text("encryptedKey").notNull(),
-    keyHint: varchar("keyHint", { length: 12 }).notNull(),
-    isEnabled: boolean("isEnabled").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
-  },
-  (table) => ({
-    userProviderUnique: uniqueIndex("providerCredentials_user_provider_idx").on(
-      table.userId,
-      table.provider
-    )
-  })
-);
-var workspaceSettings = mysqlTable("workspaceSettings", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
-  theme: varchar("theme", { length: 16 }).default("light").notNull(),
-  defaultProvider: varchar("defaultProvider", { length: 64 }).default("automatic").notNull(),
-  autoRouting: boolean("autoRouting").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
-});
-
-// server/db.ts
-var _db = null;
-async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
-  return _db;
+// server/oauthRoutes.ts
+import crypto4 from "node:crypto";
+function stateSecret() {
+  return process.env.OAUTH_STATE_SECRET || process.env.CREDENTIAL_ENCRYPTION_KEY || "hanna-oauth-state-secret-default-32chars";
 }
-async function getUserByOpenId(openId) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return void 0;
-  }
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : void 0;
+function appBaseUrl() {
+  return (process.env.APP_BASE_URL || "https://hanna-agent.vercel.app").replace(/\/$/, "");
 }
-
-// server/_core/context.ts
-function parseAndVerifyFirebaseToken(token) {
+function generateOAuthState(uid) {
+  const nonce = crypto4.randomBytes(16).toString("hex");
+  const timestamp2 = Date.now();
+  const payload = `${uid}:${timestamp2}:${nonce}`;
+  const signature = crypto4.createHmac("sha256", stateSecret()).update(payload).digest("hex");
+  return Buffer.from(`${payload}:${signature}`).toString("base64url");
+}
+function verifyOAuthState(state) {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payloadRaw = Buffer.from(parts[1], "base64url").toString("utf8");
-    const payload = JSON.parse(payloadRaw);
-    const nowSec = Math.floor(Date.now() / 1e3);
-    if (typeof payload.exp === "number" && payload.exp <= nowSec) {
-      return null;
-    }
-    if (typeof payload.iat === "number" && payload.iat > nowSec + 300) {
-      return null;
-    }
-    const configuredProjectId = (process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "").trim();
-    if (configuredProjectId) {
-      if (payload.aud !== configuredProjectId) {
-        return null;
-      }
-      const expectedIss = `https://securetoken.google.com/${configuredProjectId}`;
-      if (payload.iss && payload.iss !== expectedIss) {
-        return null;
-      }
-    }
-    const uid = payload.user_id || payload.sub;
-    if (!uid || typeof uid !== "string" || !uid.trim()) {
-      return null;
-    }
-    return payload;
+    const decoded = Buffer.from(state, "base64url").toString("utf8");
+    const parts = decoded.split(":");
+    if (parts.length !== 4) return { uid: "", valid: false };
+    const [uid, timestampStr, nonce, signature] = parts;
+    const payload = `${uid}:${timestampStr}:${nonce}`;
+    const expectedSig = crypto4.createHmac("sha256", stateSecret()).update(payload).digest("hex");
+    if (signature !== expectedSig) return { uid: "", valid: false };
+    const timestamp2 = Number.parseInt(timestampStr, 10);
+    if (Date.now() - timestamp2 > 15 * 60 * 1e3) return { uid: "", valid: false };
+    return { uid, valid: true };
   } catch {
-    return null;
+    return { uid: "", valid: false };
   }
 }
-function deriveUserId(uid) {
-  let hash = 0;
-  for (let i = 0; i < uid.length; i += 1) {
-    hash = (hash << 5) - hash + uid.charCodeAt(i) | 0;
-  }
-  return Math.abs(hash) || 1;
-}
-async function createContext(opts) {
-  const header = opts.req.headers.authorization;
-  const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
+async function handleGoogleOAuthAuthorize(req, res) {
+  const token = req.query.id_token || req.headers.authorization?.slice(7);
   const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
   const uid = decoded?.user_id || decoded?.sub;
   if (!uid) {
-    return { req: opts.req, res: opts.res, user: null };
+    res.status(401).json({ error: "Authentication required to initiate Google OAuth connection." });
+    return;
   }
-  const dbUser = await getUserByOpenId(uid).catch(() => void 0);
-  const user = dbUser ?? {
-    id: deriveUserId(uid),
-    openId: uid,
-    name: decoded?.name ?? decoded?.email ?? "Hanna user",
-    email: decoded?.email ?? null,
-    loginMethod: decoded?.firebase?.sign_in_provider ?? "firebase",
-    role: "user",
-    createdAt: /* @__PURE__ */ new Date(),
-    updatedAt: /* @__PURE__ */ new Date(),
-    lastSignedIn: /* @__PURE__ */ new Date()
-  };
-  return { req: opts.req, res: opts.res, user };
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  if (!clientId) {
+    res.status(500).json({ error: "Google OAuth Client ID is not configured on server (GOOGLE_OAUTH_CLIENT_ID)." });
+    return;
+  }
+  const redirectUri = `${appBaseUrl()}/api/oauth/google/callback`;
+  const state = generateOAuthState(uid);
+  const scope = [
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/documents.readonly",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/calendar.events"
+  ].join(" ");
+  const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("scope", scope);
+  authUrl.searchParams.set("access_type", "offline");
+  authUrl.searchParams.set("prompt", "consent");
+  authUrl.searchParams.set("state", state);
+  res.redirect(authUrl.toString());
+}
+async function handleGoogleOAuthCallback(req, res) {
+  const code = req.query.code;
+  const state = req.query.state;
+  const error = req.query.error;
+  if (error) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(error)}`);
+    return;
+  }
+  if (!code || !state) {
+    res.status(400).json({ error: "Missing authorization code or state parameter." });
+    return;
+  }
+  const { uid, valid } = verifyOAuthState(state);
+  if (!valid || !uid) {
+    res.status(400).json({ error: "Invalid or expired OAuth state parameter." });
+    return;
+  }
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    res.status(500).json({ error: "Google OAuth credentials missing on server." });
+    return;
+  }
+  try {
+    const redirectUri = `${appBaseUrl()}/api/oauth/google/callback`;
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code"
+      })
+    });
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(`Token exchange failed: ${errText.slice(0, 100)}`)}`);
+      return;
+    }
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    const refreshToken = tokenData.refresh_token || "";
+    if (!accessToken) {
+      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("No access token returned by Google.")}`);
+      return;
+    }
+    await saveConnectorCredential(uid, "google-workspace", {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_type: tokenData.token_type || "Bearer",
+      expires_in: String(tokenData.expires_in || 3600),
+      is_connected: "true"
+    });
+    await saveConnectorCredential(uid, "gmail", {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      is_connected: "true"
+    });
+    res.redirect(`${appBaseUrl()}/?connector_success=google-workspace`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Google OAuth callback failed";
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(msg)}`);
+  }
 }
 
 // server/routers.ts
@@ -4190,7 +4808,14 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
         { maxSteps: 8, maxToolCalls: 6, timeoutMs: 5e4 }
       );
       const waitingForConfirmation = execution.status === "waiting_for_confirmation";
-      const responseText = waitingForConfirmation ? "I prepared the requested external action, but I need your explicit confirmation before making a change." : execution.response || (execution.status === "failed" ? "I could not complete the requested tool workflow. No external action was reported as successful." : "I completed the requested workflow and verified its tool results.");
+      if (execution.status === "failed" || !execution.response) {
+        throw new GeminiProviderError({
+          model: provider.model || "gemini-3.5-flash",
+          errorCode: "AGENT_EXECUTION_FAILED",
+          message: "Hanna agentic workflow could not complete."
+        });
+      }
+      const responseText = waitingForConfirmation ? "I prepared the requested external action, but I need your explicit confirmation before making a change." : execution.response;
       const plan = {
         ...basePlan,
         tools: registry.list(),
@@ -4201,27 +4826,20 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
         model: `${provider.provider} \xB7 ${provider.model}`,
         capability: basePlan.route.capability,
         plan,
-        trace: buildAgentTrace(plan, execution.status === "failed"),
+        trace: buildAgentTrace(plan, false),
         providerError: false,
         responseType: "MODEL_RESPONSE"
       };
     } catch (error) {
-      const fallbackText = synthesizeFallbackResponse(prompt, context);
-      return {
-        text: fallbackText,
-        model: "hanna-fallback",
-        capability: "Error recovery",
-        plan: {
-          intent: prompt,
-          route: { model: "fallback", capability: "Error", reason: "error" },
-          tools: [],
-          approvalRequired: false,
-          steps: []
-        },
-        trace: [],
-        providerError: true,
-        responseType: "PROVIDER_ERROR"
-      };
+      if (error instanceof GeminiProviderError) {
+        throw error;
+      }
+      const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna agentic execution failed.";
+      throw new GeminiProviderError({
+        model: requestedModel || "gemini-3.5-flash",
+        errorCode: "AI_ERROR",
+        message: msg
+      });
     }
   }
   try {
@@ -4301,12 +4919,15 @@ ${extraSummary}` : extraSummary;
       providerError: false
     };
   } catch (error) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context);
-    return {
-      text: fallbackText,
-      model: requestedModel === "Hanna Pro" ? "gemini-3.5-flash" : "gemini-3.5-flash",
-      providerError: true
-    };
+    if (error instanceof GeminiProviderError) {
+      throw error;
+    }
+    const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna request failed.";
+    throw new GeminiProviderError({
+      model: requestedModel || "gemini-3.5-flash",
+      errorCode: "AI_ERROR",
+      message: msg
+    });
   }
 }
 var appRouter = router({
@@ -4587,6 +5208,14 @@ var appRouter = router({
       });
       return { success: true, task: scheduled };
     }),
+    executeScheduledTasks: publicProcedure.mutation(async ({ ctx }) => {
+      const result = await taskScheduler.runDueTasks(async (task) => {
+        const prompt = String(task.parameters?.prompt || task.description || task.title);
+        const res = await executeHannaRequest(prompt, "Scheduled Task Execution", task.userId);
+        return res.text || "Scheduled task executed successfully.";
+      });
+      return { success: true, executedCount: result.executedCount };
+    }),
     listScheduledTasks: publicProcedure.query(({ ctx }) => {
       const tasks = taskScheduler.listTasks(ctx.user?.id);
       return { tasks };
@@ -4625,6 +5254,12 @@ async function handler(req, res) {
     }
     if (path2 === "/api/chat" || path2 === "/chat") {
       return handleApiChatRoute(req, res);
+    }
+    if (path2 === "/api/oauth/google/authorize" || path2 === "/oauth/google/authorize") {
+      return handleGoogleOAuthAuthorize(req, res);
+    }
+    if (path2 === "/api/oauth/google/callback" || path2 === "/oauth/google/callback") {
+      return handleGoogleOAuthCallback(req, res);
     }
     if (path2 === "/api/config" || path2 === "/config") {
       if (method !== "GET") return respond(res, 405, { error: "Method not allowed." });

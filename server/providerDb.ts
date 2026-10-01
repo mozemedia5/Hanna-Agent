@@ -218,9 +218,9 @@ export type CredentialRecord = {
   updatedAt: Date;
 };
 
-const keyFor = (userId: number, provider: string) => `${userId}:${provider}`;
+const keyFor = (userId: number | string, provider: string) => `${userId}:${provider}`;
 
-export async function listProviderCredentials(userId: number) {
+export async function listProviderCredentials(userId: number | string) {
   const all = getStoredProviderCredentials();
   const userPrefix = `${userId}:`;
 
@@ -238,7 +238,7 @@ export async function listProviderCredentials(userId: number) {
 }
 
 export async function getProviderCredentialById(
-  userId: number,
+  userId: number | string,
   provider: string
 ) {
   const all = getStoredProviderCredentials();
@@ -257,18 +257,16 @@ export async function getProviderCredentialById(
 }
 
 /**
- * Resolves user credentials and model pairs deterministically.
- * Hierarchy:
- * 1. User selected custom provider/model -> use user's credential.
- * 2. If no custom credential or "Hanna Default" selected -> default to Gemini 2.5 Flash using server GEMINI_API_KEY.
+ * Resolves user credentials and model pairs deterministically without cross-provider model pollution.
  */
 export async function getProviderCredentialForRequest(
-  userId: number | undefined,
+  userId: number | string | undefined,
   prompt: string,
   requestedProviderOrModel?: string
 ) {
   const resolved = resolveProviderAndModel(requestedProviderOrModel);
 
+  // If user has a stored custom provider key, use it
   if (userId && resolved.isCustom) {
     const userCred = await getProviderCredentialById(userId, resolved.provider);
     if (userCred && userCred.apiKey) {
@@ -281,17 +279,38 @@ export async function getProviderCredentialForRequest(
     }
   }
 
-  // If Groq/Llama model requested, check GROQ_API_KEY env var
-  if (resolved.provider === "llama" && process.env.GROQ_API_KEY) {
+  // If Groq/Llama provider was requested
+  if (resolved.provider === "llama") {
+    if (process.env.GROQ_API_KEY) {
+      return {
+        provider: "llama",
+        apiKey: process.env.GROQ_API_KEY.trim(),
+        model: resolved.model,
+        endpoint: "",
+      };
+    }
+    // Groq requested but key missing -> Return explicit custom error status instead of corrupting Gemini with llama models
     return {
       provider: "llama",
-      apiKey: process.env.GROQ_API_KEY.trim(),
+      apiKey: "",
       model: resolved.model,
       endpoint: "",
+      error: "CUSTOM_PROVIDER_NOT_CONFIGURED",
     };
   }
 
-  // Canonical Fallback / Default: Hanna's Gemini Flash
+  // If OpenAI/Anthropic/other custom provider requested without key -> Return explicit unconfigured status
+  if (resolved.isCustom && resolved.provider !== "gemini") {
+    return {
+      provider: resolved.provider,
+      apiKey: "",
+      model: resolved.model,
+      endpoint: "",
+      error: "CUSTOM_PROVIDER_NOT_CONFIGURED",
+    };
+  }
+
+  // Canonical Fallback / Default: Gemini Flash
   const defaultGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
 
   return {
@@ -303,7 +322,7 @@ export async function getProviderCredentialForRequest(
 }
 
 export async function upsertProviderCredential(
-  userId: number,
+  userId: number | string,
   provider: string,
   displayName: string,
   apiKey: string,
@@ -330,7 +349,7 @@ export async function upsertProviderCredential(
 }
 
 export async function deleteProviderCredential(
-  userId: number,
+  userId: number | string,
   provider: string
 ) {
   deleteStoredProviderCredential(keyFor(userId, provider));

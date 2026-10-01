@@ -131,7 +131,7 @@ export async function invokeUserProvider(
 
   const model =
     request.provider === "llama"
-      ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek"))
+      ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek") || request.model.includes("/"))
         ? request.model
         : "llama-3.3-70b-versatile"
       : request.provider === "custom"
@@ -227,25 +227,141 @@ export async function streamUserProvider(
 export async function invokeGeminiAgentTurn(
   request: ProviderRequest
 ): Promise<ProviderAgentTurn> {
-  if (request.provider !== "gemini") {
-    return { text: await invokeUserProvider(request) };
-  }
   if (!request.apiKey || !request.apiKey.trim()) {
-    throw new Error("Gemini API key is missing or not configured.");
+    throw new Error(`${request.provider || "Provider"} API key is missing or not configured.`);
   }
 
-  const res = await invokeGeminiToolTurn({
-    apiKey: request.apiKey,
-    model: request.model,
-    prompt: request.prompt,
-    context: request.context,
-    systemPrompt: HANNA_SYSTEM_PROMPT,
-    tools: request.tools,
-    route: "invokeGeminiAgentTurn",
+  // Sanitization mapping for Gemini function names (convert dot notation into underscores)
+  const nameMap = new Map<string, string>();
+  const sanitizedTools = request.tools?.map((tool) => {
+    const sanitizedName = tool.name.replaceAll(/[^a-zA-Z0-9_]/g, "_");
+    nameMap.set(sanitizedName, tool.name);
+    return {
+      ...tool,
+      name: sanitizedName,
+    };
   });
 
+  if (request.provider === "gemini") {
+    const res = await invokeGeminiToolTurn({
+      apiKey: request.apiKey,
+      model: request.model,
+      prompt: request.prompt,
+      context: request.context,
+      systemPrompt: HANNA_SYSTEM_PROMPT,
+      tools: sanitizedTools,
+      route: "invokeGeminiAgentTurn",
+    });
+
+    if (res.functionCall) {
+      const originalName = nameMap.get(res.functionCall.name) || res.functionCall.name;
+      return {
+        text: res.text,
+        functionCall: {
+          name: originalName,
+          args: res.functionCall.args,
+        },
+      };
+    }
+
+    return {
+      text: res.text,
+      functionCall: undefined,
+    };
+  }
+
+  // OpenAI / Groq tool calling via standard chat completions format
+  const baseUrl =
+    request.provider === "custom" && request.endpoint
+      ? request.endpoint
+      : request.provider === "llama"
+        ? "https://api.groq.com/openai/v1/chat/completions"
+        : "https://api.openai.com/v1/chat/completions";
+
+  const model =
+    request.provider === "llama"
+      ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek") || request.model.includes("/"))
+        ? request.model
+        : "llama-3.3-70b-versatile"
+      : request.provider === "custom"
+        ? request.model
+        : request.model || "gpt-4o-mini";
+
+  const formattedTools = sanitizedTools?.map((t) => ({
+    type: "function",
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters,
+    },
+  }));
+
+  const message = userMessage(request);
+
+  const response = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${request.apiKey.trim()}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: HANNA_SYSTEM_PROMPT },
+        { role: "user", content: message },
+      ],
+      ...(formattedTools && formattedTools.length > 0 ? { tools: formattedTools } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await getResponseText(response);
+    const safeText = sanitizeError(errText);
+    throw new Error(
+      `${request.provider} agent turn returned ${response.status}${safeText ? `: ${safeText.slice(0, 100)}` : ""}`
+    );
+  }
+
+  const data = (await response.json().catch(() => null)) as {
+    choices?: Array<{
+      message?: {
+        content?: string;
+        tool_calls?: Array<{
+          id?: string;
+          function?: {
+            name?: string;
+            arguments?: string;
+          };
+        }>;
+      };
+    }>;
+  } | null;
+
+  const msgChoice = data?.choices?.[0]?.message;
+  const toolCall = msgChoice?.tool_calls?.[0];
+
+  if (toolCall?.function?.name) {
+    const sanitizedName = toolCall.function.name;
+    const originalName = nameMap.get(sanitizedName) || sanitizedName;
+    let parsedArgs: Record<string, unknown> = {};
+    try {
+      if (toolCall.function.arguments) {
+        parsedArgs = JSON.parse(toolCall.function.arguments);
+      }
+    } catch {
+      parsedArgs = {};
+    }
+
+    return {
+      text: msgChoice?.content || undefined,
+      functionCall: {
+        name: originalName,
+        args: parsedArgs,
+      },
+    };
+  }
+
   return {
-    text: res.text,
-    functionCall: res.functionCall,
+    text: msgChoice?.content || "I’m ready to help. Could you clarify your request?",
   };
 }
