@@ -132,6 +132,8 @@ export function useChatWorkflow() {
       });
 
       let accumulatedText = "";
+      let providerFailed = false;
+      let failureErrorMsg = "";
 
       try {
         const idToken = await getFirebaseIdToken();
@@ -156,7 +158,9 @@ export function useChatWorkflow() {
         });
 
         if (!response.ok || !response.body) {
-          throw new Error(`Server HTTP error ${response.status}`);
+          const errJson = await response.json().catch(() => ({}));
+          const msg = errJson.error || errJson.message || `Hanna couldn't reach Gemini right now (${response.status}).`;
+          throw new Error(msg);
         }
 
         const reader = response.body.getReader();
@@ -271,41 +275,49 @@ export function useChatWorkflow() {
                 }));
                 break;
 
-              case "fallback":
-                accumulatedText = data.text || accumulatedText;
+              case "error":
+                providerFailed = true;
+                failureErrorMsg = data.message || "Hanna couldn't reach Gemini right now. Please try again.";
                 setState(prev => ({
                   ...prev,
-                  status: "completed",
-                  streamingText: accumulatedText,
-                  error: data.error || null,
+                  status: "error",
+                  error: failureErrorMsg,
                 }));
                 break;
             }
           }
         }
 
-        const finalOutputText = accumulatedText.trim()
-          ? accumulatedText
-          : "I have processed your request. How else can I assist you in your workspace?";
+        if (providerFailed) {
+          return "";
+        }
+
+        if (!accumulatedText.trim()) {
+          const emptyErrMsg = "Hanna couldn't reach Gemini right now. Please try again.";
+          setState(prev => ({
+            ...prev,
+            status: "error",
+            error: emptyErrMsg,
+          }));
+          return "";
+        }
 
         setState(prev => ({
           ...prev,
           status: "completed",
-          streamingText: finalOutputText,
+          streamingText: accumulatedText,
         }));
 
-        return finalOutputText;
+        return accumulatedText;
       } catch (err) {
         if (controller.signal.aborted) return accumulatedText;
-        const fallbackText = "I encountered an issue processing the request, but I am ready to assist you. Please try asking again.";
-        const textToReturn = accumulatedText.trim() || fallbackText;
+        const errMsg = err instanceof Error ? err.message : "Hanna couldn't reach Gemini right now. Please try again.";
         setState(prev => ({
           ...prev,
-          status: "completed",
-          streamingText: textToReturn,
-          error: null,
+          status: "error",
+          error: errMsg,
         }));
-        return textToReturn;
+        return "";
       }
     },
     []

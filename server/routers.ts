@@ -13,6 +13,7 @@ import {
   invokeUserProvider,
   type ProviderToolDefinition,
 } from "./providerAdapters";
+import { GeminiProviderError, sanitizeErrorText } from "./geminiService";
 import { getWorkspaceSettings, updateWorkspaceSettings } from "./settingsDb";
 import {
   buildAgentPlan,
@@ -20,7 +21,6 @@ import {
   createDefaultToolRegistry,
   DynamicToolRegistry,
   runAgentLoop,
-  synthesizeFallbackResponse,
   taskScheduler,
   type AgentTool,
 } from "./agentCore";
@@ -230,11 +230,17 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       );
 
       const waitingForConfirmation = execution.status === "waiting_for_confirmation";
+      if (execution.status === "failed" || !execution.response) {
+        throw new GeminiProviderError({
+          model: provider.model || "gemini-3.5-flash",
+          errorCode: "AGENT_EXECUTION_FAILED",
+          message: "Hanna agentic workflow could not complete.",
+        });
+      }
+
       const responseText = waitingForConfirmation
         ? "I prepared the requested external action, but I need your explicit confirmation before making a change."
-        : execution.response || (execution.status === "failed"
-          ? "I could not complete the requested tool workflow. No external action was reported as successful."
-          : "I completed the requested workflow and verified its tool results.");
+        : execution.response;
       const plan = {
         ...basePlan,
         tools: registry.list(),
@@ -245,27 +251,20 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
         model: `${provider.provider} · ${provider.model}`,
         capability: basePlan.route.capability,
         plan,
-        trace: buildAgentTrace(plan, execution.status === "failed"),
+        trace: buildAgentTrace(plan, false),
         providerError: false,
         responseType: "MODEL_RESPONSE" as const,
       };
     } catch (error) {
-      const fallbackText = synthesizeFallbackResponse(prompt, context);
-      return {
-        text: fallbackText,
-        model: "hanna-fallback",
-        capability: "Error recovery",
-        plan: {
-          intent: prompt,
-          route: { model: "fallback", capability: "Error", reason: "error" },
-          tools: [],
-          approvalRequired: false,
-          steps: [],
-        },
-        trace: [],
-        providerError: true,
-        responseType: "PROVIDER_ERROR" as const,
-      };
+      if (error instanceof GeminiProviderError) {
+        throw error;
+      }
+      const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna agentic execution failed.";
+      throw new GeminiProviderError({
+        model: requestedModel || "gemini-3.5-flash",
+        errorCode: "AI_ERROR",
+        message: msg,
+      });
     }
   }
 
@@ -281,7 +280,6 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
     if (userId) {
       const connectedConnectors = await listConnectorCredentials(userId);
       if (connectedConnectors.length > 0) {
-        // Automatically inject capabilities into prompt context
         const autoConnectorList = connectedConnectors
           .map(c => {
             const def = integrations.find(i => i.id === c.connector);
@@ -361,12 +359,15 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       providerError: false,
     };
   } catch (error) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context);
-    return {
-      text: fallbackText,
-      model: requestedModel === "Hanna Pro" ? "gemini-3.5-flash" : "gemini-3.5-flash",
-      providerError: true,
-    };
+    if (error instanceof GeminiProviderError) {
+      throw error;
+    }
+    const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna request failed.";
+    throw new GeminiProviderError({
+      model: requestedModel || "gemini-3.5-flash",
+      errorCode: "AI_ERROR",
+      message: msg,
+    });
   }
 }
 

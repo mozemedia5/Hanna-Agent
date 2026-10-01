@@ -6,13 +6,13 @@ import {
   buildAgentTrace,
   createDefaultToolRegistry,
   runAgentLoop,
-  synthesizeFallbackResponse,
 } from "../../server/agentCore";
 import { getConnectorCredential, listConnectorCredentials } from "../../server/connectorDb";
 import { executeConnectorAction } from "../../server/connectorAdapters";
 import { listMcpTools } from "../../server/mcpServer";
 import { getProviderCredentialForRequest } from "../../server/providerDb";
 import { invokeGeminiAgentTurn, invokeUserProvider, streamUserProvider } from "../../server/providerAdapters";
+import { GeminiProviderError, sanitizeErrorText } from "../../server/geminiService";
 import { consumeDailyTokens, type HannaTier } from "../../server/usage";
 
 export type IntentRouteType = "route_a" | "route_b";
@@ -130,7 +130,10 @@ export async function executeRouteAStream(
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
       sendSSE("error", {
-        code: "MISSING_API_KEY",
+        success: false,
+        provider: "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured.",
       });
       return;
@@ -140,7 +143,10 @@ export async function executeRouteAStream(
     const quota = consumeDailyTokens(userId ? String(userId) : "guest", Math.ceil(prompt.length / 4), tier);
     if (!quota.allowed) {
       sendSSE("error", {
-        code: "RATE_LIMIT_EXCEEDED",
+        success: false,
+        provider: "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "RATE_LIMIT_EXCEEDED",
         message: `Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`,
       });
       return;
@@ -157,22 +163,37 @@ export async function executeRouteAStream(
       }
     );
 
-    const finalResponseText = result.text && result.text.trim()
-      ? result.text
-      : synthesizeFallbackResponse(prompt, context);
+    if (!result.text || !result.text.trim()) {
+      sendSSE("error", {
+        success: false,
+        provider: result.provider || "gemini",
+        model: result.model || "gemini-3.5-flash",
+        errorCode: "GEMINI_EMPTY_RESPONSE",
+        message: "Gemini API returned an empty response.",
+      });
+      return;
+    }
 
     sendSSE("final", {
-      text: finalResponseText,
-      model: `${result.provider} · ${result.model}`,
+      success: true,
+      text: result.text,
+      provider: result.provider,
+      model: result.model,
       route: "route_a",
     });
   } catch (err) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context);
-    sendSSE("final", {
-      text: fallbackText,
-      model: "hanna-fallback",
-      route: "route_a_fallback",
-    });
+    if (err instanceof GeminiProviderError) {
+      sendSSE("error", err.toJSON());
+    } else {
+      const message = err instanceof Error ? sanitizeErrorText(err.message) : "Hanna could not reach Gemini right now.";
+      sendSSE("error", {
+        success: false,
+        provider: "gemini",
+        model: "gemini-3.5-flash",
+        errorCode: "AI_ERROR",
+        message,
+      });
+    }
   }
 }
 
@@ -197,7 +218,10 @@ export async function executeRouteBLoop(
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
     if (!provider.apiKey) {
       sendSSE("error", {
-        code: "MISSING_API_KEY",
+        success: false,
+        provider: "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured.",
       });
       return;
@@ -287,7 +311,18 @@ export async function executeRouteBLoop(
 
     sendSSE("trace", { stage: "synthesize", detail: "Synthesizing dynamic markdown component breakdown..." });
 
-    const finalResponse = execution.response || synthesizeFallbackResponse(prompt, context, basePlan);
+    if (execution.status === "failed" || !execution.response) {
+      sendSSE("error", {
+        success: false,
+        provider: provider.provider || "gemini",
+        model: provider.model || "gemini-3.5-flash",
+        errorCode: "AGENT_EXECUTION_FAILED",
+        message: "Agentic execution loop could not complete.",
+      });
+      return;
+    }
+
+    const finalResponse = execution.response;
 
     // Emit dynamic markdown component breakdown card
     sendSSE("markdown_card", {
@@ -306,19 +341,27 @@ export async function executeRouteBLoop(
     }
 
     sendSSE("final", {
+      success: true,
       text: finalResponse,
-      model: `${provider.provider} · ${provider.model}`,
+      provider: provider.provider,
+      model: provider.model,
       route: "route_b",
       trace: buildAgentTrace(basePlan),
       plan: basePlan,
     });
   } catch (err) {
-    const fallbackText = synthesizeFallbackResponse(prompt, context, basePlan);
-    sendSSE("fallback", {
-      text: fallbackText,
-      error: err instanceof Error ? err.message : "Route B agentic execution failed.",
-      route: "route_b_fallback",
-    });
+    if (err instanceof GeminiProviderError) {
+      sendSSE("error", err.toJSON());
+    } else {
+      const message = err instanceof Error ? sanitizeErrorText(err.message) : "Route B agentic execution failed.";
+      sendSSE("error", {
+        success: false,
+        provider: "gemini",
+        model: "gemini-3.5-flash",
+        errorCode: "AI_ERROR",
+        message,
+      });
+    }
   }
 }
 

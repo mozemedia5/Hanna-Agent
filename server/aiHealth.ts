@@ -47,7 +47,7 @@ export async function performAiHealthCheck(options?: {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(resolved.model)}:generateContent?key=${encodeURIComponent(geminiKey)}`,
@@ -62,11 +62,17 @@ export async function performAiHealthCheck(options?: {
       ).finally(() => clearTimeout(timeoutId));
 
       if (response.ok) {
-        return buildReport("AI_READY", `Gemini connection verified for model ${resolved.model}.`);
+        const data = (await response.json().catch(() => null)) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        } | null;
+        if (data && data.candidates?.[0]) {
+          return buildReport("AI_READY", `Gemini connection verified for model ${resolved.model}.`);
+        }
+        return buildReport("AI_ERROR", "Gemini returned unexpected response structure.");
       }
 
       if (response.status === 401 || response.status === 403) {
-        return buildReport("GEMINI_AUTH_FAILED", "GEMINI_API_KEY rejected by Google Gemini API.");
+        return buildReport("GEMINI_AUTH_FAILED", `GEMINI_API_KEY rejected by Google Gemini API (${response.status}).`);
       }
 
       if (response.status === 404) {
@@ -81,10 +87,14 @@ export async function performAiHealthCheck(options?: {
         return buildReport("GEMINI_RATE_LIMITED", "Gemini API rate limit exceeded.");
       }
 
+      if (response.status >= 500) {
+        return buildReport("AI_ERROR", `Gemini service error HTTP ${response.status}.`);
+      }
+
       return buildReport("AI_ERROR", `Gemini returned HTTP status ${response.status}.`);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        return buildReport("GEMINI_TIMEOUT", "Gemini API request timed out after 8 seconds.");
+        return buildReport("GEMINI_TIMEOUT", "Gemini API health check timed out after 5 seconds.");
       }
       return buildReport("AI_ERROR", error instanceof Error ? error.message : "Network failure reaching Gemini.");
     }

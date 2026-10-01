@@ -1,4 +1,8 @@
-import { GEMINI_FALLBACK_MODELS } from "./aiConfig";
+import {
+  generateGeminiContent,
+  invokeGeminiToolTurn,
+  streamGeminiContent,
+} from "./geminiService";
 
 export type ProviderRequest = {
   provider: string;
@@ -34,7 +38,6 @@ BEHAVIORAL DIRECTIVES:
 7. TONE & FORMAT: Always provide clear, well-structured, thoughtful responses formatted in clean standard Markdown without raw LaTeX delimiters or symbol artifacts. Maintain a calm, helpful, professional voice.`;
 
 function sanitizeError(message: string): string {
-  // Mask any potential raw API keys in error outputs
   return message
     .replace(/AIzaSy[A-Za-z0-9_-]{33}/g, "AIzaSy••••••••")
     .replace(/sk-ant-[A-Za-z0-9_-]{30,}/g, "sk-ant-••••••••")
@@ -55,19 +58,6 @@ function userMessage(request: ProviderRequest) {
     : request.prompt;
 }
 
-function geminiCandidateModels(requestedModel?: string) {
-  const rawModel = (requestedModel || process.env.GEMINI_MODEL || "gemini-3.5-flash").trim();
-  let primaryModel = rawModel.toLowerCase().replaceAll(" ", "-");
-  if (primaryModel.includes("3.5")) primaryModel = "gemini-3.5-flash";
-  else if (primaryModel.includes("3.6")) primaryModel = "gemini-3.5-flash";
-  else if (primaryModel.includes("3.7")) primaryModel = "gemini-3.7-flash";
-  else if (primaryModel.includes("2.5")) primaryModel = "gemini-3.5-flash";
-  else if (primaryModel.includes("2.0")) primaryModel = "gemini-2.0-flash";
-  else if (primaryModel.includes("1.5-pro")) primaryModel = "gemini-1.5-pro";
-  else if (primaryModel.includes("1.5")) primaryModel = "gemini-1.5-flash";
-  return Array.from(new Set([primaryModel, ...GEMINI_FALLBACK_MODELS]));
-}
-
 export async function invokeUserProvider(
   request: ProviderRequest
 ): Promise<string> {
@@ -76,6 +66,19 @@ export async function invokeUserProvider(
       `${request.provider || "Provider"} API key is missing or not configured.`
     );
   }
+
+  if (request.provider === "gemini") {
+    const res = await generateGeminiContent({
+      apiKey: request.apiKey,
+      model: request.model,
+      prompt: request.prompt,
+      context: request.context,
+      systemPrompt: HANNA_SYSTEM_PROMPT,
+      route: "invokeUserProvider",
+    });
+    return res.text;
+  }
+
   const message = userMessage(request);
 
   if (request.provider === "anthropic") {
@@ -116,70 +119,6 @@ export async function invokeUserProvider(
     return (
       data.content?.find(item => item.type === "text")?.text ??
       "I’m ready to help. Could you rephrase that request?"
-    );
-  }
-
-  if (request.provider === "gemini") {
-    const candidateModels = geminiCandidateModels(request.model);
-
-    let lastError = "";
-    for (const modelName of candidateModels) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(request.apiKey.trim())}`,
-          {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
-              contents: [{ role: "user", parts: [{ text: message }] }],
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errText = await getResponseText(response);
-          const safeText = sanitizeError(errText);
-          if (response.status === 401 || response.status === 403) {
-            throw new Error(`Gemini provider returned ${response.status}: Authentication failed.`);
-          }
-          if (response.status === 429) {
-            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
-          }
-          if (response.status === 404) {
-            lastError = `Gemini model ${modelName} unavailable (404).`;
-            continue;
-          }
-          throw new Error(
-            `Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
-          );
-        }
-
-        const data = (await response.json().catch(() => null)) as {
-          candidates?: Array<{
-            content?: { parts?: Array<{ text?: string }> };
-          }>;
-        } | null;
-
-        if (!data) throw new Error("Gemini returned an invalid response format.");
-        const text = data.candidates?.[0]?.content?.parts
-          ?.map(part => part.text ?? "")
-          .join("");
-        if (text && text.trim()) return text;
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
-            throw err;
-          }
-          lastError = err.message;
-          if (err.message.includes("404")) continue;
-        }
-        throw err;
-      }
-    }
-    throw new Error(
-      lastError ||
-        "Gemini provider could not complete the request with configured models."
     );
   }
 
@@ -250,109 +189,24 @@ export async function streamUserProvider(
       `${request.provider || "Provider"} API key is missing or not configured.`
     );
   }
-  const message = userMessage(request);
 
   if (request.provider === "gemini") {
-    const candidateModels = geminiCandidateModels(request.model);
-    let lastError = "";
-
-    for (const modelName of candidateModels) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(request.apiKey.trim())}`;
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
-            contents: [{ role: "user", parts: [{ text: message }] }],
-          }),
-        });
-
-        if (!response.ok) {
-          const errText = await getResponseText(response);
-          const safeText = sanitizeError(errText);
-          if (response.status === 401 || response.status === 403) {
-            throw new Error(`Gemini provider returned ${response.status}: Authentication failed.`);
-          }
-          if (response.status === 429) {
-            throw new Error(`Gemini provider returned 429: Rate limit or quota exceeded.`);
-          }
-          if (response.status === 404) {
-            lastError = `Gemini model ${modelName} unavailable (404).`;
-            continue;
-          }
-          throw new Error(
-            `Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`
-          );
-        }
-
-        if (!response.body) {
-          const text = await invokeUserProvider({ ...request, model: modelName });
-          onChunk(text);
-          return { text, provider: "gemini", model: modelName };
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-        let fullText = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-
-            const jsonStr = trimmed.slice(5).trim();
-            if (!jsonStr || jsonStr === "[DONE]") continue;
-
-            try {
-              const data = JSON.parse(jsonStr);
-              const chunk = data.candidates?.[0]?.content?.parts
-                ?.map((p: { text?: string }) => p.text ?? "")
-                .join("") || "";
-
-              if (chunk) {
-                fullText += chunk;
-                onChunk(chunk);
-              }
-            } catch {
-              // Ignore non-JSON lines in SSE stream
-            }
-          }
-        }
-
-        if (fullText.trim()) {
-          return { text: fullText, provider: "gemini", model: modelName };
-        } else {
-          // Fallback to direct invocation if stream yielded empty text
-          const directText = await invokeUserProvider({ ...request, model: modelName }).catch(() => "");
-          if (directText && directText.trim()) {
-            onChunk(directText);
-            return { text: directText, provider: "gemini", model: modelName };
-          }
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.message.includes("returned status 401") || err.message.includes("returned 429") || err.message.includes("Authentication failed")) {
-            throw err;
-          }
-          lastError = err.message;
-          if (err.message.includes("404")) continue;
-        }
-        throw err;
-      }
-    }
-
-    throw new Error(
-      lastError || "Gemini provider streaming failed with configured models."
+    const res = await streamGeminiContent(
+      {
+        apiKey: request.apiKey,
+        model: request.model,
+        prompt: request.prompt,
+        context: request.context,
+        systemPrompt: HANNA_SYSTEM_PROMPT,
+        route: "streamUserProvider",
+      },
+      onChunk
     );
+    return {
+      text: res.text,
+      provider: res.provider,
+      model: res.model,
+    };
   }
 
   // Non-Gemini providers: invoke and stream full response
@@ -370,7 +224,6 @@ export async function streamUserProvider(
   };
 }
 
-
 export async function invokeGeminiAgentTurn(
   request: ProviderRequest
 ): Promise<ProviderAgentTurn> {
@@ -381,67 +234,18 @@ export async function invokeGeminiAgentTurn(
     throw new Error("Gemini API key is missing or not configured.");
   }
 
-  const tools = request.tools?.length
-    ? [{ functionDeclarations: request.tools.map(tool => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      })) }]
-    : undefined;
-  let lastError = "";
+  const res = await invokeGeminiToolTurn({
+    apiKey: request.apiKey,
+    model: request.model,
+    prompt: request.prompt,
+    context: request.context,
+    systemPrompt: HANNA_SYSTEM_PROMPT,
+    tools: request.tools,
+    route: "invokeGeminiAgentTurn",
+  });
 
-  for (const modelName of geminiCandidateModels(request.model)) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(request.apiKey.trim())}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: HANNA_SYSTEM_PROMPT }] },
-            contents: [{ role: "user", parts: [{ text: userMessage(request) }] }],
-            ...(tools ? { tools } : {}),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const safeText = sanitizeError(await getResponseText(response));
-        if (response.status === 401 || response.status === 403) {
-          throw new Error("Gemini provider returned an authentication error.");
-        }
-        if (response.status === 429) {
-          throw new Error("Gemini provider returned 429: Rate limit or quota exceeded.");
-        }
-        if (response.status === 404) {
-          lastError = `Gemini model ${modelName} unavailable (404).`;
-          continue;
-        }
-        throw new Error(`Gemini (${modelName}) returned status ${response.status}${safeText ? `: ${safeText.slice(0, 120)}` : ""}`);
-      }
-
-      const data = (await response.json().catch(() => null)) as {
-        candidates?: Array<{
-          content?: { parts?: Array<{ text?: string; functionCall?: { name?: string; args?: Record<string, unknown> } }> };
-        }>;
-      } | null;
-      const parts = data?.candidates?.[0]?.content?.parts ?? [];
-      const functionCall = parts.find(part => part.functionCall?.name)?.functionCall;
-      if (functionCall?.name) {
-        return { functionCall: { name: functionCall.name, args: functionCall.args ?? {} } };
-      }
-      const text = parts.map(part => part.text ?? "").join("").trim();
-      if (text) return { text };
-      throw new Error("Gemini returned an empty response.");
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes("authentication") || error.message.includes("429")) throw error;
-        lastError = error.message;
-        if (error.message.includes("404")) continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error(lastError || "Gemini could not complete the tool-calling request.");
+  return {
+    text: res.text,
+    functionCall: res.functionCall,
+  };
 }
