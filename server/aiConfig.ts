@@ -48,7 +48,7 @@ export function resolveProviderAndModel(
   const lower = input.toLowerCase();
 
   // Groq models specifically requested under Hanna branding or Groq names
-  if (lower.includes("groq") || lower.includes("llama") || lower.includes("mixtral") || lower.includes("deepseek")) {
+  if (lower.includes("groq") || lower.includes("llama") || lower.includes("mixtral") || lower.includes("deepseek") || lower.includes("gpt-oss")) {
     let modelName = "llama-3.3-70b-versatile";
     if (lower.includes("8b") || lower.includes("instant") || lower.includes("speed")) {
       modelName = "llama-3.1-8b-instant";
@@ -56,9 +56,11 @@ export function resolveProviderAndModel(
       modelName = "mixtral-8x7b-32768";
     } else if (lower.includes("deepseek")) {
       modelName = "deepseek-r1-distill-llama-70b";
+    } else if (lower.includes("gpt-oss")) {
+      modelName = "openai/gpt-oss-120b";
     } else if (lower.includes("70b") || lower.includes("versatile") || lower.includes("pro")) {
       modelName = "llama-3.3-70b-versatile";
-    } else if (input.startsWith("llama-") || input.startsWith("mixtral-") || input.startsWith("deepseek-")) {
+    } else if (input.startsWith("llama-") || input.startsWith("mixtral-") || input.startsWith("deepseek-") || input.includes("/")) {
       modelName = input;
     }
 

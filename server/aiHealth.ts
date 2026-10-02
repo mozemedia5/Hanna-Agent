@@ -16,7 +16,7 @@ export type AiHealthReport = {
 };
 
 export async function performAiHealthCheck(options?: {
-  userId?: number;
+  userId?: number | string;
   provider?: string;
   model?: string;
 }): Promise<AiHealthReport> {
