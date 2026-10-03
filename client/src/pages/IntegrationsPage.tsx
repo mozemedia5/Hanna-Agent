@@ -315,28 +315,35 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
           {filteredIntegrations.map(integration => {
             const isConnected = connected.includes(integration.id);
             return (
-              <div className="integration-card" key={integration.id}>
-                <div className="integration-card-icon">
+              <div className="integration-card" key={integration.id} onClick={() => openModal(integration)} style={{ cursor: "pointer" }}>
+                <div className="connector-icon-renderer">
                   {renderBrandIcon(integration.name, 20)}
                 </div>
                 <div className="integration-card-copy">
                   <strong>{integration.name}</strong>
                   <span>{integration.description}</span>
                 </div>
-                <button
-                  className={`integration-card-action ${isConnected ? "is-connected" : ""}`}
-                  onClick={() => openModal(integration)}
-                >
-                  {isConnected ? (
-                    <>
-                      <Check size={13} /> Connected
-                    </>
-                  ) : (
-                    <>
-                      Add <ChevronRight size={13} />
-                    </>
-                  )}
-                </button>
+                {isConnected ? (
+                  <button
+                    className="integration-card-action is-connected"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDisconnect(integration.id, integration.name);
+                    }}
+                  >
+                    <Check size={13} /> Connected
+                  </button>
+                ) : (
+                  <button
+                    className="integration-card-action"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConnect(integration);
+                    }}
+                  >
+                    Connect
+                  </button>
+                )}
               </div>
             );
           })}
@@ -359,8 +366,8 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                 {catItems.map(integration => {
                   const isConnected = connected.includes(integration.id);
                   return (
-                    <div className="integration-card" key={integration.id}>
-                      <div className="integration-card-icon">
+                    <div className="integration-card" key={integration.id} onClick={() => openModal(integration)} style={{ cursor: "pointer" }}>
+                      <div className="connector-icon-renderer">
                         {renderBrandIcon(integration.name, 20)}
                       </div>
                       <div className="integration-card-copy">
@@ -368,18 +375,22 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                         <span>{integration.description}</span>
                       </div>
                       {isConnected ? (
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          <button
-                            className="integration-card-action is-connected"
-                            onClick={() => handleDisconnect(integration.id, integration.name)}
-                          >
-                            <Check size={13} /> Connected
-                          </button>
-                        </div>
+                        <button
+                          className="integration-card-action is-connected"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDisconnect(integration.id, integration.name);
+                          }}
+                        >
+                          <Check size={13} /> Connected
+                        </button>
                       ) : (
                         <button
                           className="integration-card-action"
-                          onClick={() => handleConnect(integration)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConnect(integration);
+                          }}
                         >
                           Connect
                         </button>
@@ -399,13 +410,13 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-left">
-                <div className="modal-icon">
+                <div className="connector-icon-renderer" style={{ width: 42, height: 42 }}>
                   {renderBrandIcon(activeModal.name, 24)}
                 </div>
                 <div>
-                  <h3>{activeModal.name} Plugin</h3>
-                  <span className="modal-subtitle">
-                    {activeModal.category || "Connector"}
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>{activeModal.name}</h3>
+                  <span className="modal-subtitle" style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                    {activeModal.category || "Productivity"}
                   </span>
                 </div>
               </div>
@@ -416,6 +427,24 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                 <X size={18} />
               </button>
             </div>
+
+            {/* Account Info Bar if Connected */}
+            {connected.includes(activeModal.id) && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--surface-raised, rgba(255,255,255,0.04))", borderRadius: "10px", marginBottom: "16px", border: "1px solid var(--border)" }}>
+                <div>
+                  <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)", display: "block" }}>Connected Account</span>
+                  <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>user@workspace.com</strong>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button variant="outline" size="sm" onClick={() => handleConnect(activeModal)}>
+                    Reauthenticate
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDisconnect(activeModal.id, activeModal.name)}>
+                    Disconnect
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <p className="modal-description">{activeModal.description}</p>
 

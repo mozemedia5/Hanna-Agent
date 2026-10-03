@@ -136,14 +136,17 @@ export function GeminiIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
       <defs>
-        <linearGradient id="gemini-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+        <linearGradient id="gemini-sparkle-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#1A73E8" />
           <stop offset="35%" stopColor="#8AB4F8" />
           <stop offset="70%" stopColor="#C5221F" />
           <stop offset="100%" stopColor="#F29900" />
         </linearGradient>
       </defs>
-      <path fill="url(#gemini-grad)" d="M12 2C12 7.52 7.52 12 2 12c5.52 0 10 4.48 10 10 0-5.52 4.48-10 10-10-5.52 0-10-4.48-10-10Z" />
+      <path
+        fill="url(#gemini-sparkle-grad)"
+        d="M12 3C12 7.97 7.97 12 3 12c4.97 0 9 4.03 9 9 0-4.97 4.03-9 9-9-4.97 0-9-4.03-9-9Z"
+      />
     </svg>
   );
 }
@@ -362,14 +365,21 @@ export function GoogleAdsIcon({ size = 20, className = "" }: IconProps) {
 }
 
 export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siGoogledrive} size={size} className={className} />;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="#34A853" d="M12 13.5L7.5 21.3h9L21 13.5H12z" />
+      <path fill="#4285F4" d="M12 13.5L16.5 5.7H7.5L3 13.5l4.5 7.8 4.5-7.8z" />
+      <path fill="#FBBC04" d="M16.5 5.7L12 13.5h9L21 5.7h-4.5z" />
+    </svg>
+  );
 }
 
 export function GoogleDocsIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <rect x="3" y="2" width="18" height="20" rx="3" fill="#4285F4" />
-      <path fill="#fff" d="M7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z" />
+      <path fill="#4285F4" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <path fill="#A0C2F9" d="M14 2v6h6L14 2z" />
+      <path fill="#FFFFFF" d="M8 11h8v1.5H8V11zm0 3h8v1.5H8V14zm0 3h5v1.5H8V17z" />
     </svg>
   );
 }
@@ -377,8 +387,9 @@ export function GoogleDocsIcon({ size = 20, className = "" }: IconProps) {
 export function GoogleSheetsIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <rect x="3" y="2" width="18" height="20" rx="3" fill="#0F9D58" />
-      <path fill="#fff" d="M7 7h10v10H7V7zm2 2v2h2V9H9zm4 0v2h2V9h-2zm-4 4v2h2v-2H9zm4 0v2h2v-2h-2z" />
+      <path fill="#0F9D58" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <path fill="#87CEAC" d="M14 2v6h6L14 2z" />
+      <path fill="#FFFFFF" d="M7.5 11h9v7.5h-9V11zm1.5 1.5v1.5h2v-1.5H9zm3.5 0v1.5h2.5v-1.5h-2.5zm-3.5 3v1.5h2v-1.5H9zm3.5 0v1.5h2.5v-1.5h-2.5z" />
     </svg>
   );
 }
@@ -386,9 +397,20 @@ export function GoogleSheetsIcon({ size = 20, className = "" }: IconProps) {
 export function GoogleSlidesIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <rect x="3" y="2" width="18" height="20" rx="3" fill="#F4B400" />
-      <rect x="6" y="6" width="12" height="10" rx="1" fill="#fff" />
-      <rect x="8" y="8" width="8" height="6" rx="0.5" fill="#F4B400" />
+      <path fill="#F4B400" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <path fill="#FDE293" d="M14 2v6h6L14 2z" />
+      <path fill="#FFFFFF" d="M7 11h10v6.5H7V11zm1.5 1.5v3.5h7v-3.5h-7z" />
+    </svg>
+  );
+}
+
+export function GoogleWorkspaceIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="#EA4335" d="M12 5a7 7 0 0 0-7 7c0 1.6.5 3 1.4 4.2l2.5-2.5A3.5 3.5 0 0 1 8.5 12a3.5 3.5 0 0 1 3.5-3.5c.9 0 1.7.3 2.3.9l2.5-2.5A6.9 6.9 0 0 0 12 5z" />
+      <path fill="#4285F4" d="M19 12a6.9 6.9 0 0 0-1.4-4.2l-2.5 2.5c.3.5.4 1.1.4 1.7a3.5 3.5 0 0 1-3.5 3.5c-.9 0-1.7-.3-2.3-.9l-2.5 2.5c1.2.9 2.6 1.4 4.2 1.4a7 7 0 0 0 7.6-6.5z" />
+      <path fill="#FBBC04" d="M5 12c0-1.6.5-3 1.4-4.2L8.9 10.3A3.5 3.5 0 0 0 8.5 12c0 .6.1 1.2.4 1.7L6.4 16.2A6.9 6.9 0 0 1 5 12z" />
+      <path fill="#34A853" d="M19 12c0 1.6-.5 3-1.4 4.2l-2.5-2.5c.3-.5.4-1.1.4-1.7 0-.6-.1-1.2-.4-1.7l2.5-2.5c.9 1.2 1.4 2.6 1.4 4.2z" />
     </svg>
   );
 }
@@ -655,7 +677,8 @@ export function renderBrandIcon(
   if (lower.includes("google docs")) return <GoogleDocsIcon size={size} className={className} />;
   if (lower.includes("google sheet")) return <GoogleSheetsIcon size={size} className={className} />;
   if (lower.includes("google slide")) return <GoogleSlidesIcon size={size} className={className} />;
-  if (lower.includes("google drive") || lower.includes("google workspace")) return <GoogleDriveIcon size={size} className={className} />;
+  if (lower.includes("google workspace")) return <GoogleWorkspaceIcon size={size} className={className} />;
+  if (lower.includes("google drive")) return <GoogleDriveIcon size={size} className={className} />;
   if (lower.includes("google")) return <GoogleIcon size={size} className={className} />;
   if (lower.includes("gmail")) return <GmailIcon size={size} className={className} />;
 
