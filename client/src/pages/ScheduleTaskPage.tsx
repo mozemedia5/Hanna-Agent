@@ -109,22 +109,10 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
     void loadTasks();
   }, []);
 
-  // Filtered real connected connectors
+  // Filtered ONLY real connected connectors
   const realConnectedConnectors = useMemo(() => {
-    if (connectedIds.length === 0) {
-      // Default core workspace tools if no custom credentials yet
-      return integrations.filter((i: IntegrationDefinition) =>
-        ["shopify", "google-workspace", "slack", "github", "mcp-custom", "vercel"].includes(i.id)
-      );
-    }
     return integrations.filter((i: IntegrationDefinition) => connectedIds.includes(i.id));
   }, [connectedIds]);
-
-  // Catalog connectors for searching and adding new connectors directly
-  const unconnectedCatalogConnectors = useMemo(() => {
-    const connectedSet = new Set(realConnectedConnectors.map((c: IntegrationDefinition) => c.id));
-    return integrations.filter((i: IntegrationDefinition) => !connectedSet.has(i.id));
-  }, [realConnectedConnectors]);
 
   const filteredConnected = useMemo(() => {
     if (!connectorSearch.trim()) return realConnectedConnectors;
@@ -133,14 +121,6 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
       (c: IntegrationDefinition) => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)
     );
   }, [realConnectedConnectors, connectorSearch]);
-
-  const filteredUnconnected = useMemo(() => {
-    if (!connectorSearch.trim()) return [];
-    const q = connectorSearch.toLowerCase();
-    return unconnectedCatalogConnectors.filter(
-      (c: IntegrationDefinition) => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)
-    ).slice(0, 8);
-  }, [unconnectedCatalogConnectors, connectorSearch]);
 
   const toggleConnector = (id: string) => {
     setSelectedConnectors(prev =>
@@ -458,12 +438,33 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                   </div>
 
                   <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: "6px" }}>
-                    Connected in Workspace
+                    Connected Workspace Plugins
                   </div>
 
                   {filteredConnected.length === 0 ? (
-                    <div style={{ fontSize: "12px", color: "var(--text-tertiary)", padding: "6px 4px" }}>
-                      No connected connectors found.
+                    <div style={{ padding: "12px 8px", textAlign: "center" }}>
+                      <p style={{ fontSize: "12px", color: "var(--text-tertiary)", margin: "0 0 8px" }}>
+                        No connected plugins found. Connect plugins first in the Plugin Store to schedule tasks.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConnectorDropdownOpen(false);
+                          onNavigateToIntegrations?.();
+                        }}
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: "var(--gemini-accent)",
+                          background: "var(--wash)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "6px",
+                          padding: "6px 12px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Go to Plugin Store &rarr;
+                      </button>
                     </div>
                   ) : (
                     filteredConnected.map((connector: IntegrationDefinition) => {
@@ -500,46 +501,6 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                         </button>
                       );
                     })
-                  )}
-
-                  {/* Add New Connector Section from Catalog */}
-                  {filteredUnconnected.length > 0 && (
-                    <>
-                      <div style={{ borderTop: "1px solid var(--border)", margin: "8px 0", paddingTop: "8px", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--gemini-accent)" }}>
-                        + Add New Connector
-                      </div>
-
-                      {filteredUnconnected.map((connector: IntegrationDefinition) => (
-                        <button
-                          key={connector.id}
-                          type="button"
-                          onClick={() => {
-                            setConnectorDropdownOpen(false);
-                            onNavigateToIntegrations?.();
-                          }}
-                          style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "8px 10px",
-                            borderRadius: "8px",
-                            background: "transparent",
-                            border: "none",
-                            color: "var(--text-secondary)",
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            textAlign: "left",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            {renderBrandIcon(connector.id, 15)}
-                            <span>{connector.name}</span>
-                          </div>
-                          <span style={{ fontSize: "11px", color: "var(--gemini-accent)", fontWeight: "600" }}>Connect +</span>
-                        </button>
-                      ))}
-                    </>
                   )}
                 </div>
               )}
