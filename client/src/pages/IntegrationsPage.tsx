@@ -108,6 +108,20 @@ const categoryMap: Record<string, string[]> = {
   ],
 };
 
+const GOOGLE_CONNECTORS = [
+  "google-workspace",
+  "gmail",
+  "google-drive",
+  "google-docs",
+  "google-sheets",
+  "google-slides",
+  "google-calendar",
+  "google-maps",
+  "google-ads",
+];
+
+const isGoogleConnector = (id: string) => id.startsWith("google-") || id === "gmail";
+
 type IntegrationsPageProps = {
   onBack?: () => void;
 };
@@ -125,6 +139,31 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [toast, setToast] = useState("");
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const successConnector = searchParams.get("connector_success");
+    const errorMsg = searchParams.get("connector_error");
+
+    if (successConnector) {
+      if (isGoogleConnector(successConnector) || successConnector === "google-workspace") {
+        setConnected(prev => Array.from(new Set([...prev, ...GOOGLE_CONNECTORS])));
+        setToast("Google Workspace & all Google services connected successfully!");
+      } else {
+        setConnected(prev => Array.from(new Set([...prev, successConnector])));
+        setToast(`${successConnector} connected successfully!`);
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(() => setToast(""), 3500);
+    } else if (errorMsg) {
+      const label = errorMsg === "missing_google_client_id"
+        ? "Google OAuth Client ID is not configured on server (GOOGLE_OAUTH_CLIENT_ID)"
+        : errorMsg === "redirect_uri_mismatch"
+        ? "OAuth Redirect URI Mismatch — please check Google OAuth settings"
+        : `OAuth connection notice: ${errorMsg}`;
+      setToast(label);
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(() => setToast(""), 4500);
+    }
+
     const loadConnected = async () => {
       try {
         const token = await getFirebaseIdToken();
@@ -135,9 +174,18 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         if (!response.ok) return;
         const payload = await response.json();
         const records = payload?.[0]?.result?.data?.json;
-        if (Array.isArray(records)) setConnected(records.map((record: { connector: string }) => record.connector));
+        if (Array.isArray(records)) {
+          const list: string[] = records.map((record: { connector: string }) => record.connector);
+          // If any Google connector is connected, automatically sync all Google workspace connectors
+          const hasGoogle = list.some(id => isGoogleConnector(id));
+          if (hasGoogle) {
+            setConnected(Array.from(new Set([...list, ...GOOGLE_CONNECTORS])));
+          } else {
+            setConnected(list);
+          }
+        }
       } catch {
-        // Anonymous visitors can still browse the catalog; only authenticated users see saved state.
+        // Anonymous visitors can still browse catalog
       }
     };
     void loadConnected();
@@ -160,7 +208,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   };
 
   const handleConnect = async (integration: IntegrationDefinition) => {
-    if (integration.id === "google-workspace" || integration.id === "gmail") {
+    if (isGoogleConnector(integration.id)) {
       const token = await getFirebaseIdToken();
       const authUrl = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
       window.location.href = authUrl;
@@ -196,7 +244,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     if (!activeModal) return;
     setSaving(true);
     try {
-      if (activeModal.id === "google-workspace" || activeModal.id === "gmail") {
+      if (isGoogleConnector(activeModal.id)) {
         const token = await getFirebaseIdToken();
         window.location.href = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
         return;
@@ -222,7 +270,9 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         }),
       });
       if (!response.ok) throw new Error("OAuth handshake failed");
-      if (!connected.includes(activeModal.id)) {
+      if (isGoogleConnector(activeModal.id)) {
+        setConnected(prev => Array.from(new Set([...prev, ...GOOGLE_CONNECTORS])));
+      } else if (!connected.includes(activeModal.id)) {
         setConnected(prev => [...prev, activeModal.id]);
       }
       setToast(`${activeModal.name} authenticated via OAuth`);
@@ -260,7 +310,9 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         }),
       });
       if (!response.ok) throw new Error("Credential save failed");
-      if (!connected.includes(activeModal.id)) {
+      if (isGoogleConnector(activeModal.id)) {
+        setConnected(prev => Array.from(new Set([...prev, ...GOOGLE_CONNECTORS])));
+      } else if (!connected.includes(activeModal.id)) {
         setConnected(prev => [...prev, activeModal.id]);
       }
       setToast(`${activeModal.name} connected`);
