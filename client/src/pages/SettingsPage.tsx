@@ -2,6 +2,7 @@
  * Settings Page — Unified Settings & Workspace Personalization
  * Unifies profile identity, customize instructions, tokens, usage, affiliate rewards, what's new & help.
  */
+import React from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   getUserProfile,
@@ -26,8 +27,12 @@ import {
   Copy,
   ExternalLink,
   Zap,
+  Download,
+  CheckCircle2,
+  Laptop,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 
 type SettingsPageProps = {
   theme: "light" | "dark" | "system";
@@ -41,6 +46,7 @@ export default function SettingsPage({
   onBack,
 }: SettingsPageProps) {
   const { user } = useAuth();
+  const { isInstalled: isPwaInstalled, installing: pwaInstalling, installApp: triggerPwaInstall } = usePwaInstall();
   const [profile, setProfile] = useState({
     displayName: "",
     photoURL: "",
@@ -264,6 +270,124 @@ export default function SettingsPage({
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Desktop & Mobile App (PWA) */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <div>
+            <h3>Desktop & Mobile Application (PWA)</h3>
+            <span className="settings-card-subtitle">
+              Install Hanna on your desktop dock or mobile home screen for instant access
+            </span>
+          </div>
+        </div>
+        <div style={{ marginTop: "16px", display: "grid", gap: "12px" }}>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              padding: "16px",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "12px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <img src="/hanna-icon-192.png" alt="Hanna AI App" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>Hanna Workspace App</strong>
+                  {isPwaInstalled ? (
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "2px 8px",
+                        borderRadius: "9999px",
+                        background: "rgba(34, 197, 94, 0.15)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34, 197, 94, 0.3)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <CheckCircle2 size={12} /> Installed
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "2px 8px",
+                        borderRadius: "9999px",
+                        background: "rgba(26, 115, 232, 0.15)",
+                        color: "var(--gemini-accent, #1a73e8)",
+                        border: "1px solid rgba(26, 115, 232, 0.3)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <Zap size={12} /> Installable
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>
+                  {isPwaInstalled
+                    ? "Running in standalone application mode. Access Hanna directly from your launcher, dock, or home screen."
+                    : "Install as a Progressive Web App for instant launch, native window controls, and zero browser tab clutter."}
+                </span>
+              </div>
+            </div>
+
+            {isPwaInstalled ? (
+              <Button variant="outline" size="sm" disabled style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <CheckCircle2 size={15} className="text-green-500" />
+                <span>App Installed</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={() => void triggerPwaInstall()}
+                disabled={pwaInstalling}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "var(--gemini-accent, #1a73e8)",
+                  color: "#ffffff",
+                  fontWeight: "600",
+                  fontSize: "13px",
+                  borderRadius: "10px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                <Download size={15} />
+                <span>{pwaInstalling ? "Installing..." : "Install Hanna App"}</span>
+              </Button>
+            )}
           </div>
         </div>
       </section>
