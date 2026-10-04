@@ -13,6 +13,7 @@ import { listMcpTools } from "../../server/mcpServer";
 import { getProviderCredentialForRequest } from "../../server/providerDb";
 import { invokeGeminiAgentTurn, invokeUserProvider, streamUserProvider } from "../../server/providerAdapters";
 import { GeminiProviderError, sanitizeErrorText } from "../../server/geminiService";
+import { classifyProviderError, isFallbackEligible, markProviderCooldown } from "../../server/ai/providerFallback";
 import { consumeDailyTokens, type HannaTier } from "../../server/usage";
 
 export type IntentRouteType = "route_a" | "route_b";
@@ -128,6 +129,16 @@ export async function executeRouteAStream(
 
   try {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
+    if (provider.error === "CUSTOM_PROVIDER_NOT_CONFIGURED" || (!provider.apiKey && provider.provider !== "gemini")) {
+      sendSSE("error", {
+        success: false,
+        provider: provider.provider,
+        model: provider.model,
+        errorCode: "CUSTOM_PROVIDER_NOT_CONFIGURED",
+        message: `${provider.provider === "llama" ? "Groq" : provider.provider} is selected, but no API key is configured. Add GROQ_API_KEY in the server environment or connect your provider in Settings.`,
+      });
+      return;
+    }
     if (!provider.apiKey) {
       sendSSE("error", {
         success: false,
@@ -152,48 +163,101 @@ export async function executeRouteAStream(
       return;
     }
 
-    const result = await streamUserProvider(
-      {
-        ...provider,
-        prompt,
-        context,
-      },
-      chunk => {
-        sendSSE("token", { chunk });
-      }
-    );
+    let hasEmittedTokens = false;
+    try {
+      const result = await streamUserProvider(
+        {
+          ...provider,
+          prompt,
+          context,
+        },
+        chunk => {
+          hasEmittedTokens = true;
+          sendSSE("token", { chunk });
+        }
+      );
 
-    if (!result.text || !result.text.trim()) {
-      sendSSE("error", {
-        success: false,
-        provider: result.provider || "gemini",
-        model: result.model || "gemini-3.5-flash",
-        errorCode: "GEMINI_EMPTY_RESPONSE",
-        message: "Gemini API returned an empty response.",
+      if (!result.text || !result.text.trim()) {
+        throw new Error("Gemini API returned an empty response.");
+      }
+
+      sendSSE("final", {
+        success: true,
+        text: result.text,
+        provider: result.provider,
+        model: result.model,
+        route: "route_a",
       });
       return;
-    }
+    } catch (primaryErr) {
+      // Check fallback eligibility
+      const classified = classifyProviderError(primaryErr);
+      const isCustomExplicitSelection = model && model !== "Hanna Default" && model !== "Hanna Lite" && model !== "Hanna Pro" && model !== "automatic" && model !== "default";
 
-    sendSSE("final", {
-      success: true,
-      text: result.text,
-      provider: result.provider,
-      model: result.model,
-      route: "route_a",
-    });
-  } catch (err) {
-    if (err instanceof GeminiProviderError) {
-      sendSSE("error", err.toJSON());
-    } else {
-      const message = err instanceof Error ? sanitizeErrorText(err.message) : "Hanna could not reach Gemini right now.";
-      sendSSE("error", {
-        success: false,
-        provider: "gemini",
-        model: "gemini-3.5-flash",
-        errorCode: "AI_ERROR",
-        message,
-      });
+      if (!hasEmittedTokens && isFallbackEligible(classified.errorClass) && !isCustomExplicitSelection && process.env.GROQ_API_KEY) {
+        markProviderCooldown("gemini", 60_000);
+        sendSSE("status", { state: "fallback", message: "Gemini capacity exceeded. Switching automatically to Groq..." });
+
+        const groqFallbackChain = [
+          "openai/gpt-oss-120b",
+          "openai/gpt-oss-20b",
+        ];
+
+        for (const groqModel of groqFallbackChain) {
+          try {
+            const fallbackResult = await streamUserProvider(
+              {
+                provider: "llama",
+                apiKey: process.env.GROQ_API_KEY.trim(),
+                model: groqModel,
+                prompt,
+                context,
+              },
+              chunk => {
+                sendSSE("token", { chunk });
+              }
+            );
+
+            if (fallbackResult.text && fallbackResult.text.trim()) {
+              sendSSE("final", {
+                success: true,
+                text: fallbackResult.text,
+                provider: "groq",
+                model: groqModel,
+                route: "route_a",
+                fallbackUsed: true,
+              });
+              return;
+            }
+          } catch {
+            // Try next model in fallback chain
+          }
+        }
+      }
+
+      // If explicit selection or fallback also exhausted
+      if (primaryErr instanceof GeminiProviderError) {
+        sendSSE("error", primaryErr.toJSON());
+      } else {
+        const message = primaryErr instanceof Error ? sanitizeErrorText(primaryErr.message) : "Hanna could not reach provider right now.";
+        sendSSE("error", {
+          success: false,
+          provider: provider.provider || "gemini",
+          model: provider.model || "gemini-3.5-flash",
+          errorCode: "AI_ERROR",
+          message,
+        });
+      }
     }
+  } catch (err) {
+    const message = err instanceof Error ? sanitizeErrorText(err.message) : "Route A execution failed.";
+    sendSSE("error", {
+      success: false,
+      provider: "gemini",
+      model: "gemini-3.5-flash",
+      errorCode: "AI_ERROR",
+      message,
+    });
   }
 }
 
@@ -280,18 +344,57 @@ export async function executeRouteBLoop(
           ? `\n\nVerified Tool Outputs:\n${JSON.stringify(state.toolResults, null, 2)}`
           : "";
 
-        const turn = await invokeGeminiAgentTurn({
-          ...provider,
-          prompt: `${prompt}${toolResultsCtx}`,
-          context: context || "Execute ReAct loop step by step.",
-          tools: registry.list().map(t => ({
-            name: t.id,
-            description: t.description,
-            parameters: (t.inputSchema as Record<string, unknown>) || { type: "object", properties: {} },
-          })),
-        });
+        const toolsDef = registry.list().map(t => ({
+          name: t.id,
+          description: t.description,
+          parameters: (t.inputSchema as Record<string, unknown>) || { type: "object", properties: {} },
+        }));
 
-        if (turn.functionCall) {
+        let turn;
+        try {
+          turn = await invokeGeminiAgentTurn({
+            ...provider,
+            prompt: `${prompt}${toolResultsCtx}`,
+            context: context || "Execute ReAct loop step by step.",
+            tools: toolsDef,
+          });
+        } catch (turnErr) {
+          const classified = classifyProviderError(turnErr);
+          const isCustomExplicitSelection = model && model !== "Hanna Default" && model !== "Hanna Lite" && model !== "Hanna Pro" && model !== "automatic" && model !== "default";
+
+          if (isFallbackEligible(classified.errorClass) && !isCustomExplicitSelection && process.env.GROQ_API_KEY) {
+            markProviderCooldown("gemini", 60_000);
+            sendSSE("trace", { stage: "decide", detail: "Gemini capacity exceeded. Re-routing turn step to Groq..." });
+
+            const groqFallbackChain = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
+            let fallbackSuccess = false;
+
+            for (const groqModel of groqFallbackChain) {
+              try {
+                turn = await invokeGeminiAgentTurn({
+                  provider: "llama",
+                  apiKey: process.env.GROQ_API_KEY.trim(),
+                  model: groqModel,
+                  prompt: `${prompt}${toolResultsCtx}`,
+                  context: context || "Execute ReAct loop step by step.",
+                  tools: toolsDef,
+                });
+                fallbackSuccess = true;
+                break;
+              } catch {
+                // Try next model in chain
+              }
+            }
+
+            if (!fallbackSuccess) {
+              throw turnErr;
+            }
+          } else {
+            throw turnErr;
+          }
+        }
+
+        if (turn?.functionCall) {
           sendSSE("trace", { stage: "execute", detail: `Calling tool: ${turn.functionCall.name}` });
           return {
             type: "tool_call" as const,
@@ -302,7 +405,7 @@ export async function executeRouteBLoop(
 
         return {
           type: "final" as const,
-          response: turn.text || "Agent loop completed successfully.",
+          response: turn?.text || "Agent loop completed successfully.",
         };
       },
       registry,

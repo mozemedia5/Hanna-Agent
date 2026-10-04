@@ -133,9 +133,7 @@ export async function invokeUserProvider(
 
   const model =
     request.provider === "llama"
-      ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek") || request.model.includes("/"))
-        ? request.model
-        : "llama-3.3-70b-versatile"
+      ? request.model || "openai/gpt-oss-120b"
       : request.provider === "custom"
         ? request.model
         : request.model || "gpt-4o-mini";
@@ -282,9 +280,7 @@ export async function invokeGeminiAgentTurn(
 
   const model =
     request.provider === "llama"
-      ? request.model && (request.model.startsWith("llama") || request.model.startsWith("mixtral") || request.model.startsWith("deepseek") || request.model.includes("/"))
-        ? request.model
-        : "llama-3.3-70b-versatile"
+      ? request.model || "openai/gpt-oss-120b"
       : request.provider === "custom"
         ? request.model
         : request.model || "gpt-4o-mini";
