@@ -844,8 +844,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     </div>
                   )}
                   <div className="message-body">
-                    <div className="message-meta">
-                      <strong>{message.role === "assistant" ? "Hanna" : "You"}</strong>
+                    <div className="message-meta" style={{ display: message.role === "assistant" ? "none" : "flex" }}>
+                      <strong>You</strong>
                       <span>{message.time}</span>
                     </div>
                     {/* Attachment preview for user message - styled like input thumbnail badges with click-to-view */}
@@ -899,88 +899,26 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                     )}
 
                     {message.role === "assistant" && (
-                      <div className="message-actions" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
+                      <div className="message-actions" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", opacity: 0.85, fontSize: "12px", color: "var(--text-secondary)" }}>
                         <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(message.content);
                             showToast("Response copied");
                           }}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                          title="Copy response"
+                          aria-label="Copy response"
                         >
-                          <Copy size={13} /> Copy
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (typeof window !== "undefined" && window.speechSynthesis) {
-                              if (speakingMessageId === message.id) {
-                                window.speechSynthesis.cancel();
-                                setSpeakingMessageId(null);
-                                setIsAudioPaused(false);
-                                showToast("Read Aloud stopped");
-                              } else {
-                                window.speechSynthesis.cancel();
-                                const cleanText = message.content
-                                  .replace(/```[\s\S]*?```/g, "Code block omitted.")
-                                  .replace(/`([^`]+)`/g, "$1")
-                                  .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-                                  .replace(/[*#_~\-\\\[\]\(\)\{\}]/g, " ")
-                                  .replace(/\s+/g, " ")
-                                  .trim();
-
-                                const utterance = new SpeechSynthesisUtterance(cleanText);
-                                utterance.rate = 1.0;
-                                utterance.pitch = 1.0;
-
-                                const currentVoice = localStorage.getItem("hanna_voice_choice") || selectedVoice;
-                                const systemVoices = window.speechSynthesis.getVoices();
-                                if (systemVoices.length > 0) {
-                                  const nameMatch = systemVoices.find(v =>
-                                    v.name.toLowerCase().includes(currentVoice.split(" ")[0].toLowerCase())
-                                  );
-                                  if (nameMatch) {
-                                    utterance.voice = nameMatch;
-                                  } else {
-                                    const female = currentVoice.toLowerCase().includes("woman") || currentVoice.toLowerCase().includes("female") || currentVoice.includes("Hanna") || currentVoice.includes("Emma") || currentVoice.includes("Sophia");
-                                    const matchedVoice = systemVoices.find(v => female ? v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("samantha") || v.name.toLowerCase().includes("google us english") : v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("david") || v.name.toLowerCase().includes("alex"));
-                                    if (matchedVoice) utterance.voice = matchedVoice;
-                                  }
-                                }
-
-                                utterance.onend = () => { setSpeakingMessageId(null); setIsAudioPaused(false); };
-                                utterance.onerror = () => { setSpeakingMessageId(null); setIsAudioPaused(false); };
-                                setSpeakingMessageId(message.id);
-                                setIsAudioPaused(false);
-                                window.speechSynthesis.speak(utterance);
-                                showToast("Playing Read Aloud...");
-                              }
-                            } else {
-                              showToast("Speech synthesis not supported on this browser.");
-                            }
-                          }}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            fontSize: "12px",
-                            background: "transparent",
-                            border: "none",
-                            color: speakingMessageId === message.id ? "var(--gemini-accent, #1a73e8)" : "var(--text-secondary)",
-                            fontWeight: speakingMessageId === message.id ? "600" : "normal",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {speakingMessageId === message.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
-                          {speakingMessageId === message.id ? "Playing Audio..." : "Read Aloud"}
+                          <Copy size={13} />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => showToast("Response feedback recorded (Good)")}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
                           title="Good response"
+                          aria-label="Good response"
                         >
                           <ThumbsUp size={13} />
                         </button>
@@ -988,8 +926,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         <button
                           type="button"
                           onClick={() => showToast("Response feedback recorded (Bad)")}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
                           title="Bad response"
+                          aria-label="Bad response"
                         >
                           <ThumbsDown size={13} />
                         </button>
@@ -997,12 +936,23 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         <button
                           type="button"
                           onClick={() => {
-                            setShowShareModal(true);
+                            const lastUserMsg = activeChat.messages.filter(m => m.role === "user").pop();
+                            if (lastUserMsg) {
+                              chatWorkflow.submitPrompt(lastUserMsg.content);
+                            } else {
+                              showToast("Regenerating response...");
+                            }
                           }}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                          title="Regenerate response"
+                          aria-label="Regenerate response"
                         >
-                          <Share2 size={13} /> Share
+                          <RotateCcw size={13} />
                         </button>
+
+                        <span style={{ fontSize: "11px", opacity: 0.7, padding: "0 2px" }}>1/1</span>
+
+                        <span style={{ fontSize: "11px", opacity: 0.6, paddingLeft: "4px" }}>{message.time}</span>
                       </div>
                     )}
                   </div>
