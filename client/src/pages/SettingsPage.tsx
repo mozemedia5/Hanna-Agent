@@ -95,11 +95,15 @@ export default function SettingsPage({
   });
 
   const accentOptions = [
-    { id: "cream", label: "Cream", bg: "#2c2a24", border: "#4a4538" },
-    { id: "green", label: "Soft Green", bg: "#1c2e22", border: "#2d4e38" },
-    { id: "red", label: "Rose/Red", bg: "#321f20", border: "#562f32" },
-    { id: "blue", label: "Sky Blue", bg: "#1c273a", border: "#2e3f5c" },
-    { id: "default", label: "Graphite", bg: "var(--surface-raised)", border: "var(--border)" },
+    { id: "ffc1c1", label: "#FFC1C1 Coral", bg: "#FFC1C1", border: "#e59c9c", textColor: "#0f0f0f" },
+    { id: "e2cef3", label: "#E2CEF3 Lavender", bg: "#E2CEF3", border: "#c8ade1", textColor: "#0f0f0f" },
+    { id: "f0fff0", label: "#F0FFF0 Honeydew", bg: "#F0FFF0", border: "#b9e2b9", textColor: "#0f0f0f" },
+    { id: "f4a0a0", label: "#F4A0A0 Salmon", bg: "#F4A0A0", border: "#d67c7c", textColor: "#0f0f0f" },
+    { id: "ccaae6", label: "#CCAAE6 Lilac", bg: "#CCAAE6", border: "#a981c9", textColor: "#0f0f0f" },
+    { id: "ceff00", label: "#CEFF00 Lime", bg: "#CEFF00", border: "#afd800", textColor: "#0f0f0f" },
+    { id: "fef8e0", label: "#FEF8E0 Cream", bg: "#FEF8E0", border: "#e2d6a5", textColor: "#0f0f0f" },
+    { id: "a0438e", label: "#A0438E Plum", bg: "#A0438E", border: "#be5ea9", textColor: "#ffffff" },
+    { id: "default", label: "Graphite", bg: "var(--surface-raised)", border: "var(--border)", textColor: "var(--text-primary)" },
   ];
 
   const handleAccentSelect = (id: string) => {
@@ -415,15 +419,15 @@ export default function SettingsPage({
                   padding: "12px 8px",
                   borderRadius: "12px",
                   background: opt.bg,
-                  border: `2px solid ${accentColor === opt.id ? "var(--gemini-accent)" : opt.border}`,
+                  border: `2px solid ${accentColor === opt.id ? (opt.textColor === "#ffffff" ? "#ffffff" : "#0f0f0f") : opt.border}`,
                   cursor: "pointer",
-                  color: "var(--text-primary)",
+                  color: opt.textColor,
                   fontSize: "12px",
                   fontWeight: "600",
                 }}
               >
                 <span>{opt.label}</span>
-                {accentColor === opt.id && <Check size={14} style={{ color: "var(--gemini-accent)" }} />}
+                {accentColor === opt.id && <Check size={14} style={{ color: opt.textColor === "#ffffff" ? "#ffffff" : "#0f0f0f" }} />}
               </button>
             ))}
           </div>
