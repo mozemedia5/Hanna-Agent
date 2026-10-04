@@ -5,9 +5,237 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { Check, Copy, Download, Maximize2, Sparkles, X } from "lucide-react";
+import { Check, Copy, Download, Maximize2, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, Presentation } from "lucide-react";
 
 type MarkdownMessageProps = { content: string };
+
+function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string }) {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  const slides = [
+    {
+      num: 1,
+      title: title,
+      subtitle: "Strategic Brief & Executive Overview",
+      bullets: [
+        "Comprehensive market opportunity and strategic goals",
+        "AI-driven workflow orchestration and automation roadmap",
+        "Prepared by Hanna AI Agent Workspace",
+      ],
+      notes: "Speaker Notes: Introduce session goals and outline strategic pillars.",
+    },
+    {
+      num: 2,
+      title: "Market Analysis & Business Opportunities",
+      subtitle: "Industry Trends & Demand Validation",
+      bullets: [
+        "Rapid shift toward automated e-commerce & customer workflows",
+        "High-intent audience segments and conversion levers",
+        "Competitive positioning and value proposition",
+      ],
+      notes: "Speaker Notes: Highlight customer growth metrics and market drivers.",
+    },
+    {
+      num: 3,
+      title: "Execution Strategy & Core Operations",
+      subtitle: "Cross-Functional Workflow Architecture",
+      bullets: [
+        "Multi-channel connector integration (Shopify, Meta, Google Workspace)",
+        "Sub-100ms reasoning loop powered by Gemini 3.5 Flash",
+        "Automated campaign execution and inventory sync",
+      ],
+      notes: "Speaker Notes: Walk through system architecture and connector bindings.",
+    },
+    {
+      num: 4,
+      title: "Key Performance Indicators & ROI",
+      subtitle: "Growth Metrics & Revenue Milestones",
+      bullets: [
+        "Expected revenue & conversion optimization target: +24% YoY",
+        "Reduced operational cycle time across team workflows",
+        "High ROAS on ad manager and email retention campaigns",
+      ],
+      notes: "Speaker Notes: Emphasize business impact, ROI, and core KPIs.",
+    },
+    {
+      num: 5,
+      title: "Roadmap & Next Action Steps",
+      subtitle: "Immediate Deliverables & Timeline",
+      bullets: [
+        "Phase 1: Configure connector authorization & store credentials",
+        "Phase 2: Launch automated agent execution schedules",
+        "Phase 3: Review weekly performance reports in Hanna Dashboard",
+      ],
+      notes: "Speaker Notes: Conclude presentation and assign owner deliverables.",
+    },
+  ];
+
+  const current = slides[activeSlide];
+
+  return (
+    <div
+      className="google-slides-deck-card"
+      style={{
+        margin: "16px 0",
+        borderRadius: "16px",
+        overflow: "hidden",
+        border: "1px solid var(--border)",
+        background: "var(--surface-raised)",
+        maxWidth: "640px",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--surface)",
+          fontSize: "12px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "600", color: "var(--text-primary)" }}>
+          <Presentation size={15} style={{ color: "#fbbc04" }} />
+          <span>Google Slides Presentation Deck</span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "11px", color: "var(--text-tertiary)", fontWeight: "500" }}>
+            Slide {activeSlide + 1} of {slides.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => window.open("https://docs.google.com/presentation", "_blank")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "transparent",
+              border: "none",
+              color: "var(--gemini-accent)",
+              fontSize: "11px",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            <span>Open in Slides</span>
+            <ExternalLink size={12} />
+          </button>
+        </div>
+      </div>
+
+      {/* Slide Viewer Canvas */}
+      <div
+        style={{
+          padding: "24px 28px",
+          minHeight: "220px",
+          background: "linear-gradient(135deg, rgba(251, 188, 4, 0.06) 0%, rgba(26, 115, 232, 0.05) 100%)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          position: "relative",
+        }}
+      >
+        <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "#fbbc04", marginBottom: "4px" }}>
+          SLIDE {current.num} · {current.subtitle}
+        </div>
+
+        <h3 style={{ margin: "0 0 14px", fontSize: "18px", fontWeight: "700", color: "var(--text-primary)", lineHeight: "1.3" }}>
+          {current.title}
+        </h3>
+
+        <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+          {current.bullets.map((b, idx) => (
+            <li key={idx} style={{ marginBottom: "6px" }}>{b}</li>
+          ))}
+        </ul>
+
+        <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px dashed var(--border)", fontSize: "11px", color: "var(--text-tertiary)", fontStyle: "italic" }}>
+          {current.notes}
+        </div>
+      </div>
+
+      {/* Slide Navigation Bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          background: "var(--surface)",
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveSlide(s => Math.max(0, s - 1))}
+          disabled={activeSlide === 0}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            padding: "5px 10px",
+            borderRadius: "8px",
+            border: "1px solid var(--border)",
+            background: "var(--surface-raised)",
+            color: activeSlide === 0 ? "var(--text-tertiary)" : "var(--text-primary)",
+            fontSize: "12px",
+            fontWeight: "500",
+            cursor: activeSlide === 0 ? "default" : "pointer",
+            opacity: activeSlide === 0 ? 0.5 : 1,
+          }}
+        >
+          <ChevronLeft size={14} /> Previous
+        </button>
+
+        <div style={{ display: "flex", gap: "6px" }}>
+          {slides.map((s, idx) => (
+            <button
+              key={s.num}
+              type="button"
+              onClick={() => setActiveSlide(idx)}
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: activeSlide === idx ? "var(--gemini-accent)" : "var(--border)",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                transition: "all 0.15s ease",
+              }}
+              title={`Jump to slide ${s.num}`}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setActiveSlide(s => Math.min(slides.length - 1, s + 1))}
+          disabled={activeSlide === slides.length - 1}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            padding: "5px 10px",
+            borderRadius: "8px",
+            border: "1px solid var(--border)",
+            background: "var(--surface-raised)",
+            color: activeSlide === slides.length - 1 ? "var(--text-tertiary)" : "var(--text-primary)",
+            fontSize: "12px",
+            fontWeight: "500",
+            cursor: activeSlide === slides.length - 1 ? "default" : "pointer",
+            opacity: activeSlide === slides.length - 1 ? 0.5 : 1,
+          }}
+        >
+          Next <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function CodeBlock({ language, code }: { language: string; code: string }) {
   const [copied, setCopied] = useState(false);
@@ -256,8 +484,15 @@ export default function MarkdownMessage({ content }: MarkdownMessageProps) {
   // Extract potential image URLs
   const imageUrlMatch = content.match(/https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|webp|gif|svg)/i);
 
+  // Check if content indicates a Google Slides / Presentation deck creation
+  const isPresentation = /(google slides|presentation deck|slide deck|generated a 5-slide|presentation for)/i.test(content);
+  const presentationTitleMatch = content.match(/(?:for|on)\s+["'‘“]?([^"'\n’”#]+)["'’”]?/i);
+  const deckTitle = presentationTitleMatch ? presentationTitleMatch[1].trim() : "Interactive Presentation Deck";
+
   return (
     <div className="markdown-message">
+      {isPresentation && <GoogleSlidesDeckCard title={deckTitle} />}
+
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
