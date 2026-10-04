@@ -713,6 +713,22 @@ export const appRouter = router({
       const tasks = taskScheduler.listTasks(ctx.user?.id);
       return { tasks };
     }),
+    executeScheduledTaskNow: publicProcedure
+      .input(z.object({ taskId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const task = taskScheduler.getTask(input.taskId);
+        if (!task) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Scheduled task not found.",
+          });
+        }
+        const prompt = String(task.parameters?.prompt || task.description || task.title);
+        const res = await executeHannaRequest(prompt, "Scheduled Task Execution", ctx.user?.id);
+        const resultText = res.text || "Scheduled task executed successfully by AI.";
+        taskScheduler.markCompleted(task.id, resultText);
+        return { success: true, result: resultText, task };
+      }),
   }),
 });
 

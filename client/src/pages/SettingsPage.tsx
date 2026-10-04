@@ -50,23 +50,6 @@ export default function SettingsPage({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copiedAffiliate, setCopiedAffiliate] = useState(false);
-  const [voiceChoice, setVoiceChoice] = useState<string>(() => {
-    return localStorage.getItem("hanna_voice_choice") || "Hanna (Natural) - Female";
-  });
-
-  const voices = [
-    { id: "Hanna (Natural) - Female", name: "Hanna (Natural)", gender: "Female", desc: "Balanced, clear, natural response tone" },
-    { id: "Emma (Friendly) - Female", name: "Emma (Friendly)", gender: "Female", desc: "Warm, engaging, conversational style" },
-    { id: "Sophia (Professional) - Female", name: "Sophia (Professional)", gender: "Female", desc: "Executive, authoritative, crisp articulation" },
-    { id: "James (Direct) - Male", name: "James (Direct)", gender: "Male", desc: "Clear, direct, confident delivery" },
-    { id: "Daniel (Calm) - Male", name: "Daniel (Calm)", gender: "Male", desc: "Soothing, measured, steady tone" },
-    { id: "Alex (Warm) - Male", name: "Alex (Warm)", gender: "Male", desc: "Enthusiastic, approachable, expressive" },
-  ];
-
-  const handleVoiceSelect = (vId: string) => {
-    setVoiceChoice(vId);
-    localStorage.setItem("hanna_voice_choice", vId);
-  };
 
   useEffect(() => {
     void getUserProfile()
@@ -100,36 +83,6 @@ export default function SettingsPage({
     }
   };
 
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-
-  const playVoiceSample = (voiceObj: typeof voices[0]) => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      const sampleText = `Hello, I am ${voiceObj.name.split(" ")[0]}. How can I help you today?`;
-      const utterance = new SpeechSynthesisUtterance(sampleText);
-      const systemVoices = window.speechSynthesis.getVoices();
-      if (systemVoices.length > 0) {
-        const nameMatch = systemVoices.find(v =>
-          v.name.toLowerCase().includes(voiceObj.name.split(" ")[0].toLowerCase())
-        );
-        if (nameMatch) {
-          utterance.voice = nameMatch;
-        } else {
-          const isFemale = voiceObj.gender === "Female";
-          const matched = systemVoices.find(v =>
-            isFemale
-              ? v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("samantha")
-              : v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("david") || v.name.toLowerCase().includes("alex")
-          );
-          if (matched) utterance.voice = matched;
-        }
-      }
-      utterance.onend = () => setPlayingVoiceId(null);
-      utterance.onerror = () => setPlayingVoiceId(null);
-      setPlayingVoiceId(voiceObj.id);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
 
   const themeOptions = [
     { value: "light" as const, label: "Light", icon: Sun, desc: "Paper white and graphite" },
@@ -137,7 +90,23 @@ export default function SettingsPage({
     { value: "system" as const, label: "System", icon: Monitor, desc: "Follow your device" },
   ];
 
-  const currentVoiceObj = voices.find(v => v.id === voiceChoice) || voices[0];
+  const [accentColor, setAccentColor] = useState<string>(() => {
+    return localStorage.getItem("hanna_user_bubble_color") || "cream";
+  });
+
+  const accentOptions = [
+    { id: "cream", label: "Cream", bg: "#2c2a24", border: "#4a4538" },
+    { id: "green", label: "Soft Green", bg: "#1c2e22", border: "#2d4e38" },
+    { id: "red", label: "Rose/Red", bg: "#321f20", border: "#562f32" },
+    { id: "blue", label: "Sky Blue", bg: "#1c273a", border: "#2e3f5c" },
+    { id: "default", label: "Graphite", bg: "var(--surface-raised)", border: "var(--border)" },
+  ];
+
+  const handleAccentSelect = (id: string) => {
+    setAccentColor(id);
+    localStorage.setItem("hanna_user_bubble_color", id);
+  };
+
   const affiliateLink = `https://hanna.ai/ref/${(user?.email || "user").split("@")[0]}`;
 
   return (
@@ -391,116 +360,73 @@ export default function SettingsPage({
         </div>
       </section>
 
-      {/* Voice Selection */}
+
+      {/* Appearance & Prompt Accent Style */}
       <section className="settings-card">
         <div className="settings-card-header">
           <div>
-            <h3>Voice Choice (Read Aloud)</h3>
+            <h3>Appearance & User Prompt Accent</h3>
             <span className="settings-card-subtitle">
-              Select your preferred speech synthesis voice
+              Choose theme and user message bubble accent color
             </span>
           </div>
         </div>
 
-        <div style={{ marginTop: "16px", display: "grid", gap: "16px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label className="settings-field-label" htmlFor="voice-select">
-              Voice Choice
-            </label>
-            <select
-              id="voice-select"
-              value={voiceChoice}
-              onChange={e => handleVoiceSelect(e.target.value)}
-              style={{
-                width: "100%",
-                maxWidth: "420px",
-                padding: "10px 14px",
-                background: "var(--surface)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-                borderRadius: "10px",
-                fontSize: "14px",
-                fontWeight: "500",
-                cursor: "pointer",
-                outline: "none",
-              }}
-            >
-              {voices.map(v => (
-                <option key={v.id} value={v.id}>
-                  {v.name} ({v.gender}) — {v.desc}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "14px 16px",
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "12px",
-              maxWidth: "420px",
-            }}
-          >
-            <div>
-              <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)" }}>
-                {currentVoiceObj.name}
-              </strong>
-              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                {currentVoiceObj.desc}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => playVoiceSample(currentVoiceObj)}
-              style={{
-                background: playingVoiceId === currentVoiceObj.id ? "var(--text-primary)" : "var(--surface-raised)",
-                color: playingVoiceId === currentVoiceObj.id ? "var(--surface)" : "var(--text-primary)",
-                border: "1px solid var(--border)",
-                padding: "6px 14px",
-                borderRadius: "8px",
-                fontSize: "12px",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-            >
-              {playingVoiceId === currentVoiceObj.id ? "Playing..." : "Play Sample"}
-            </button>
+        <div style={{ marginBottom: "20px" }}>
+          <span className="settings-field-label" style={{ display: "block", marginBottom: "8px" }}>
+            Workspace Theme
+          </span>
+          <div className="theme-options-grid">
+            {themeOptions.map(opt => (
+              <button
+                key={opt.value}
+                className={`theme-option-card ${theme === opt.value ? "is-selected" : ""}`}
+                onClick={() => onThemeChange(opt.value)}
+              >
+                <opt.icon size={20} />
+                <span className="theme-option-label">{opt.label}</span>
+                <span className="theme-option-desc">{opt.desc}</span>
+                {theme === opt.value && (
+                  <span className="theme-check">
+                    <Check size={14} />
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* Appearance */}
-      <section className="settings-card">
-        <div className="settings-card-header">
-          <div>
-            <h3>Appearance</h3>
-            <span className="settings-card-subtitle">
-              Choose how Hanna looks on your device
-            </span>
+        <div>
+          <span className="settings-field-label" style={{ display: "block", marginBottom: "8px" }}>
+            User Message Accent Color
+          </span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "10px" }}>
+            {accentOptions.map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleAccentSelect(opt.id)}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  padding: "12px 8px",
+                  borderRadius: "12px",
+                  background: opt.bg,
+                  border: `2px solid ${accentColor === opt.id ? "var(--gemini-accent)" : opt.border}`,
+                  cursor: "pointer",
+                  color: "var(--text-primary)",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                }}
+              >
+                <span>{opt.label}</span>
+                {accentColor === opt.id && <Check size={14} style={{ color: "var(--gemini-accent)" }} />}
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="theme-options-grid">
-          {themeOptions.map(opt => (
-            <button
-              key={opt.value}
-              className={`theme-option-card ${theme === opt.value ? "is-selected" : ""}`}
-              onClick={() => onThemeChange(opt.value)}
-            >
-              <opt.icon size={20} />
-              <span className="theme-option-label">{opt.label}</span>
-              <span className="theme-option-desc">{opt.desc}</span>
-              {theme === opt.value && (
-                <span className="theme-check">
-                  <Check size={14} />
-                </span>
-              )}
-            </button>
-          ))}
         </div>
       </section>
 

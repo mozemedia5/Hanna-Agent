@@ -54,6 +54,71 @@ export async function saveUserConversation(conversation: ClientConversation) {
   );
 }
 
+export type ClientProjectFile = {
+  id: string;
+  name: string;
+  type: "pdf" | "image" | "audio" | "video" | "other";
+  size: string;
+  uploadedAt: string;
+};
+
+export type ClientProjectChat = {
+  id: string;
+  title: string;
+  lastMessage: string;
+  updatedAt: string;
+  isPinned?: boolean;
+  isArchived?: boolean;
+};
+
+export type ClientProject = {
+  id: string;
+  name: string;
+  description: string;
+  instructions: string;
+  createdAt: string;
+  category: string;
+  chats: ClientProjectChat[];
+  files: ClientProjectFile[];
+  updatedAt?: string;
+};
+
+export async function listUserProjects(): Promise<ClientProject[]> {
+  try {
+    const { db, uid } = requireStore();
+    const snapshot = await getDocs(
+      query(
+        collection(db, "users", uid, "projects"),
+        orderBy("updatedAt", "desc")
+      )
+    );
+    return snapshot.docs.map(item => item.data() as ClientProject);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveUserProject(project: ClientProject): Promise<void> {
+  const { db, uid } = requireStore();
+  const ref = doc(db, "users", uid, "projects", project.id);
+  await setDoc(
+    ref,
+    { ...project, updatedAt: new Date().toISOString() },
+    { merge: true }
+  );
+}
+
+export async function deleteUserProject(projectId: string): Promise<void> {
+  try {
+    const { db, uid } = requireStore();
+    const ref = doc(db, "users", uid, "projects", projectId);
+    const { deleteDoc } = await import("firebase/firestore");
+    await deleteDoc(ref);
+  } catch {
+    // Offline or session error fallback
+  }
+}
+
 export async function deleteUserConversation(conversationId: string) {
   try {
     const { db, uid } = requireStore();

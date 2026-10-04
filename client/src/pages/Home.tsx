@@ -209,6 +209,18 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     return localStorage.getItem("hanna_voice_choice") || "Hanna (Natural) - Female";
   });
 
+  const [userBubbleColor, setUserBubbleColor] = useState<string>(() => {
+    return localStorage.getItem("hanna_user_bubble_color") || "cream";
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setUserBubbleColor(localStorage.getItem("hanna_user_bubble_color") || "cream");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   // Real-time action status and progress when AI is working
   const [thinkingProgress, setThinkingProgress] = useState(25);
   const [thinkingAction, setThinkingAction] = useState("Analyzing query & workspace context...");
@@ -833,7 +845,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           ) : (
             <div className="message-stack">
               {activeChat.messages.map(message => (
-                <article className={`message-row ${message.role}`} key={message.id}>
+                <article className={`message-row ${message.role} ${message.role === "user" ? `user-accent-${userBubbleColor}` : ""}`} key={message.id}>
                   {message.role === "user" && (
                     <div className="message-avatar">
                       {user?.photoURL ? (
@@ -886,6 +898,31 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         )}
                       </div>
                     ) : null}
+
+                    {message.role === "user" && (
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(message.content);
+                            showToast("Prompt copied");
+                          }}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--text-tertiary)",
+                            cursor: "pointer",
+                            padding: "2px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                          }}
+                          title="Copy prompt"
+                          aria-label="Copy prompt"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      </div>
+                    )}
 
                     {/* ChatGPT-style Source & Link Cards when web sources or links are present */}
                     {message.role === "assistant" && (message.content.includes("http://") || message.content.includes("https://") || message.content.includes("[Source")) && (
@@ -1238,97 +1275,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
         <div className="composer-disclaimer">Hanna can make mistakes. Check important information.</div>
 
-        {/* Floating Audio Player Bar for Read Aloud */}
-        {speakingMessageId && (
-          <div
-            style={{
-              position: "fixed",
-              bottom: "80px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 1000,
-              background: "var(--surface-raised, #2a2b2d)",
-              border: "1px solid var(--gemini-accent, #1a73e8)",
-              borderRadius: "28px",
-              padding: "8px 18px",
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)",
-              backdropFilter: "blur(12px)",
-              animation: "fadeIn 0.2s ease-in-out",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)" }}>
-              <Volume2 size={16} style={{ color: "var(--gemini-accent, #1a73e8)", animation: isAudioPaused ? "none" : "pulse 1.5s infinite" }} />
-              <span style={{ fontWeight: "600" }}>Read Aloud</span>
-              <span style={{ color: "var(--text-tertiary)", fontSize: "11px" }}>
-                ({selectedVoice})
-              </span>
-            </div>
-
-            <div style={{ width: "1px", height: "16px", background: "var(--border)" }} />
-
-            {/* Play/Pause toggle button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.speechSynthesis) {
-                  if (window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                    setIsAudioPaused(false);
-                    showToast("Audio resumed");
-                  } else if (window.speechSynthesis.speaking) {
-                    window.speechSynthesis.pause();
-                    setIsAudioPaused(true);
-                    showToast("Audio paused");
-                  }
-                }
-              }}
-              style={{
-                background: "var(--gemini-accent, #1a73e8)",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "16px",
-                padding: "5px 12px",
-                fontSize: "12px",
-                fontWeight: "600",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              {isAudioPaused ? "Resume" : "Pause"}
-            </button>
-
-            {/* Close (X) exit button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.speechSynthesis) {
-                  window.speechSynthesis.cancel();
-                }
-                setSpeakingMessageId(null);
-                setIsAudioPaused(false);
-                showToast("Read Aloud closed");
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--text-tertiary)",
-                cursor: "pointer",
-                padding: "2px",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-              title="Close Read Aloud"
-              aria-label="Close Read Aloud"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
       </div>
     </>
   );
