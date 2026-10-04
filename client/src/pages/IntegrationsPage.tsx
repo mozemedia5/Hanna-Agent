@@ -113,6 +113,7 @@ type IntegrationsPageProps = {
 };
 
 export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
+  const [activeTab, setActiveTab] = useState<"all" | "connected">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [connected, setConnected] = useState<string[]>([]);
   const [activeModal, setActiveModal] = useState<IntegrationDefinition | null>(
@@ -296,6 +297,47 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         </div>
       </div>
 
+      {/* Navigation View Tabs: All Plugins vs Connected Plugins */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab("all")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: "600",
+            border: "none",
+            cursor: "pointer",
+            background: activeTab === "all" ? "var(--gemini-accent)" : "transparent",
+            color: activeTab === "all" ? "var(--ink-contrast, #ffffff)" : "var(--text-secondary)",
+            transition: "all 0.15s ease",
+          }}
+        >
+          All Plugins ({integrations.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("connected")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: "600",
+            border: "none",
+            cursor: "pointer",
+            background: activeTab === "connected" ? "var(--gemini-accent)" : "transparent",
+            color: activeTab === "connected" ? "var(--ink-contrast, #ffffff)" : "var(--text-secondary)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <Check size={14} /> Connected Plugins ({connected.length})
+        </button>
+      </div>
+
       <div className="page-search">
         <Search size={14} />
         <input
@@ -310,7 +352,52 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         )}
       </div>
 
-      {searchQuery ? (
+      {activeTab === "connected" ? (
+        <div className="integration-list">
+          {integrations
+            .filter(i => connected.includes(i.id))
+            .filter(i =>
+              !searchQuery.trim() ||
+              i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              i.description.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map(integration => (
+              <div className="integration-card" key={integration.id} onClick={() => openModal(integration)} style={{ cursor: "pointer" }}>
+                <div className="connector-icon-renderer">
+                  {renderBrandIcon(integration.name, 20)}
+                </div>
+                <div className="integration-card-copy">
+                  <strong>{integration.name}</strong>
+                  <span>{integration.description}</span>
+                </div>
+                <button
+                  className="integration-card-action is-connected"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDisconnect(integration.id, integration.name);
+                  }}
+                >
+                  <Check size={13} /> Connected
+                </button>
+              </div>
+            ))}
+          {connected.length === 0 && (
+            <div className="page-empty" style={{ padding: "40px 20px", textAlign: "center" }}>
+              <p style={{ margin: "0 0 12px", fontSize: "14px", color: "var(--text-secondary)" }}>
+                No connected plugins yet.
+              </p>
+              <Button onClick={() => setActiveTab("all")} size="sm" style={{ background: "var(--gemini-accent)" }}>
+                Browse All Plugins
+              </Button>
+            </div>
+          )}
+          {connected.length > 0 && searchQuery && integrations.filter(i => connected.includes(i.id) && (i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description.toLowerCase().includes(searchQuery.toLowerCase()))).length === 0 && (
+            <div className="page-empty">
+              No connected plugins matching "{searchQuery}"
+            </div>
+          )}
+        </div>
+      ) : searchQuery ? (
         <div className="integration-list">
           {filteredIntegrations.map(integration => {
             const isConnected = connected.includes(integration.id);

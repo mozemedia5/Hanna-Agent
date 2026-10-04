@@ -4219,6 +4219,16 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
   sendSSE("status", { state: "streaming_route_a", message: "Connecting to standard streaming endpoint..." });
   try {
     const provider = await getProviderCredentialForRequest(userId, prompt, model);
+    if (provider.error === "CUSTOM_PROVIDER_NOT_CONFIGURED" || !provider.apiKey && provider.provider !== "gemini") {
+      sendSSE("error", {
+        success: false,
+        provider: provider.provider,
+        model: provider.model,
+        errorCode: "CUSTOM_PROVIDER_NOT_CONFIGURED",
+        message: `${provider.provider === "llama" ? "Groq" : provider.provider} is selected, but no API key is configured. Add GROQ_API_KEY in the server environment or connect your provider in Settings.`
+      });
+      return;
+    }
     if (!provider.apiKey) {
       sendSSE("error", {
         success: false,
@@ -4241,6 +4251,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
       });
       return;
     }
+    let hasEmittedTokens = false;
     try {
       const result = await streamUserProvider(
         {
@@ -4249,6 +4260,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
           context
         },
         (chunk) => {
+          hasEmittedTokens = true;
           sendSSE("token", { chunk });
         }
       );
@@ -4266,7 +4278,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
     } catch (primaryErr) {
       const classified = classifyProviderError(primaryErr);
       const isCustomExplicitSelection = model && model !== "Hanna Default" && model !== "Hanna Lite" && model !== "Hanna Pro" && model !== "automatic" && model !== "default";
-      if (isFallbackEligible(classified.errorClass) && !isCustomExplicitSelection && process.env.GROQ_API_KEY) {
+      if (!hasEmittedTokens && isFallbackEligible(classified.errorClass) && !isCustomExplicitSelection && process.env.GROQ_API_KEY) {
         markProviderCooldown("gemini", 6e4);
         sendSSE("status", { state: "fallback", message: "Gemini capacity exceeded. Switching automatically to Groq..." });
         const groqFallbackChain = [

@@ -112,8 +112,6 @@ const CANONICAL_ASSET_MATCHES = [
   { match: (name: string) => name.includes("shopify"), src: "shopify.svg" },
   { match: (name: string) => name.includes("slack"), src: "slack.svg" },
   { match: (name: string) => name.includes("github"), src: "github.svg" },
-  { match: (name: string) => name.includes("google workspace"), src: "google-workspace.svg" },
-  { match: (name: string) => name.includes("gmail"), src: "gmail.svg" },
   { match: (name: string) => name.includes("heygen"), src: "heygen.png" },
   { match: (name: string) => name.includes("instagram"), src: "instagram.svg" },
   { match: (name: string) => name.includes("tiktok"), src: "tiktok.svg" },
@@ -169,7 +167,11 @@ export function SlackIcon({ size = 20, className = "" }: IconProps) {
 }
 
 export function GmailIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siGmail} size={size} className={className} />;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+    </svg>
+  );
 }
 
 export function GoogleCalendarIcon({ size = 20, className = "" }: IconProps) {
