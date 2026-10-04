@@ -104,7 +104,7 @@ describe("providers and integrations routing & management", () => {
     const res = await getProviderCredentialForRequest(103, "Summarize inventory", "Groq");
     expect(res?.provider).toBe("llama");
     expect(res?.apiKey).toBe("gsk_user_groq_key_103");
-    expect(res?.model).toBe("llama-3.3-70b-versatile");
+    expect(res?.model).toBe("openai/gpt-oss-120b");
   });
 
   it("deterministically switches back to Gemini 3.5 Flash when user selects Hanna Default", async () => {

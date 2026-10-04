@@ -15,6 +15,13 @@ function appBaseUrl() {
   return (process.env.APP_BASE_URL || "https://hanna-agent.vercel.app").replace(/\/$/, "");
 }
 
+export function getCanonicalGoogleRedirectUri(): string {
+  if (process.env.GOOGLE_REDIRECT_URI && process.env.GOOGLE_REDIRECT_URI.trim()) {
+    return process.env.GOOGLE_REDIRECT_URI.trim();
+  }
+  return `${appBaseUrl()}/api/oauth/google/callback`;
+}
+
 
 export function generateOAuthState(uid: string): string {
   const nonce = crypto.randomBytes(16).toString("hex");
@@ -69,7 +76,7 @@ export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: Expre
     return;
   }
 
-  const redirectUri = `${appBaseUrl()}/api/oauth/google/callback`;
+  const redirectUri = getCanonicalGoogleRedirectUri();
   const state = generateOAuthState(uid);
 
   const scope = [
@@ -101,18 +108,24 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
   const error = req.query.error as string;
 
   if (error) {
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(error)}`);
+    const diagCode = error === "access_denied" ? "access_denied" : "oauth_error";
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(diagCode)}`);
     return;
   }
 
-  if (!code || !state) {
-    res.status(400).json({ error: "Missing authorization code or state parameter." });
+  if (!code) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("missing_code")}`);
+    return;
+  }
+
+  if (!state) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("missing_state")}`);
     return;
   }
 
   const { uid, valid } = verifyOAuthState(state);
   if (!valid || !uid) {
-    res.status(400).json({ error: "Invalid or expired OAuth state parameter." });
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
     return;
   }
 
@@ -120,12 +133,12 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    res.status(500).json({ error: "Google OAuth credentials missing on server." });
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);
     return;
   }
 
   try {
-    const redirectUri = `${appBaseUrl()}/api/oauth/google/callback`;
+    const redirectUri = getCanonicalGoogleRedirectUri();
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -140,7 +153,12 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
-      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(`Token exchange failed: ${errText.slice(0, 100)}`)}`);
+      const diagCode = errText.includes("redirect_uri_mismatch")
+        ? "redirect_uri_mismatch"
+        : errText.includes("invalid_grant")
+        ? "invalid_grant"
+        : "token_exchange_failure";
+      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(diagCode)}`);
       return;
     }
 
