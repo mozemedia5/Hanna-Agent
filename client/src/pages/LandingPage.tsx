@@ -23,6 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import InstallAppBanner from "@/components/InstallAppBanner";
 
 function HannaLogo({ withWordmark = true }: { withWordmark?: boolean }) {
   return (
@@ -851,6 +852,9 @@ export default function LandingPage() {
           </span>
         </div>
       </footer>
+
+      {/* Floating Install App Banner */}
+      <InstallAppBanner />
     </main>
   );
 }

@@ -77,6 +77,7 @@ import ScheduleTaskPage from "./ScheduleTaskPage";
 import { useChatWorkflow } from "@/hooks/useChatWorkflow";
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
+import InstallAppBanner from "@/components/InstallAppBanner";
 
 type Page =
   | "chat"
@@ -1758,6 +1759,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       )}
 
       {toast && <div className="hanna-toast"><Check size={15} /> {toast}</div>}
+
+      {/* Floating Install App Banner */}
+      <InstallAppBanner />
     </div>
   );
 }
