@@ -948,6 +948,31 @@ kbd {
   border: 1px solid var(--border);
   margin: 8px 0;
 }
+
+.message-row.user.user-accent-cream {
+  background: #2c2a24 !important;
+  border-color: #4a4538 !important;
+}
+
+.message-row.user.user-accent-green {
+  background: #1c2e22 !important;
+  border-color: #2d4e38 !important;
+}
+
+.message-row.user.user-accent-red {
+  background: #321f20 !important;
+  border-color: #562f32 !important;
+}
+
+.message-row.user.user-accent-blue {
+  background: #1c273a !important;
+  border-color: #2e3f5c !important;
+}
+
+.message-row.user.user-accent-default {
+  background: var(--surface-raised) !important;
+  border-color: var(--border) !important;
+}
 .message-row.user + .message-row.user {
   margin-top: 4px;
 }

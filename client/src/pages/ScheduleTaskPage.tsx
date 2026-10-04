@@ -45,6 +45,8 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [executingTaskId, setExecutingTaskId] = useState<string | null>(null);
+  const [executionModalResult, setExecutionModalResult] = useState<{ title: string; result: string } | null>(null);
   const [toast, setToast] = useState("");
 
   const showToast = (m: string) => {
@@ -666,25 +668,75 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                       ))}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setScheduledTasks(prev => prev.filter(st => st.id !== task.id));
-                        showToast("Task cancelled");
-                      }}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#ea4335",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <Trash2 size={13} /> Cancel
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button
+                        type="button"
+                        disabled={executingTaskId === task.id}
+                        onClick={async () => {
+                          setExecutingTaskId(task.id);
+                          try {
+                            const token = await getFirebaseIdToken();
+                            const response = await fetch("/api/trpc/hanna.executeScheduledTaskNow?batch=1", {
+                              method: "POST",
+                              headers: {
+                                "content-type": "application/json",
+                                ...(token ? { authorization: `Bearer ${token}` } : {}),
+                              },
+                              body: JSON.stringify({
+                                "0": { taskId: task.id },
+                              }),
+                            });
+                            if (!response.ok) throw new Error("Execution failed");
+                            const payload = await response.json();
+                            const resText = payload?.[0]?.result?.data?.json?.result || "Task executed successfully by AI.";
+
+                            setScheduledTasks(prev =>
+                              prev.map(st => (st.id === task.id ? { ...st, status: "completed" } : st))
+                            );
+                            setExecutionModalResult({ title: task.title, result: resText });
+                          } catch {
+                            showToast("Task execution error.");
+                          } finally {
+                            setExecutingTaskId(null);
+                          }
+                        }}
+                        style={{
+                          background: "var(--gemini-accent)",
+                          color: "var(--ink-contrast)",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "4px 8px",
+                          fontSize: "11px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Zap size={12} /> {executingTaskId === task.id ? "Running AI..." : "Run AI Now"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScheduledTasks(prev => prev.filter(st => st.id !== task.id));
+                          showToast("Task cancelled");
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#ea4335",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Trash2 size={13} /> Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -692,6 +744,45 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
           )}
         </div>
       </div>
+
+      {executionModalResult && (
+        <div className="modal-overlay" onClick={() => setExecutionModalResult(null)}>
+          <div className="modal-content" style={{ maxWidth: "560px", padding: "24px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Zap size={18} style={{ color: "var(--gemini-accent)" }} /> AI Task Execution Result
+              </h3>
+              <button onClick={() => setExecutionModalResult(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)", marginBottom: "8px" }}>
+              {executionModalResult.title}
+            </strong>
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "10px",
+                padding: "14px",
+                fontSize: "13px",
+                color: "var(--text-primary)",
+                maxHeight: "300px",
+                overflowY: "auto",
+                whiteSpace: "pre-wrap",
+                lineHeight: "1.5",
+              }}
+            >
+              {executionModalResult.result}
+            </div>
+            <div style={{ marginTop: "16px", display: "flex", justifyContent: "flex-end" }}>
+              <Button onClick={() => setExecutionModalResult(null)} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>
+                Done
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="hanna-toast">

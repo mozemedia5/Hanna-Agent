@@ -1,4 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  listUserProjects,
+  saveUserProject,
+  deleteUserProject,
+  type ClientProject as Project,
+  type ClientProjectChat as ProjectChat,
+  type ClientProjectFile as ProjectFile,
+} from "@/lib/firestore";
 import {
   FolderKanban,
   Plus,
@@ -24,69 +32,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type ProjectFile = {
-  id: string;
-  name: string;
-  type: "pdf" | "image" | "audio" | "video" | "other";
-  size: string;
-  uploadedAt: string;
-};
-
-export type ProjectChat = {
-  id: string;
-  title: string;
-  lastMessage: string;
-  updatedAt: string;
-  isPinned?: boolean;
-  isArchived?: boolean;
-};
-
-export type Project = {
-  id: string;
-  name: string;
-  description: string;
-  instructions: string;
-  createdAt: string;
-  category: string;
-  chats: ProjectChat[];
-  files: ProjectFile[];
-};
-
-const defaultProjects: Project[] = [
-  {
-    id: "proj-1",
-    name: "Default Workspace",
-    description: "Primary workspace for general store queries, market analysis, and agent execution.",
-    instructions: "Always provide step-by-step clear answers with code examples or direct action steps when requested.",
-    createdAt: "2025-01-15",
-    category: "General",
-    chats: [
-      { id: "c-1", title: "Market Research Overview", lastMessage: "Here is the breakdown of top market trends...", updatedAt: "Today", isPinned: true },
-      { id: "c-2", title: "Shopify Theme Debugging", lastMessage: "Updated Liquid template code block attached.", updatedAt: "Yesterday" },
-    ],
-    files: [
-      { id: "f-1", name: "Q1_Market_Brief.pdf", type: "pdf", size: "2.4 MB", uploadedAt: "Jan 18" },
-      { id: "f-2", name: "Store_Banner.png", type: "image", size: "1.1 MB", uploadedAt: "Jan 20" },
-    ],
-  },
-  {
-    id: "proj-2",
-    name: "Shopify Store Operations",
-    description: "Product catalog sync, inventory threshold checks, and automated order updates.",
-    instructions: "Focus on e-commerce catalog optimization, high converting product descriptions, and stock management.",
-    createdAt: "2025-02-01",
-    category: "E-Commerce",
-    chats: [
-      { id: "c-3", title: "Inventory Threshold Sync", lastMessage: "Ran daily inventory check; 3 items low in stock.", updatedAt: "Feb 02" },
-    ],
-    files: [
-      { id: "f-3", name: "Product_Catalog.csv", type: "other", size: "540 KB", uploadedAt: "Feb 01" },
-    ],
-  },
-];
+export type { ProjectFile, ProjectChat, Project };
 
 export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
-  const [projects, setProjects] = useState<Project[]>(defaultProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void listUserProjects()
+      .then(res => {
+        setProjects(res);
+      })
+      .finally(() => setLoading(false));
+  }, []);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"chats" | "files" | "instructions">("chats");
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,6 +80,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
       files: [],
     };
     setProjects(prev => [newProj, ...prev]);
+    void saveUserProject(newProj).catch(() => undefined);
     setNewProjectName("");
     setNewProjectDesc("");
     setNewProjectInstructions("");
@@ -131,6 +90,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
 
   function handleDeleteProject(id: string, name: string) {
     setProjects(prev => prev.filter(p => p.id !== id));
+    void deleteUserProject(id).catch(() => undefined);
     if (activeProjectId === id) setActiveProjectId(null);
     showToast(`Deleted project "${name}"`);
   }
@@ -143,7 +103,12 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
       lastMessage: "Conversation initialized in project workspace.",
       updatedAt: "Just now",
     };
-    setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, chats: [newChat, ...p.chats] } : p));
+    const target = projects.find(p => p.id === activeProjectId);
+    if (target) {
+      const updatedProj = { ...target, chats: [newChat, ...target.chats] };
+      setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
+      void saveUserProject(updatedProj).catch(() => undefined);
+    }
     setNewChatTitle("");
     setShowAddChatModal(false);
     showToast(`Added chat "${newChat.title}" to project`);
@@ -166,46 +131,57 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
         uploadedAt: "Just now",
       };
     });
-    setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, files: [...uploaded, ...p.files] } : p));
+    const target = projects.find(p => p.id === activeProjectId);
+    if (target) {
+      const updatedProj = { ...target, files: [...uploaded, ...target.files] };
+      setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
+      void saveUserProject(updatedProj).catch(() => undefined);
+    }
     showToast(`Uploaded ${uploaded.length} file(s) to project`);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function togglePinChat(chatId: string) {
     if (!activeProjectId) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id !== activeProjectId) return p;
-      return {
-        ...p,
-        chats: p.chats.map(c => c.id === chatId ? { ...c, isPinned: !c.isPinned } : c),
+    const target = projects.find(p => p.id === activeProjectId);
+    if (target) {
+      const updatedProj = {
+        ...target,
+        chats: target.chats.map(c => c.id === chatId ? { ...c, isPinned: !c.isPinned } : c),
       };
-    }));
+      setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
+      void saveUserProject(updatedProj).catch(() => undefined);
+    }
     setOpenChatMenuId(null);
     showToast("Chat pin status updated");
   }
 
   function archiveProjectChat(chatId: string) {
     if (!activeProjectId) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id !== activeProjectId) return p;
-      return {
-        ...p,
-        chats: p.chats.map(c => c.id === chatId ? { ...c, isArchived: !c.isArchived } : c),
+    const target = projects.find(p => p.id === activeProjectId);
+    if (target) {
+      const updatedProj = {
+        ...target,
+        chats: target.chats.map(c => c.id === chatId ? { ...c, isArchived: !c.isArchived } : c),
       };
-    }));
+      setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
+      void saveUserProject(updatedProj).catch(() => undefined);
+    }
     setOpenChatMenuId(null);
     showToast("Chat archived");
   }
 
   function deleteProjectChat(chatId: string) {
     if (!activeProjectId) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id !== activeProjectId) return p;
-      return {
-        ...p,
-        chats: p.chats.filter(c => c.id !== chatId),
+    const target = projects.find(p => p.id === activeProjectId);
+    if (target) {
+      const updatedProj = {
+        ...target,
+        chats: target.chats.filter(c => c.id !== chatId),
       };
-    }));
+      setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
+      void saveUserProject(updatedProj).catch(() => undefined);
+    }
     setOpenChatMenuId(null);
     showToast("Chat removed from project");
   }
@@ -459,7 +435,15 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                 style={{ width: "100%", background: "var(--surface-raised, #2a2b2d)", border: "1px solid var(--border)", borderRadius: "10px", padding: "12px", color: "var(--text-primary)", fontSize: "13px" }}
               />
               <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
-                <Button onClick={() => showToast("Project instructions saved")} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Save Instructions</Button>
+                <Button
+                  onClick={() => {
+                    void saveUserProject(currentProject).catch(() => undefined);
+                    showToast("Project instructions saved");
+                  }}
+                  style={{ background: "var(--gemini-accent)", color: "#ffffff" }}
+                >
+                  Save Instructions
+                </Button>
               </div>
             </div>
           )}
