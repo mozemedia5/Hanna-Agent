@@ -949,9 +949,165 @@ kbd {
   margin: 8px 0;
 }
 
+/* User Prompt Accent Colors - User-specified Hex Accents */
+.message-row.user.user-accent-ffc1c1,
+.message-row.user.user-accent-fffc1c1,
+.message-row.user.user-accent-coral {
+  background: #FFC1C1 !important;
+  border-color: #e59c9c !important;
+}
+
+.message-row.user.user-accent-e2cef3,
+.message-row.user.user-accent-lavender {
+  background: #E2CEF3 !important;
+  border-color: #c8ade1 !important;
+}
+
+.message-row.user.user-accent-f0fff0,
+.message-row.user.user-accent-honeydew {
+  background: #F0FFF0 !important;
+  border-color: #b9e2b9 !important;
+}
+
+.message-row.user.user-accent-f4a0a0,
+.message-row.user.user-accent-salmon {
+  background: #F4A0A0 !important;
+  border-color: #d67c7c !important;
+}
+
+.message-row.user.user-accent-ccaae6,
+.message-row.user.user-accent-lilac {
+  background: #CCAAE6 !important;
+  border-color: #a981c9 !important;
+}
+
+.message-row.user.user-accent-ceff00,
+.message-row.user.user-accent-lime {
+  background: #CEFF00 !important;
+  border-color: #afd800 !important;
+}
+
+.message-row.user.user-accent-fef8e0,
 .message-row.user.user-accent-cream {
-  background: #2c2a24 !important;
-  border-color: #4a4538 !important;
+  background: #FEF8E0 !important;
+  border-color: #e2d6a5 !important;
+}
+
+.message-row.user.user-accent-a0438e,
+.message-row.user.user-accent-plum,
+.message-row.user.user-accent-berry {
+  background: #A0438E !important;
+  border-color: #be5ea9 !important;
+}
+
+/* Light background accents - enforce dark charcoal text for high contrast */
+.message-row.user.user-accent-ffc1c1,
+.message-row.user.user-accent-fffc1c1,
+.message-row.user.user-accent-coral,
+.message-row.user.user-accent-e2cef3,
+.message-row.user.user-accent-lavender,
+.message-row.user.user-accent-f0fff0,
+.message-row.user.user-accent-honeydew,
+.message-row.user.user-accent-f4a0a0,
+.message-row.user.user-accent-salmon,
+.message-row.user.user-accent-ccaae6,
+.message-row.user.user-accent-lilac,
+.message-row.user.user-accent-ceff00,
+.message-row.user.user-accent-lime,
+.message-row.user.user-accent-fef8e0,
+.message-row.user.user-accent-cream {
+  color: #0f0f0f !important;
+}
+
+.message-row.user.user-accent-ffc1c1 .message-meta strong,
+.message-row.user.user-accent-fffc1c1 .message-meta strong,
+.message-row.user.user-accent-coral .message-meta strong,
+.message-row.user.user-accent-e2cef3 .message-meta strong,
+.message-row.user.user-accent-lavender .message-meta strong,
+.message-row.user.user-accent-f0fff0 .message-meta strong,
+.message-row.user.user-accent-honeydew .message-meta strong,
+.message-row.user.user-accent-f4a0a0 .message-meta strong,
+.message-row.user.user-accent-salmon .message-meta strong,
+.message-row.user.user-accent-ccaae6 .message-meta strong,
+.message-row.user.user-accent-lilac .message-meta strong,
+.message-row.user.user-accent-ceff00 .message-meta strong,
+.message-row.user.user-accent-lime .message-meta strong,
+.message-row.user.user-accent-fef8e0 .message-meta strong,
+.message-row.user.user-accent-cream .message-meta strong,
+.message-row.user.user-accent-ffc1c1 .message-content,
+.message-row.user.user-accent-fffc1c1 .message-content,
+.message-row.user.user-accent-coral .message-content,
+.message-row.user.user-accent-e2cef3 .message-content,
+.message-row.user.user-accent-lavender .message-content,
+.message-row.user.user-accent-f0fff0 .message-content,
+.message-row.user.user-accent-honeydew .message-content,
+.message-row.user.user-accent-f4a0a0 .message-content,
+.message-row.user.user-accent-salmon .message-content,
+.message-row.user.user-accent-ccaae6 .message-content,
+.message-row.user.user-accent-lilac .message-content,
+.message-row.user.user-accent-ceff00 .message-content,
+.message-row.user.user-accent-lime .message-content,
+.message-row.user.user-accent-fef8e0 .message-content,
+.message-row.user.user-accent-cream .message-content,
+.message-row.user.user-accent-ffc1c1 .message-content p,
+.message-row.user.user-accent-fffc1c1 .message-content p,
+.message-row.user.user-accent-coral .message-content p,
+.message-row.user.user-accent-e2cef3 .message-content p,
+.message-row.user.user-accent-lavender .message-content p,
+.message-row.user.user-accent-f0fff0 .message-content p,
+.message-row.user.user-accent-honeydew .message-content p,
+.message-row.user.user-accent-f4a0a0 .message-content p,
+.message-row.user.user-accent-salmon .message-content p,
+.message-row.user.user-accent-ccaae6 .message-content p,
+.message-row.user.user-accent-lilac .message-content p,
+.message-row.user.user-accent-ceff00 .message-content p,
+.message-row.user.user-accent-lime .message-content p,
+.message-row.user.user-accent-fef8e0 .message-content p,
+.message-row.user.user-accent-cream .message-content p {
+  color: #0f0f0f !important;
+}
+
+.message-row.user.user-accent-ffc1c1 .message-meta span,
+.message-row.user.user-accent-fffc1c1 .message-meta span,
+.message-row.user.user-accent-coral .message-meta span,
+.message-row.user.user-accent-e2cef3 .message-meta span,
+.message-row.user.user-accent-lavender .message-meta span,
+.message-row.user.user-accent-f0fff0 .message-meta span,
+.message-row.user.user-accent-honeydew .message-meta span,
+.message-row.user.user-accent-f4a0a0 .message-meta span,
+.message-row.user.user-accent-salmon .message-meta span,
+.message-row.user.user-accent-ccaae6 .message-meta span,
+.message-row.user.user-accent-lilac .message-meta span,
+.message-row.user.user-accent-ceff00 .message-meta span,
+.message-row.user.user-accent-lime .message-meta span,
+.message-row.user.user-accent-fef8e0 .message-meta span,
+.message-row.user.user-accent-cream .message-meta span {
+  color: #444444 !important;
+}
+
+/* Dark background accent - Plum/Berry #A0438E */
+.message-row.user.user-accent-a0438e,
+.message-row.user.user-accent-plum,
+.message-row.user.user-accent-berry {
+  color: #ffffff !important;
+}
+
+.message-row.user.user-accent-a0438e .message-meta strong,
+.message-row.user.user-accent-plum .message-meta strong,
+.message-row.user.user-accent-berry .message-meta strong,
+.message-row.user.user-accent-a0438e .message-content,
+.message-row.user.user-accent-plum .message-content,
+.message-row.user.user-accent-berry .message-content,
+.message-row.user.user-accent-a0438e .message-content p,
+.message-row.user.user-accent-plum .message-content p,
+.message-row.user.user-accent-berry .message-content p {
+  color: #ffffff !important;
+}
+
+.message-row.user.user-accent-a0438e .message-meta span,
+.message-row.user.user-accent-plum .message-meta span,
+.message-row.user.user-accent-berry .message-meta span {
+  color: #e5d4e2 !important;
 }
 
 .message-row.user.user-accent-green {
