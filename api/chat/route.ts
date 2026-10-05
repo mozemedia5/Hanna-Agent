@@ -200,7 +200,10 @@ export async function executeRouteAStream(
 
         const groqFallbackChain = [
           "openai/gpt-oss-120b",
-          "openai/gpt-oss-20b",
+          "llama-3.3-70b-versatile",
+          "qwen/qwen3.8-27b",
+          "deepseek-v3.1",
+          "llama-3.1-8b-instant",
         ];
 
         for (const groqModel of groqFallbackChain) {
@@ -366,7 +369,13 @@ export async function executeRouteBLoop(
             markProviderCooldown("gemini", 60_000);
             sendSSE("trace", { stage: "decide", detail: "Gemini capacity exceeded. Re-routing turn step to Groq..." });
 
-            const groqFallbackChain = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
+            const groqFallbackChain = [
+              "openai/gpt-oss-120b",
+              "llama-3.3-70b-versatile",
+              "qwen/qwen3.8-27b",
+              "deepseek-v3.1",
+              "llama-3.1-8b-instant",
+            ];
             let fallbackSuccess = false;
 
             for (const groqModel of groqFallbackChain) {
