@@ -2376,6 +2376,41 @@ kbd {
     transform: translateY(-3px);
   }
 }
+
+/* Typing Cursor / Streaming Response Animation */
+.typing-cursor {
+  display: inline-block;
+  width: 0.52em;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  background-color: var(--text-primary);
+  border-radius: 1px;
+  animation: typing-cursor-blink 0.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  will-change: opacity, transform;
+}
+
+@keyframes typing-cursor-blink {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.15;
+    transform: scaleY(0.85);
+  }
+}
+
+.streaming-placeholder {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.streaming-fallback-cursor {
+  display: inline-block;
+  margin-top: 4px;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

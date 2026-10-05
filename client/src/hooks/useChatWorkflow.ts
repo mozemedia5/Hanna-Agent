@@ -110,6 +110,7 @@ export function useChatWorkflow() {
         model?: string;
         agenticMode?: boolean;
         userId?: number;
+        onToken?: (chunk: string, accumulated: string) => void;
       } = {}
     ): Promise<string> => {
       if (abortControllerRef.current) {
@@ -261,6 +262,9 @@ export function useChatWorkflow() {
                   ...prev,
                   streamingText: accumulatedText,
                 }));
+                if (options.onToken) {
+                  options.onToken(data.chunk || "", accumulatedText);
+                }
                 break;
 
               case "final":
@@ -273,6 +277,9 @@ export function useChatWorkflow() {
                   plan: data.plan || prev.plan,
                   trace: data.trace || prev.trace,
                 }));
+                if (options.onToken) {
+                  options.onToken("", accumulatedText);
+                }
                 break;
 
               case "error":
