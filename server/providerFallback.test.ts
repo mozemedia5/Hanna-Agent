@@ -24,14 +24,26 @@ describe("Provider Architecture & Fallback Unit Tests", () => {
     expect(isFallbackEligible(classified.errorClass)).toBe(false);
   });
 
-  it("resolves Groq models correctly to llama provider with gpt-oss models", () => {
+  it("resolves Groq models correctly to llama provider with new high-performance model catalog", () => {
     const resolved120b = resolveProviderAndModel("Hanna Groq GPT-OSS 120B");
     expect(resolved120b.provider).toBe("llama");
     expect(resolved120b.model).toBe("openai/gpt-oss-120b");
 
-    const resolved20b = resolveProviderAndModel("Hanna Groq GPT-OSS 20B");
-    expect(resolved20b.provider).toBe("llama");
-    expect(resolved20b.model).toBe("openai/gpt-oss-20b");
+    const resolvedLlama70b = resolveProviderAndModel("Hanna Groq Llama 3.3 70B");
+    expect(resolvedLlama70b.provider).toBe("llama");
+    expect(resolvedLlama70b.model).toBe("llama-3.3-70b-versatile");
+
+    const resolvedQwen = resolveProviderAndModel("Hanna Groq Qwen 3.8 27B");
+    expect(resolvedQwen.provider).toBe("llama");
+    expect(resolvedQwen.model).toBe("qwen/qwen3.8-27b");
+
+    const resolvedDeepSeek = resolveProviderAndModel("Hanna Groq DeepSeek V3.1");
+    expect(resolvedDeepSeek.provider).toBe("llama");
+    expect(resolvedDeepSeek.model).toBe("deepseek-v3.1");
+
+    const resolvedLlama8b = resolveProviderAndModel("Hanna Groq Llama 3.1 8B");
+    expect(resolvedLlama8b.provider).toBe("llama");
+    expect(resolvedLlama8b.model).toBe("llama-3.1-8b-instant");
   });
 
   it("constructs canonical Google OAuth redirect URI using APP_BASE_URL", () => {
