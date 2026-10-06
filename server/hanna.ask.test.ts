@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { invokeUserProvider } = vi.hoisted(() => ({
+const { invokeUserProvider, invokeGeminiAgentTurn, streamUserProvider } = vi.hoisted(() => ({
   invokeUserProvider: vi.fn(),
+  invokeGeminiAgentTurn: vi.fn().mockResolvedValue({ text: "Agent response", functionCall: undefined }),
+  streamUserProvider: vi.fn(),
 }));
-vi.mock("./providerAdapters", () => ({ invokeUserProvider }));
+vi.mock("./providerAdapters", () => ({
+  invokeUserProvider,
+  invokeGeminiAgentTurn,
+  streamUserProvider,
+}));
 
 import { appRouter, executeHannaRequest } from "./routers";
 import { upsertProviderCredential } from "./providerDb";
@@ -29,6 +35,10 @@ describe("hanna.ask", () => {
     invokeUserProvider.mockResolvedValue(
       "## Done\n\nI found three useful themes."
     );
+    invokeGeminiAgentTurn.mockResolvedValue({
+      text: "## Done\n\nI found three useful themes.",
+      functionCall: undefined,
+    });
     await upsertProviderCredential(
       user.id,
       "openai",

@@ -523,15 +523,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         context: combinedContext,
         model: model === "Custom" ? "custom" : model,
         agenticMode,
+        studyMode,
       });
 
-      if (!reply) throw new Error("Hanna returned an empty response.");
+      const finalReplyContent = reply || chatWorkflow.streamingText || chatWorkflow.error;
+      if (!finalReplyContent || !finalReplyContent.trim()) {
+        throw new Error(chatWorkflow.error || "Hanna returned an empty response.");
+      }
 
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: "assistant",
-        content: reply,
-        tokenCount: estimateTokens(reply),
+        content: finalReplyContent,
+        tokenCount: estimateTokens(finalReplyContent),
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 

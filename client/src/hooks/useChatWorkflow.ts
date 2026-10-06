@@ -109,6 +109,7 @@ export function useChatWorkflow() {
         context?: string;
         model?: string;
         agenticMode?: boolean;
+        studyMode?: boolean;
         userId?: number;
       } = {}
     ): Promise<string> => {
@@ -144,12 +145,14 @@ export function useChatWorkflow() {
           headers["authorization"] = `Bearer ${idToken}`;
         }
 
+        const studyPromptCtx = options.studyMode ? `[STUDY MODE: ACTIVE]\n${prompt}` : prompt;
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers,
           signal: controller.signal,
           body: JSON.stringify({
-            prompt,
+            prompt: studyPromptCtx,
             context: options.context,
             model: options.model,
             agenticMode: options.agenticMode,
