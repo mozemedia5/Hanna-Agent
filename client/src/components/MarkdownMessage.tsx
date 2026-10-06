@@ -500,6 +500,24 @@ export default function MarkdownMessage({ content, isStreaming }: MarkdownMessag
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
+          table({ children }) {
+            return (
+              <div className="markdown-table-wrapper" style={{ overflowX: "auto", margin: "14px 0" }}>
+                <table className="markdown-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+                  {children}
+                </table>
+              </div>
+            );
+          },
+          thead({ children }) {
+            return <thead style={{ background: "var(--surface-raised)", borderBottom: "2px solid var(--border)" }}>{children}</thead>;
+          },
+          th({ children }) {
+            return <th style={{ padding: "10px 14px", fontWeight: "600", color: "var(--text-primary)" }}>{children}</th>;
+          },
+          td({ children }) {
+            return <td style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", color: "var(--text-secondary)" }}>{children}</td>;
+          },
           code({ className, children, ...props }) {
             const match = /language-([\w-]+)/.exec(className || "");
             const code = String(children).replace(/\n$/, "");

@@ -938,15 +938,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
                 return (
                   <article className={`message-row ${message.role} ${message.role === "user" ? `user-accent-${userBubbleColor}` : ""}`} key={message.id}>
-                    {message.role === "user" && (
-                      <div className="message-avatar">
-                        {user?.photoURL ? (
-                          <img src={user.photoURL} alt={user.displayName || "User"} className="message-avatar-img" />
-                        ) : (
-                          (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()
-                        )}
-                      </div>
-                    )}
                     <div className="message-body">
                       <div className="message-meta" style={{ display: message.role === "assistant" ? "none" : "flex" }}>
                         <strong>You</strong>

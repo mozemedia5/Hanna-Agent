@@ -109,12 +109,15 @@ function ConnectorAssetIcon({ src, size = 20, className = "" }: IconProps & { sr
 }
 
 const CANONICAL_ASSET_MATCHES = [
-  { match: (name: string) => name.includes("shopify"), src: "shopify.svg" },
-  { match: (name: string) => name.includes("slack"), src: "slack.svg" },
+  { match: (name: string) => name.includes("shopify"), src: "shopify.jpg" },
+  { match: (name: string) => name.includes("slack"), src: "slack.jpg" },
+  { match: (name: string) => name.includes("instagram"), src: "instagram.jpg" },
+  { match: (name: string) => name.includes("tiktok"), src: "tiktok.jpg" },
+  { match: (name: string) => name.includes("canva"), src: "canva.jpg" },
+  { match: (name: string) => name.includes("pinterest"), src: "pinterest.jpg" },
+  { match: (name: string) => name.includes("google ad"), src: "google-ads.jpg" },
   { match: (name: string) => name.includes("github"), src: "github.svg" },
   { match: (name: string) => name.includes("heygen"), src: "heygen.png" },
-  { match: (name: string) => name.includes("instagram"), src: "instagram.svg" },
-  { match: (name: string) => name.includes("tiktok"), src: "tiktok.svg" },
   { match: (name: string) => name.includes("meta ads"), src: "meta-ads.svg" },
   { match: (name: string) => name.includes("vercel"), src: "vercel.svg" },
   { match: (name: string) => name.includes("elevenlabs"), src: "elevenlabs.svg" },

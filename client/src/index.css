@@ -942,11 +942,49 @@ kbd {
   border-radius: 50%;
 }
 .message-row.user {
-  padding: 18px 20px;
-  border-radius: 24px;
+  padding: 10px 14px;
+  border-radius: 18px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  margin: 8px 0;
+  margin: 6px 0;
+}
+
+/* Markdown Table Styles */
+.markdown-table-wrapper {
+  margin: 14px 0;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.markdown-table th {
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface-raised);
+  border-bottom: 2px solid var(--border);
+}
+
+.markdown-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.markdown-table tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 /* User Prompt Accent Colors - User-specified Hex Accents */
