@@ -51,12 +51,19 @@ export type GeminiToolTurnResponse = {
   latencyMs: number;
 };
 
+export type GeminiMediaPart = {
+  mimeType: string;
+  data?: string;
+  fileUri?: string;
+};
+
 export type GeminiRequestOptions = {
   apiKey?: string;
   model?: string;
   prompt: string;
   context?: string;
   systemPrompt?: string;
+  mediaParts?: GeminiMediaPart[];
   tools?: Array<{
     name: string;
     description: string;
@@ -141,16 +148,35 @@ async function delay(ms: number) {
 }
 
 function buildGeminiRequestBody(options: GeminiRequestOptions) {
-  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  const parts: Array<Record<string, unknown>> = [];
 
   const messageText = options.context
     ? `Workspace context: ${options.context}\n\nUser request: ${options.prompt}`
     : options.prompt;
 
-  contents.push({
-    role: "user",
-    parts: [{ text: messageText }],
-  });
+  parts.push({ text: messageText });
+
+  if (options.mediaParts && options.mediaParts.length > 0) {
+    options.mediaParts.forEach((part) => {
+      if (part.data) {
+        parts.push({
+          inlineData: {
+            mimeType: part.mimeType,
+            data: part.data,
+          },
+        });
+      } else if (part.fileUri) {
+        parts.push({
+          fileData: {
+            mimeType: part.mimeType,
+            fileUri: part.fileUri,
+          },
+        });
+      }
+    });
+  }
+
+  const contents = [{ role: "user", parts }];
 
   const body: Record<string, unknown> = { contents };
 
