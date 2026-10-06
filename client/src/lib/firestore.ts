@@ -60,6 +60,7 @@ export type ClientProjectFile = {
   type: "pdf" | "image" | "audio" | "video" | "other";
   size: string;
   uploadedAt: string;
+  url?: string;
 };
 
 export type ClientProjectChat = {

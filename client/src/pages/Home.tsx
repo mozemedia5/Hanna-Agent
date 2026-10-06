@@ -72,7 +72,7 @@ import ProfilePage from "./ProfilePage";
 import UpgradePage from "./UpgradePage";
 import UsagePage from "./UsagePage";
 import ContributorsPage from "./ContributorsPage";
-import ProjectsPage from "./ProjectsPage";
+import ProjectsPage, { type Project } from "./ProjectsPage";
 import ScheduleTaskPage from "./ScheduleTaskPage";
 import { useChatWorkflow } from "@/hooks/useChatWorkflow";
 import { Users, Share2 } from "lucide-react";
@@ -200,6 +200,18 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   // Lightbox Modal for full-resolution view of uploaded images
   const [lightboxImageUrl, setLightboxModalImageUrl] = useState<string | null>(null);
 
+  // Workspace Live Credits & Top-Up Modal State
+  const [userCredits, setUserCredits] = useState<number>(() => {
+    const stored = localStorage.getItem("hanna_user_credits");
+    return stored !== null ? Number(stored) : 500;
+  });
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("hanna_user_credits", String(userCredits));
+  }, [userCredits]);
+
   // Confirmatory Delete Chat Modal
   const [deleteChatId, setDeleteChatId] = useState<number | null>(null);
 
@@ -266,14 +278,44 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       });
   }, []);
 
+  // Load saved conversations on mount from localStorage and Firestore
   useEffect(() => {
+    let localChats: Chat[] = [];
+    try {
+      const raw = localStorage.getItem("hanna_saved_chats");
+      if (raw) localChats = JSON.parse(raw);
+    } catch {
+      // Ignore
+    }
+
     void listUserConversations().then(stored => {
-      if (!stored.length) return;
       const formatted = stored.map(chat => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() }));
-      setChats(formatted);
-      setActiveChatId(formatted[0].id);
-    }).catch(() => undefined);
+      const mergedMap = new Map<number | string, Chat>();
+      localChats.forEach(c => mergedMap.set(c.id, c));
+      formatted.forEach(c => mergedMap.set(c.id, c));
+      const combined = Array.from(mergedMap.values());
+      if (combined.length > 0) {
+        setChats(combined);
+        setActiveChatId(combined[0].id);
+      }
+    }).catch(() => {
+      if (localChats.length > 0) {
+        setChats(localChats);
+        setActiveChatId(localChats[0].id);
+      }
+    });
   }, []);
+
+  // Persist conversations to localStorage whenever chats change
+  useEffect(() => {
+    if (chats.length > 0) {
+      try {
+        localStorage.setItem("hanna_saved_chats", JSON.stringify(chats));
+      } catch {
+        // Ignore quota error
+      }
+    }
+  }, [chats]);
 
   useEffect(() => {
     const saved = localStorage.getItem("hanna-theme") as "light" | "dark" | "system" | null;
@@ -418,6 +460,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const chatWorkflow = useChatWorkflow();
 
   const submitMessage = async () => {
+    if (userCredits <= 0) {
+      showToast("Workspace credits depleted. Please top up your credits.");
+      setShowTopUpModal(true);
+      return;
+    }
+
     const text = composer.trim();
     if ((!text && attachments.length === 0) || isThinking) return;
     const chatId = activeChatId;
@@ -454,7 +502,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const isStudyMode = selectedTools.includes("Study");
       const attachmentContext = sentAttachments.length ? `\n[Attached (metadata-only): ${sentAttachments.map(a => `${a.name} (${a.type})`).join(", ")}]` : "";
       const toolsCtx = selectedTools.length ? `[Tools: ${selectedTools.join(", ")}]${isStudyMode ? " [STUDY MODE]" : ""}` : "";
-      const fullPrompt = `${toolsCtx}${attachmentContext}\n\n${contentWithAttachments}`;
+      const projectCtx = activeProject
+        ? `[ACTIVE PROJECT CONTEXT: "${activeProject.name}"]\nProject System Instructions: ${activeProject.instructions}\nProject Uploaded Files: ${activeProject.files.map(f => `${f.name} (${f.type})`).join(", ") || "None"}\n\n`
+        : "";
+      const fullPrompt = `${projectCtx}${toolsCtx}${attachmentContext}\n\n${contentWithAttachments}`;
 
       const historyContext = currentChat.messages
         .slice(-10)
@@ -522,6 +573,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         title: finalTitle,
         messages: [...chatWithUser.messages.filter(m => m.id !== assistantMessageId), assistantMessage],
       };
+      setUserCredits(prev => Math.max(0, prev - 1));
       setChats(current => current.map(c => c.id === chatId ? completedChat : c));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
@@ -696,6 +748,29 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         </div>
 
         <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+          {/* Credits pill button */}
+          <button
+            type="button"
+            onClick={() => setShowTopUpModal(true)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              padding: "6px 12px",
+              borderRadius: "9999px",
+              background: "rgba(26, 115, 232, 0.12)",
+              border: "1px solid rgba(26, 115, 232, 0.3)",
+              color: "var(--gemini-accent)",
+              fontSize: "12px",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+            title="Click to Add Credits / Top Up Workspace"
+          >
+            <Zap size={13} />
+            <span>{userCredits} Credits</span>
+          </button>
+
           {/* New chat button in top header */}
           <button
             type="button"
@@ -1261,6 +1336,17 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               )}
             </div>
 
+            {/* Active Project Banner/Chip if selected */}
+            {activeProject && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", marginBottom: "6px", background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "8px", padding: "4px 10px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                <FolderKanban size={14} style={{ color: "var(--gemini-accent)" }} />
+                <span>Active Project Context: <strong>{activeProject.name}</strong></span>
+                <button onClick={() => setActiveProject(null)} style={{ background: "none", border: "none", color: "var(--text-tertiary)", cursor: "pointer", marginLeft: "auto", padding: 0 }} title="Clear project context">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
             {/* Input Textarea Area */}
             <textarea
               ref={composerRef}
@@ -1328,7 +1414,23 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
       case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
       case "contributors": content = <ContributorsPage onBack={handleBack} />; break;
-      case "projects": content = <ProjectsPage onBack={handleBack} />; break;
+      case "projects":
+        content = (
+          <ProjectsPage
+            onBack={handleBack}
+            onOpenProjectChat={(project, chatTitle) => {
+              setActiveProject(project);
+              if (chatTitle) {
+                const newChat: Chat = { id: Date.now(), title: chatTitle, period: "Today", messages: [] };
+                setChats(prev => [newChat, ...prev]);
+                setActiveChatId(newChat.id);
+              }
+              setCurrentPage("chat");
+              showToast(`Active project context set to "${project.name}"`);
+            }}
+          />
+        );
+        break;
       case "schedule": content = <ScheduleTaskPage onBack={handleBack} onNavigateToIntegrations={() => navigate("integrations")} />; break;
       default: return renderChatPage();
     }
@@ -1791,6 +1893,62 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               alt="Uploaded full view"
               style={{ maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain", borderRadius: "16px", boxShadow: "0 20px 40px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)" }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Workspace Top-Up Modal */}
+      {showTopUpModal && (
+        <div className="modal-overlay" onClick={() => setShowTopUpModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "480px", padding: "24px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Zap size={20} style={{ color: "var(--gemini-accent)" }} /> Workspace Credit Top-Up
+              </h3>
+              <button onClick={() => setShowTopUpModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--text-secondary)" }}>
+              Current Balance: <strong style={{ color: "var(--gemini-accent)" }}>{userCredits} Credits</strong>. Top up your workspace to run multimodal AI prompts and store operator tasks.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+              {[
+                { amount: 100, price: "$1.99 USD", label: "Starter Pack" },
+                { amount: 500, price: "$5.99 USD", label: "Popular Pack" },
+                { amount: 1000, price: "$9.99 USD", label: "Pro Operator" },
+                { amount: 2500, price: "$19.99 USD", label: "Enterprise Boost" },
+              ].map(pack => (
+                <button
+                  key={pack.amount}
+                  type="button"
+                  onClick={() => {
+                    setUserCredits(prev => prev + pack.amount);
+                    setShowTopUpModal(false);
+                    showToast(`+${pack.amount} Credits added to your workspace!`);
+                  }}
+                  style={{
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "14px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--gemini-accent)", display: "block" }}>
+                    {pack.label}
+                  </span>
+                  <strong style={{ fontSize: "18px", color: "var(--text-primary)", display: "block", margin: "4px 0 2px" }}>
+                    +{pack.amount} Credits
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{pack.price}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

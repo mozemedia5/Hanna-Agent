@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   PlugZap,
   ChevronDown,
   X,
+  ImageIcon,
+  Upload,
 } from "lucide-react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import { integrations, type IntegrationDefinition } from "@shared/integrations";
@@ -22,16 +24,35 @@ type ScheduleTaskPageProps = {
   onNavigateToIntegrations?: () => void;
 };
 
-type ScheduledTask = {
+export type ScheduledTask = {
   id: string;
   title: string;
   prompt: string;
   executionTime: string;
   repeat: "once" | "daily" | "weekly" | "monthly";
   tools: string[];
+  imageUrl?: string;
   status: "scheduled" | "executing" | "completed" | "cancelled";
   createdAt: string;
 };
+
+// Helper to append real workspace notification to localStorage
+export function pushWorkspaceNotification(title: string, body: string, category: string = "Scheduled Task") {
+  try {
+    const raw = localStorage.getItem("hanna_notifications");
+    const existing = raw ? JSON.parse(raw) : [];
+    const newNotif = {
+      id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title,
+      body,
+      category,
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    localStorage.setItem("hanna_notifications", JSON.stringify([newNotif, ...existing]));
+  } catch {
+    // Ignore storage issues
+  }
+}
 
 export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: ScheduleTaskPageProps) {
   const [taskTitle, setTaskTitle] = useState("");
@@ -41,6 +62,10 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
   const [selectedConnectors, setSelectedConnectors] = useState<string[]>([]);
   const [connectorDropdownOpen, setConnectorDropdownOpen] = useState(false);
   const [connectorSearch, setConnectorSearch] = useState("");
+
+  // Image Attachment State for Scheduled Task
+  const [taskImageUrl, setTaskImageUrl] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
@@ -95,6 +120,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
           executionTime: t.parameters?.executionTime || t.cronOrSchedule || "Soon",
           repeat: t.parameters?.repeat || "once",
           tools: t.parameters?.tools || [],
+          imageUrl: t.parameters?.imageUrl,
           status: t.status || "scheduled",
           createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }));
@@ -129,6 +155,17 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
     setConnectorDropdownOpen(false);
   };
 
+  // Handle Task Image Upload
+  const handleTaskImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTaskImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleScheduleTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim() || !taskPrompt.trim()) {
@@ -147,12 +184,20 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
             executionTime: taskDate || new Date().toISOString(),
             repeat: taskRepeat,
             tools: selectedConnectors,
+            imageUrl: taskImageUrl || undefined,
           },
         }),
       });
 
       if (!response.ok) throw new Error("Failed to schedule task");
       showToast(`Task "${taskTitle.trim()}" scheduled successfully!`);
+
+      // Push real notification
+      pushWorkspaceNotification(
+        `Task Scheduled: ${taskTitle.trim()}`,
+        `Scheduled for ${taskDate || "immediate execution"} using ${selectedConnectors.join(", ") || "standard operator tools"}.`,
+        "Scheduled Task"
+      );
 
       // Local optimistic update
       const newTask: ScheduledTask = {
@@ -162,6 +207,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
         executionTime: taskDate || "Scheduled",
         repeat: taskRepeat,
         tools: [...selectedConnectors],
+        imageUrl: taskImageUrl || undefined,
         status: "scheduled",
         createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
@@ -170,6 +216,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
       setTaskTitle("");
       setTaskPrompt("");
       setTaskDate("");
+      setTaskImageUrl(null);
     } catch {
       showToast("Error scheduling task. Please check server connection.");
     } finally {
@@ -179,6 +226,15 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
 
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "28px 24px" }}>
+      {/* Hidden image uploader input */}
+      <input
+        type="file"
+        ref={imageInputRef}
+        style={{ display: "none" }}
+        accept="image/*"
+        onChange={handleTaskImageUpload}
+      />
+
       {/* Navigation Header */}
       <div style={{ marginBottom: "24px" }}>
         <button
@@ -293,6 +349,44 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                 }}
                 required
               />
+            </div>
+
+            {/* Task Image Attachment Option */}
+            <div>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                Reference Asset / Image Attachment (Optional)
+              </label>
+              {taskImageUrl ? (
+                <div style={{ position: "relative", display: "inline-block", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)" }}>
+                  <img src={taskImageUrl} alt="Task asset" style={{ width: "120px", height: "80px", objectFit: "cover", display: "block" }} />
+                  <button
+                    type="button"
+                    onClick={() => setTaskImageUrl(null)}
+                    style={{ position: "absolute", top: "4px", right: "4px", background: "rgba(0,0,0,0.7)", border: "none", color: "#fff", borderRadius: "50%", padding: "2px", cursor: "pointer" }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 12px",
+                    background: "var(--surface-raised)",
+                    border: "1px dashed var(--border)",
+                    borderRadius: "10px",
+                    color: "var(--text-secondary)",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <ImageIcon size={14} style={{ color: "var(--gemini-accent)" }} /> Add Image Attachment
+                </button>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -562,12 +656,17 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
-                    <div>
-                      <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>{task.title}</strong>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px", fontSize: "11px", color: "var(--text-tertiary)" }}>
-                        <span>Schedule: {task.executionTime}</span>
-                        <span>•</span>
-                        <span style={{ textTransform: "capitalize" }}>Repeat: {task.repeat}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      {task.imageUrl && (
+                        <img src={task.imageUrl} alt="" style={{ width: "44px", height: "44px", borderRadius: "8px", objectFit: "cover" }} />
+                      )}
+                      <div>
+                        <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>{task.title}</strong>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px", fontSize: "11px", color: "var(--text-tertiary)" }}>
+                          <span>Schedule: {task.executionTime}</span>
+                          <span>•</span>
+                          <span style={{ textTransform: "capitalize" }}>Repeat: {task.repeat}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -654,6 +753,14 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                             setScheduledTasks(prev =>
                               prev.map(st => (st.id === task.id ? { ...st, status: "completed" } : st))
                             );
+
+                            // Push task execution report notification
+                            pushWorkspaceNotification(
+                              `Task Report: ${task.title}`,
+                              `AI Execution Report: ${resText.slice(0, 150)}...`,
+                              "Task Report"
+                            );
+
                             setExecutionModalResult({ title: task.title, result: resText });
                           } catch {
                             showToast("Task execution error.");
