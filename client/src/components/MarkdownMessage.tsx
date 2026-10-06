@@ -7,10 +7,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { Check, Copy, Download, Maximize2, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, Presentation } from "lucide-react";
 
-type MarkdownMessageProps = {
-  content: string;
-  isStreaming?: boolean;
-};
+type MarkdownMessageProps = { content: string };
 
 function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string }) {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -481,24 +478,8 @@ export function cleanResponseSymbols(text: string): string {
     .replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, "");
 }
 
-function isLastBlockNode(node: any, textLength: number): boolean {
-  if (!node || !node.position || !node.position.end) return false;
-  const offset = node.position.end.offset;
-  if (typeof offset !== "number") return false;
-  // Node ends within 10 characters of the total sanitized text length
-  return offset >= textLength - 10;
-}
-
-export default function MarkdownMessage({ content, isStreaming }: MarkdownMessageProps) {
+export default function MarkdownMessage({ content }: MarkdownMessageProps) {
   const sanitizedContent = cleanResponseSymbols(content);
-  const textLength = sanitizedContent.length;
-
-  let cursorRendered = false;
-
-  const renderCursor = () => {
-    cursorRendered = true;
-    return <span className="typing-cursor" aria-hidden="true" />;
-  };
 
   // Extract potential image URLs
   const imageUrlMatch = content.match(/https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|webp|gif|svg)/i);
@@ -512,74 +493,31 @@ export default function MarkdownMessage({ content, isStreaming }: MarkdownMessag
     <div className="markdown-message">
       {isPresentation && <GoogleSlidesDeckCard title={deckTitle} />}
 
-      {isStreaming && !sanitizedContent.trim() ? (
-        <div className="streaming-placeholder">
-          {renderCursor()}
-        </div>
-      ) : (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMath]}
-          rehypePlugins={[rehypeKatex]}
-          components={{
-            p({ node, children, ...props }) {
-              const isLast = isStreaming && isLastBlockNode(node, textLength);
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          code({ className, children, ...props }) {
+            const match = /language-([\w-]+)/.exec(className || "");
+            const code = String(children).replace(/\n$/, "");
+            if (!match)
               return (
-                <p {...props}>
+                <code className="inline-code" {...props}>
                   {children}
-                  {isLast && renderCursor()}
-                </p>
+                </code>
               );
-            },
-            li({ node, children, ...props }) {
-              const isLast = isStreaming && isLastBlockNode(node, textLength);
-              return (
-                <li {...props}>
-                  {children}
-                  {isLast && renderCursor()}
-                </li>
-              );
-            },
-            h1({ node, children, ...props }) {
-              const isLast = isStreaming && isLastBlockNode(node, textLength);
-              return <h1 {...props}>{children}{isLast && renderCursor()}</h1>;
-            },
-            h2({ node, children, ...props }) {
-              const isLast = isStreaming && isLastBlockNode(node, textLength);
-              return <h2 {...props}>{children}{isLast && renderCursor()}</h2>;
-            },
-            h3({ node, children, ...props }) {
-              const isLast = isStreaming && isLastBlockNode(node, textLength);
-              return <h3 {...props}>{children}{isLast && renderCursor()}</h3>;
-            },
-            code({ className, children, ...props }) {
-              const match = /language-([\w-]+)/.exec(className || "");
-              const code = String(children).replace(/\n$/, "");
-              if (!match)
-                return (
-                  <code className="inline-code" {...props}>
-                    {children}
-                  </code>
-                );
-              return <CodeBlock language={match[1] || "code"} code={code} />;
-            },
-            img({ src, alt }) {
-              if (src) {
-                return <ChatGPTImageCard src={src} alt={alt} />;
-              }
-              return null;
-            },
-          }}
-        >
-          {sanitizedContent}
-        </ReactMarkdown>
-      )}
-
-      {/* Fallback cursor if content is present and streaming but cursor wasn't attached inside a block */}
-      {isStreaming && sanitizedContent.trim() && !cursorRendered && (
-        <span className="streaming-fallback-cursor">
-          <span className="typing-cursor" aria-hidden="true" />
-        </span>
-      )}
+            return <CodeBlock language={match[1] || "code"} code={code} />;
+          },
+          img({ src, alt }) {
+            if (src) {
+              return <ChatGPTImageCard src={src} alt={alt} />;
+            }
+            return null;
+          },
+        }}
+      >
+        {sanitizedContent}
+      </ReactMarkdown>
 
       {/* Fallback image rendering if markdown img tag was unparsed */}
       {imageUrlMatch && !sanitizedContent.includes("![") && (

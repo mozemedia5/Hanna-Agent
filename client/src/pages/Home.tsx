@@ -225,23 +225,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   // Real-time action status and progress when AI is working
   const [thinkingProgress, setThinkingProgress] = useState(25);
   const [thinkingAction, setThinkingAction] = useState("Analyzing query & workspace context...");
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
-    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
-  };
-
-  useEffect(() => {
-    if (hasMessages) {
-      scrollToBottom("smooth");
-    }
-  }, [chats, activeChatId, streamingMessageId]);
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId) ?? chats[0], [activeChatId, chats]);
   const hasMessages = activeChat.messages.length > 0;
@@ -473,27 +460,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
-      setStreamingMessageId(assistantMessageId);
       setChats(current => current.map(c => c.id === chatId ? { ...c, messages: [...c.messages, placeholderAssistantMsg] } : c));
 
       const reply = await chatWorkflow.submitPrompt(fullPrompt, {
         context: combinedContext,
         model: model === "Custom" ? "custom" : model,
         agenticMode,
-        onToken: (_chunk, accumulated) => {
-          setIsThinking(false);
-          setChats(current =>
-            current.map(c => {
-              if (c.id !== chatId) return c;
-              return {
-                ...c,
-                messages: c.messages.map(m =>
-                  m.id === assistantMessageId ? { ...m, content: accumulated } : m
-                ),
-              };
-            })
-          );
-        },
       });
 
       if (!reply) throw new Error("Hanna returned an empty response.");
@@ -527,10 +499,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     } catch (reason) {
       const errorContent = reason instanceof Error ? reason.message : "Hanna API unavailable.";
       showToast(`Submission failed: ${errorContent}`);
-    } finally {
-      setIsThinking(false);
-      setStreamingMessageId(null);
-    }
+    } finally { setIsThinking(false); }
   };
 
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -922,13 +891,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       </div>
                     )}
 
-                    {message.content || message.id === streamingMessageId ? (
+                    {message.content ? (
                       <div className="message-content">
                         {message.role === "assistant" ? (
-                          <MarkdownMessage
-                            content={message.content}
-                            isStreaming={message.id === streamingMessageId}
-                          />
+                          <MarkdownMessage content={message.content} />
                         ) : (
                           message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)
                         )}
@@ -1058,7 +1024,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   </div>
                 </article>
               )}
-              <div ref={messagesEndRef} style={{ height: "1px", width: "100%" }} />
             </div>
           )}
         </div>

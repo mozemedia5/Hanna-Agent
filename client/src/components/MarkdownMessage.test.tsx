@@ -40,18 +40,4 @@ describe("MarkdownMessage", () => {
       "Copied"
     );
   });
-
-  it("renders typing cursor indicator while isStreaming is true", () => {
-    const { container } = render(
-      <MarkdownMessage content="Generating response..." isStreaming={true} />
-    );
-    expect(container.querySelector(".typing-cursor")).toBeInTheDocument();
-  });
-
-  it("does not render typing cursor indicator when isStreaming is false", () => {
-    const { container } = render(
-      <MarkdownMessage content="Complete response." isStreaming={false} />
-    );
-    expect(container.querySelector(".typing-cursor")).not.toBeInTheDocument();
-  });
 });
