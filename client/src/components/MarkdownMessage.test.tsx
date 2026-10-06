@@ -40,4 +40,16 @@ describe("MarkdownMessage", () => {
       "Copied"
     );
   });
+
+  it("renders typing cursor indicator when isStreaming is true and hides it when false", () => {
+    const { rerender } = render(
+      <MarkdownMessage content="Streaming response token..." isStreaming={true} />
+    );
+    expect(document.querySelector(".typing-cursor")).toBeInTheDocument();
+
+    rerender(
+      <MarkdownMessage content="Streaming response token completed." isStreaming={false} />
+    );
+    expect(document.querySelector(".typing-cursor")).not.toBeInTheDocument();
+  });
 });

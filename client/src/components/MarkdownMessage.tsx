@@ -7,7 +7,10 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { Check, Copy, Download, Maximize2, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, Presentation } from "lucide-react";
 
-type MarkdownMessageProps = { content: string };
+type MarkdownMessageProps = {
+  content: string;
+  isStreaming?: boolean;
+};
 
 function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string }) {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -478,7 +481,7 @@ export function cleanResponseSymbols(text: string): string {
     .replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, "");
 }
 
-export default function MarkdownMessage({ content }: MarkdownMessageProps) {
+export default function MarkdownMessage({ content, isStreaming }: MarkdownMessageProps) {
   const sanitizedContent = cleanResponseSymbols(content);
 
   // Extract potential image URLs
@@ -522,6 +525,10 @@ export default function MarkdownMessage({ content }: MarkdownMessageProps) {
       {/* Fallback image rendering if markdown img tag was unparsed */}
       {imageUrlMatch && !sanitizedContent.includes("![") && (
         <ChatGPTImageCard src={imageUrlMatch[0]} alt="Generated AI Visual" />
+      )}
+
+      {isStreaming && (
+        <span className="typing-cursor" aria-hidden="true" title="Generating response..." />
       )}
     </div>
   );

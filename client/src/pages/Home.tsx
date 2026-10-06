@@ -241,6 +241,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const docInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId) ?? chats[0], [activeChatId, chats]);
   const hasMessages = activeChat.messages.length > 0;
@@ -445,6 +446,11 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   };
 
   const chatWorkflow = useChatWorkflow();
+
+  // Auto-scroll chat window smoothly as new text generates or message arrives
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [activeChat.messages, chatWorkflow.streamingText, isThinking]);
 
   const submitMessage = async () => {
     if (userCredits <= 0) {
@@ -921,158 +927,164 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             </div>
           ) : (
             <div className="message-stack">
-              {activeChat.messages.map(message => (
-                <article className={`message-row ${message.role} ${message.role === "user" ? `user-accent-${userBubbleColor}` : ""}`} key={message.id}>
-                  {message.role === "user" && (
-                    <div className="message-avatar">
-                      {user?.photoURL ? (
-                        <img src={user.photoURL} alt={user.displayName || "User"} className="message-avatar-img" />
-                      ) : (
-                        (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()
-                      )}
-                    </div>
-                  )}
-                  <div className="message-body">
-                    <div className="message-meta" style={{ display: message.role === "assistant" ? "none" : "flex" }}>
-                      <strong>You</strong>
-                      <span>{message.time}</span>
-                    </div>
-                    {/* Attachment preview for user message - styled like input thumbnail badges with click-to-view */}
-                    {message.attachments && message.attachments.length > 0 && (
-                      <div className="message-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", marginBottom: message.content ? "8px" : "0" }}>
-                        {message.attachments.map(att => (
-                          <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-raised)", display: "inline-flex", alignItems: "center" }}>
-                            {att.type === "image" ? (
-                              <button
-                                type="button"
-                                onClick={() => setLightboxModalImageUrl(att.dataUrl || att.url)}
-                                style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", display: "block" }}
-                                title="Click to view image"
-                              >
-                                <img
-                                  src={att.dataUrl || att.url}
-                                  alt={att.name || "Uploaded image"}
-                                  style={{ width: "64px", height: "56px", objectFit: "cover", display: "block", borderRadius: "10px", transition: "transform 0.15s ease" }}
-                                />
-                              </button>
-                            ) : (
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)" }}>
-                                {att.type === "pdf" ? <FileText size={16} style={{ color: "#ea4335" }} /> : <Paperclip size={16} style={{ color: "var(--gemini-accent)" }} />}
-                                <span>{att.name}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {activeChat.messages.map((message, idx) => {
+                const isLastAssistant = message.role === "assistant" && idx === activeChat.messages.length - 1;
+                const isStreamingThisMsg = chatWorkflow.isProcessing && isLastAssistant;
+                const displayContent = (isStreamingThisMsg && chatWorkflow.streamingText) ? chatWorkflow.streamingText : message.content;
 
-                    {message.content ? (
-                      <div className="message-content">
-                        {message.role === "assistant" ? (
-                          <MarkdownMessage content={message.content} />
+                return (
+                  <article className={`message-row ${message.role} ${message.role === "user" ? `user-accent-${userBubbleColor}` : ""}`} key={message.id}>
+                    {message.role === "user" && (
+                      <div className="message-avatar">
+                        {user?.photoURL ? (
+                          <img src={user.photoURL} alt={user.displayName || "User"} className="message-avatar-img" />
                         ) : (
-                          message.content.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)
+                          (user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()
                         )}
                       </div>
-                    ) : null}
-
-                    {message.role === "user" && (
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(message.content);
-                            showToast("Prompt copied");
-                          }}
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: "var(--text-tertiary)",
-                            cursor: "pointer",
-                            padding: "2px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                          }}
-                          title="Copy prompt"
-                          aria-label="Copy prompt"
-                        >
-                          <Copy size={12} />
-                        </button>
-                      </div>
                     )}
-
-                    {/* ChatGPT-style Source & Link Cards when web sources or links are present */}
-                    {message.role === "assistant" && (message.content.includes("http://") || message.content.includes("https://") || message.content.includes("[Source")) && (
-                      <div className="sources-card-grid" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "10px", padding: "6px 10px", fontSize: "11px", color: "var(--text-secondary)" }}>
-                          <Globe2 size={13} style={{ color: "var(--gemini-accent)" }} />
-                          <span>Sourced from Web & Knowledge Catalog</span>
-                          <ExternalLink size={11} style={{ marginLeft: "4px", color: "var(--text-tertiary)" }} />
+                    <div className="message-body">
+                      <div className="message-meta" style={{ display: message.role === "assistant" ? "none" : "flex" }}>
+                        <strong>You</strong>
+                        <span>{message.time}</span>
+                      </div>
+                      {/* Attachment preview for user message - styled like input thumbnail badges with click-to-view */}
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="message-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", marginBottom: message.content ? "8px" : "0" }}>
+                          {message.attachments.map(att => (
+                            <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-raised)", display: "inline-flex", alignItems: "center" }}>
+                              {att.type === "image" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setLightboxModalImageUrl(att.dataUrl || att.url)}
+                                  style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", display: "block" }}
+                                  title="Click to view image"
+                                >
+                                  <img
+                                    src={att.dataUrl || att.url}
+                                    alt={att.name || "Uploaded image"}
+                                    style={{ width: "64px", height: "56px", objectFit: "cover", display: "block", borderRadius: "10px", transition: "transform 0.15s ease" }}
+                                  />
+                                </button>
+                              ) : (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)" }}>
+                                  {att.type === "pdf" ? <FileText size={16} style={{ color: "#ea4335" }} /> : <Paperclip size={16} style={{ color: "var(--gemini-accent)" }} />}
+                                  <span>{att.name}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {message.role === "assistant" && (
-                      <div className="message-actions" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", opacity: 0.85, fontSize: "12px", color: "var(--text-secondary)" }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(message.content);
-                            showToast("Response copied");
-                          }}
-                          style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
-                          title="Copy response"
-                          aria-label="Copy response"
-                        >
-                          <Copy size={13} />
-                        </button>
+                      {displayContent || isStreamingThisMsg ? (
+                        <div className="message-content">
+                          {message.role === "assistant" ? (
+                            <MarkdownMessage content={displayContent} isStreaming={isStreamingThisMsg} />
+                          ) : (
+                            displayContent.split("\n").map((p, i) => <p key={`${message.id}-${i}`}>{p}</p>)
+                          )}
+                        </div>
+                      ) : null}
 
-                        <button
-                          type="button"
-                          onClick={() => showToast("Response feedback recorded (Good)")}
-                          style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
-                          title="Good response"
-                          aria-label="Good response"
-                        >
-                          <ThumbsUp size={13} />
-                        </button>
+                      {message.role === "user" && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(message.content);
+                              showToast("Prompt copied");
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "var(--text-tertiary)",
+                              cursor: "pointer",
+                              padding: "2px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                            }}
+                            title="Copy prompt"
+                            aria-label="Copy prompt"
+                          >
+                            <Copy size={12} />
+                          </button>
+                        </div>
+                      )}
 
-                        <button
-                          type="button"
-                          onClick={() => showToast("Response feedback recorded (Bad)")}
-                          style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
-                          title="Bad response"
-                          aria-label="Bad response"
-                        >
-                          <ThumbsDown size={13} />
-                        </button>
+                      {/* ChatGPT-style Source & Link Cards when web sources or links are present */}
+                      {message.role === "assistant" && (message.content.includes("http://") || message.content.includes("https://") || message.content.includes("[Source")) && (
+                        <div className="sources-card-grid" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "10px", padding: "6px 10px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                            <Globe2 size={13} style={{ color: "var(--gemini-accent)" }} />
+                            <span>Sourced from Web & Knowledge Catalog</span>
+                            <ExternalLink size={11} style={{ marginLeft: "4px", color: "var(--text-tertiary)" }} />
+                          </div>
+                        </div>
+                      )}
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const lastUserMsg = activeChat.messages.filter(m => m.role === "user").pop();
-                            if (lastUserMsg) {
-                              chatWorkflow.submitPrompt(lastUserMsg.content);
-                            } else {
-                              showToast("Regenerating response...");
-                            }
-                          }}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
-                          title="Regenerate response"
-                          aria-label="Regenerate response"
-                        >
-                          <RotateCcw size={13} />
-                        </button>
+                      {message.role === "assistant" && (
+                        <div className="message-actions" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", opacity: 0.85, fontSize: "12px", color: "var(--text-secondary)" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(message.content);
+                              showToast("Response copied");
+                            }}
+                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                            title="Copy response"
+                            aria-label="Copy response"
+                          >
+                            <Copy size={13} />
+                          </button>
 
-                        <span style={{ fontSize: "11px", opacity: 0.7, padding: "0 2px" }}>1/1</span>
+                          <button
+                            type="button"
+                            onClick={() => showToast("Response feedback recorded (Good)")}
+                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                            title="Good response"
+                            aria-label="Good response"
+                          >
+                            <ThumbsUp size={13} />
+                          </button>
 
-                        <span style={{ fontSize: "11px", opacity: 0.6, paddingLeft: "4px" }}>{message.time}</span>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              ))}
-              {isThinking && (
+                          <button
+                            type="button"
+                            onClick={() => showToast("Response feedback recorded (Bad)")}
+                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                            title="Bad response"
+                            aria-label="Bad response"
+                          >
+                            <ThumbsDown size={13} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const lastUserMsg = activeChat.messages.filter(m => m.role === "user").pop();
+                              if (lastUserMsg) {
+                                chatWorkflow.submitPrompt(lastUserMsg.content);
+                              } else {
+                                showToast("Regenerating response...");
+                              }
+                            }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                            title="Regenerate response"
+                            aria-label="Regenerate response"
+                          >
+                            <RotateCcw size={13} />
+                          </button>
+
+                          <span style={{ fontSize: "11px", opacity: 0.7, padding: "0 2px" }}>1/1</span>
+
+                          <span style={{ fontSize: "11px", opacity: 0.6, paddingLeft: "4px" }}>{message.time}</span>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              {isThinking && !chatWorkflow.streamingText && (
                 <article className="message-row assistant thinking-row">
                   <div className="message-body">
                     <div className="message-meta">
@@ -1099,6 +1111,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   </div>
                 </article>
               )}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>

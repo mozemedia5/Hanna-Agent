@@ -1210,6 +1210,29 @@ kbd {
   background: var(--ink);
 }
 
+/* Streaming active response indicator / blinking cursor */
+.typing-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: 4px;
+  vertical-align: middle;
+  background-color: var(--text-primary);
+  border-radius: 2px;
+  animation: typing-cursor-pulse 0.8s infinite ease-in-out;
+}
+
+@keyframes typing-cursor-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scaleY(0.85);
+  }
+}
+
 /* Command Center (Input Area Redesign) */
 .composer-region {
   flex-shrink: 0;
