@@ -23,6 +23,12 @@ service cloud.firestore {
         allow read, create, update, delete: if owns(uid);
       }
 
+      match /connectors/{connectorId} {
+        // Sensitive connector credentials (tokens, secrets) are managed exclusively server-side via Firebase Admin SDK.
+        // Client direct read/write is denied to prevent access token leaks in browser.
+        allow read, write: if false;
+      }
+
       match /private/{documentId} {
         allow read, create, update, delete: if owns(uid);
       }

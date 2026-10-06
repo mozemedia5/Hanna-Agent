@@ -14,7 +14,10 @@ import { handleApiChatRoute } from "../api/chat/route";
 import {
   handleGoogleOAuthAuthorize,
   handleGoogleOAuthCallback,
+  handleGitHubOAuthAuthorize,
+  handleGitHubOAuthCallback,
 } from "./oauthRoutes";
+import { handleProductionHealthDiagnostics } from "./health";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -52,7 +55,15 @@ app.post(["/api/chat", "/chat"], handleApiChatRoute);
 app.get(["/api/oauth/google/authorize", "/oauth/google/authorize"], handleGoogleOAuthAuthorize);
 app.get(["/api/oauth/google/callback", "/oauth/google/callback"], handleGoogleOAuthCallback);
 
+// GitHub OAuth Endpoints
+app.get(["/api/oauth/github/authorize", "/oauth/github/authorize"], handleGitHubOAuthAuthorize);
+app.get(["/api/oauth/github/callback", "/oauth/github/callback"], handleGitHubOAuthCallback);
+
 app.get(["/api/health", "/health"], async (req, res) => {
+  if (req.query.diag === "true") {
+    return handleProductionHealthDiagnostics(req, res);
+  }
+
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
 
@@ -61,6 +72,8 @@ app.get(["/api/health", "/health"], async (req, res) => {
 
   res.status(isHealthy ? 200 : 503).json(report);
 });
+
+app.get(["/api/diagnostics", "/diagnostics"], handleProductionHealthDiagnostics);
 
 // Cloudinary Upload Handler Endpoint
 app.post(["/api/upload", "/upload"], async (req, res) => {

@@ -20,6 +20,50 @@ export type ProfileRecord = {
   customInstructions?: string;
   updatedAt?: string;
 };
+import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
+
+let dbInstance: Firestore | null = null;
+
+export function getAdminFirestore(): Firestore | null {
+  if (dbInstance) return dbInstance;
+
+  try {
+    const apps = getApps();
+    if (apps.length > 0) {
+      dbInstance = getFirestore(apps[0]);
+      return dbInstance;
+    }
+
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+
+    if (serviceAccountJson) {
+      const sa = JSON.parse(serviceAccountJson);
+      const app = initializeApp({ credential: cert(sa) });
+      dbInstance = getFirestore(app);
+      return dbInstance;
+    }
+
+    if (projectId && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      const app = initializeApp({ projectId });
+      dbInstance = getFirestore(app);
+      return dbInstance;
+    }
+
+    // Default application credentials / environment initialization if available
+    if (process.env.FIREBASE_AUTH_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
+      const app = initializeApp({ projectId: projectId || "demo-hanna" });
+      dbInstance = getFirestore(app);
+      return dbInstance;
+    }
+  } catch (err) {
+    console.warn("[AdminFirestore] Initialization skipped or failed:", err instanceof Error ? err.message : err);
+  }
+
+  return null;
+}
+
 const conversations = new Map<string, Map<string, ConversationRecord>>();
 const profiles = new Map<string, ProfileRecord>();
 const now = () => new Date().toISOString();
