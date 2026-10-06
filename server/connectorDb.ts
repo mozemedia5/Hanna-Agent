@@ -158,7 +158,7 @@ export async function listConnectorCredentials(
   if (firestore) {
     try {
       const snapshot = await firestore.collection("users").doc(String(userId)).collection("connectors").get();
-      return snapshot.docs.map(doc => {
+      return snapshot.docs.map((doc: any) => {
         const connector = doc.id as ConnectorId;
         const row = doc.data() as StoredCredential;
         const values = JSON.parse(
