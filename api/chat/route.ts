@@ -58,11 +58,18 @@ export function analyzePromptIntent(
     "heygen", "synthesia", "creatify", "tiktok", "instagram", "facebook", "telegram", "outlook", "vercel", "vercel deployment"
   ];
 
+  // Search & Deep Research patterns
+  const searchPatterns = [
+    /\bweb\s+search\b/, /\bsearch\s+the\b/, /\bgoogle\s+search\b/, /\bdeep\s+research\b/,
+    /\bfind\s+(latest|online|news|information|info|articles|sources)\b/, /\bresearch\b/, /\blatest\b/
+  ];
+
   // Action patterns indicating multi-step agentic execution or system alterations
   const actionPatterns = [
     /\bschedule\s+task\b/, /\brun\s+agent\b/, /\bexecute\s+tool\b/, /\bcreate\s+product\b/, /\bupdate\s+product\b/,
     /\bsync\s+inventory\b/, /\bdeploy\s+(app|site|vercel|project)\b/, /\bmcp\s+tool\b/, /\bsend\s+(email|mail|slack|message)\b/,
-    /\bpost\s+(a\s+)?(message|tweet|ad|campaign)\b/, /\bdelete\s+(product|order|item|file)\b/, /\bcancel\s+(task|schedule)\b/
+    /\bpost\s+(a\s+)?(message|tweet|ad|campaign)\b/, /\bdelete\s+(product|order|item|file)\b/, /\bcancel\s+(task|schedule)\b/,
+    ...searchPatterns
   ];
 
   const matchedConnectors = connectorKeywords.filter(kw => lower.includes(kw));
