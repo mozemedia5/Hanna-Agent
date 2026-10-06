@@ -74,6 +74,7 @@ import UsagePage from "./UsagePage";
 import ContributorsPage from "./ContributorsPage";
 import ProjectsPage, { type Project } from "./ProjectsPage";
 import ScheduleTaskPage from "./ScheduleTaskPage";
+import FilesPage, { addStoredFiles, getFileTypeBadgeLabel, type StoredFileItem } from "./FilesPage";
 import { useChatWorkflow } from "@/hooks/useChatWorkflow";
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
@@ -89,7 +90,8 @@ type Page =
   | "usage"
   | "contributors"
   | "projects"
-  | "schedule";
+  | "schedule"
+  | "files";
 
 type ToolKey =
   | "Web Search"
@@ -396,16 +398,26 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const removeAttachment = (id: string) => setAttachments(prev => prev.filter(f => f.id !== id));
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    Array.from(files).forEach(file => {
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  const processFileList = (filesList: FileList | File[]) => {
+    const files = Array.from(filesList);
+    if (!files.length) return;
+
+    const now = new Date();
+    const uploadTimestamp = `Uploaded today at ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+    files.forEach(file => {
       const isImg = file.type.startsWith("image/");
       const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
-      const isVideo = file.type.startsWith("video/");
-      const kind: UploadedFile["type"] = isImg ? "image" : isPdf ? "pdf" : isVideo ? "video" : "other";
+      const isVid = file.type.startsWith("video/");
+      const isAud = file.type.startsWith("audio/");
+      const kind: UploadedFile["type"] = isImg ? "image" : isPdf ? "pdf" : isVid ? "video" : "other";
       const objectUrl = URL.createObjectURL(file);
       const fileId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      const sizeStr = Number(mb) < 0.1 ? `${Math.round(file.size / 1024)} KB` : `${mb} MB`;
 
       const item: UploadedFile = {
         id: fileId,
@@ -422,6 +434,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         const base64Data = e.target?.result as string;
         item.dataUrl = base64Data;
 
+        let finalUrl = objectUrl;
         try {
           const res = await fetch("/api/upload", {
             method: "POST",
@@ -431,18 +444,66 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           if (res.ok) {
             const data = await res.json();
             if (data.url) {
+              finalUrl = data.url;
               item.url = data.url;
               setAttachments(prev => prev.map(f => f.id === fileId ? { ...f, url: data.url } : f));
-              showToast(`Uploaded ${file.name} to Cloudinary`);
             }
           }
         } catch {
           // Keep local objectUrl fallback
         }
+
+        let storeKind: StoredFileItem["type"] = "other";
+        let storeCategory: StoredFileItem["category"] = "File";
+        if (isImg) { storeKind = "image"; storeCategory = "Image"; }
+        else if (isVid) { storeKind = "video"; storeCategory = "Video"; }
+        else if (isAud) { storeKind = "audio"; storeCategory = "Audio"; }
+        else if (isPdf) { storeKind = "pdf"; storeCategory = "Document"; }
+
+        addStoredFiles([{
+          id: fileId,
+          type: storeKind,
+          url: finalUrl,
+          dataUrl: base64Data,
+          size: sizeStr,
+          uploadedAt: uploadTimestamp,
+          category: storeCategory,
+        }]);
       };
       reader.readAsDataURL(file);
     });
+
+    showToast(`Uploaded ${files.length} file(s) to workspace`);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      processFileList(event.target.files);
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (docInputRef.current) docInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFileList(e.dataTransfer.files);
+    }
   };
 
   const chatWorkflow = useChatWorkflow();
@@ -604,6 +665,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
+    { icon: FolderUp, label: "Files", page: "files" as Page },
     { icon: Calendar, label: "Schedule Task", page: "schedule" as Page },
     { icon: FolderKanban, label: "Projects", page: "projects" as Page },
     { icon: Sparkles, label: "Upgrade Plan", page: "upgrade" as Page },
@@ -946,29 +1008,32 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                       {/* Attachment preview for user message - styled like input thumbnail badges with click-to-view */}
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="message-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", marginBottom: message.content ? "8px" : "0" }}>
-                          {message.attachments.map(att => (
-                            <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-raised)", display: "inline-flex", alignItems: "center" }}>
-                              {att.type === "image" ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setLightboxModalImageUrl(att.dataUrl || att.url)}
-                                  style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", display: "block" }}
-                                  title="Click to view image"
-                                >
-                                  <img
-                                    src={att.dataUrl || att.url}
-                                    alt={att.name || "Uploaded image"}
-                                    style={{ width: "64px", height: "56px", objectFit: "cover", display: "block", borderRadius: "10px", transition: "transform 0.15s ease" }}
-                                  />
-                                </button>
-                              ) : (
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)" }}>
-                                  {att.type === "pdf" ? <FileText size={16} style={{ color: "#ea4335" }} /> : <Paperclip size={16} style={{ color: "var(--gemini-accent)" }} />}
-                                  <span>{att.name}</span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                          {message.attachments.map(att => {
+                            const badge = getFileTypeBadgeLabel(att.type);
+                            return (
+                              <div key={att.id} style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-raised)", display: "inline-flex", alignItems: "center" }}>
+                                {att.type === "image" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setLightboxModalImageUrl(att.dataUrl || att.url)}
+                                    style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", display: "block" }}
+                                    title="Click to view image"
+                                  >
+                                    <img
+                                      src={att.dataUrl || att.url}
+                                      alt="Uploaded asset"
+                                      style={{ width: "64px", height: "56px", objectFit: "cover", display: "block", borderRadius: "10px", transition: "transform 0.15s ease" }}
+                                    />
+                                  </button>
+                                ) : (
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)" }}>
+                                    {att.type === "pdf" ? <FileText size={16} style={{ color: "#ea4335" }} /> : <Paperclip size={16} style={{ color: "var(--gemini-accent)" }} />}
+                                    <span>{badge}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -1111,32 +1176,52 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           )}
         </div>
       </div>
-      <div className="composer-region">
-        {/* Hidden inputs for File, Document, and Camera uploads */}
+      <div
+        className="composer-region"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{
+          position: "relative",
+          border: isDraggingOver ? "2px dashed var(--gemini-accent)" : "none",
+          borderRadius: "16px",
+          transition: "all 0.15s ease",
+        }}
+      >
+        {isDraggingOver && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(26, 115, 232, 0.12)", backdropFilter: "blur(4px)", zIndex: 1000, borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gemini-accent)", fontWeight: "700", fontSize: "14px" }}>
+            <FolderUp size={24} style={{ marginRight: "8px" }} /> Drop files here to upload to workspace
+          </div>
+        )}
+
+        {/* Hidden inputs for File, Document, and Camera uploads supporting multiple file selection */}
         <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept="image/*,audio/*,video/*" />
         <input type="file" ref={docInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple accept=".pdf,.csv,.doc,.docx,.txt,.json,.md" />
-        <input type="file" ref={cameraInputRef} style={{ display: "none" }} onChange={handleFileUpload} capture="environment" accept="image/*" />
+        <input type="file" ref={cameraInputRef} style={{ display: "none" }} onChange={handleFileUpload} multiple capture="environment" accept="image/*" />
 
 
         <div className="command-center-container">
           {attachments.length > 0 && (
             <div className="composer-attachments-preview" style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "8px 0" }}>
-              {attachments.map(file => (
-                <div key={file.id} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-                  {file.type === "image" ? (
-                    <div style={{ position: "relative", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", width: "56px", height: "56px", background: "var(--surface-raised)" }}>
-                      <img src={file.dataUrl || file.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" style={{ position: "absolute", top: "2px", right: "2px", background: "rgba(0,0,0,0.6)", color: "#fff", width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label="Remove image"><X size={11} /></button>
-                    </div>
-                  ) : (
-                    <div className="attachment-chip" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "10px", background: "var(--surface-raised)", border: "1px solid var(--border)", fontSize: "12px", color: "var(--text-primary)" }}>
-                      {file.type === "pdf" ? <FileText size={14} style={{ color: "#ea4335" }} /> : <Paperclip size={14} style={{ color: "var(--gemini-accent)" }} />}
-                      <span className="attachment-chip-name">{file.name}</span>
-                      <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" aria-label="Remove attachment"><X size={12} /></button>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {attachments.map(file => {
+                const badge = getFileTypeBadgeLabel(file.type);
+                return (
+                  <div key={file.id} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                    {file.type === "image" ? (
+                      <div style={{ position: "relative", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", width: "56px", height: "56px", background: "var(--surface-raised)" }}>
+                        <img src={file.dataUrl || file.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" style={{ position: "absolute", top: "2px", right: "2px", background: "rgba(0,0,0,0.6)", color: "#fff", width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label="Remove image"><X size={11} /></button>
+                      </div>
+                    ) : (
+                      <div className="attachment-chip" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "10px", background: "var(--surface-raised)", border: "1px solid var(--border)", fontSize: "12px", color: "var(--text-primary)" }}>
+                        {file.type === "pdf" ? <FileText size={14} style={{ color: "#ea4335" }} /> : <Paperclip size={14} style={{ color: "var(--gemini-accent)" }} />}
+                        <span className="attachment-chip-name">{badge}</span>
+                        <button type="button" onClick={() => removeAttachment(file.id)} className="attachment-chip-remove" aria-label="Remove attachment"><X size={12} /></button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -1387,6 +1472,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;
       case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
       case "contributors": content = <ContributorsPage onBack={handleBack} />; break;
+      case "files": content = <FilesPage onBack={handleBack} />; break;
       case "projects":
         content = (
           <ProjectsPage

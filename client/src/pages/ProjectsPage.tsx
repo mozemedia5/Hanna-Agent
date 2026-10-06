@@ -254,14 +254,14 @@ export default function ProjectsPage({ onBack, onOpenProjectChat }: ProjectsPage
 
   return (
     <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto" }}>
-      {/* Hidden file uploader for project files */}
+      {/* Hidden file uploader for project files supporting multiple file selection */}
       <input
         type="file"
         ref={fileInputRef}
         style={{ display: "none" }}
         onChange={handleProjectFileUpload}
         multiple
-        accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.csv"
+        accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.csv,.json,.md"
       />
 
       {/* Header Navigation */}
@@ -470,39 +470,52 @@ export default function ProjectsPage({ onBack, onOpenProjectChat }: ProjectsPage
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px" }}>
-                {currentProject.files.map(file => (
-                  <div
-                    key={file.id}
-                    style={{
-                      background: "var(--surface, #1e1f20)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "12px",
-                      padding: "12px 14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    {file.type === "pdf" ? <FileText size={20} style={{ color: "#ea4335" }} /> : file.type === "image" ? <ImageIcon size={20} style={{ color: "#34a853" }} /> : file.type === "audio" ? <AudioIcon size={20} style={{ color: "#fbbc04" }} /> : file.type === "video" ? <VideoIcon size={20} style={{ color: "#a142f4" }} /> : <FileText size={20} style={{ color: "var(--gemini-accent)" }} />}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <strong style={{ display: "block", fontSize: "13px", color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{file.name}</strong>
-                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{file.size} • {file.uploadedAt}</span>
-                    </div>
+                {currentProject.files.map(file => {
+                  const typeLabel =
+                    file.type === "pdf"
+                      ? "PDF Document"
+                      : file.type === "image"
+                      ? "Image Asset"
+                      : file.type === "audio"
+                      ? "Audio Clip"
+                      : file.type === "video"
+                      ? "Video Clip"
+                      : "File Asset";
 
-                    {file.url && (
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        download={file.name}
-                        title="View / Download file"
-                        style={{ color: "var(--gemini-accent)", padding: "4px", borderRadius: "4px", display: "inline-flex", alignItems: "center" }}
-                      >
-                        <ExternalLink size={14} />
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  return (
+                    <div
+                      key={file.id}
+                      style={{
+                        background: "var(--surface, #1e1f20)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "12px",
+                        padding: "12px 14px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                      }}
+                    >
+                      {file.type === "pdf" ? <FileText size={20} style={{ color: "#ea4335" }} /> : file.type === "image" ? <ImageIcon size={20} style={{ color: "#34a853" }} /> : file.type === "audio" ? <AudioIcon size={20} style={{ color: "#fbbc04" }} /> : file.type === "video" ? <VideoIcon size={20} style={{ color: "#a142f4" }} /> : <FileText size={20} style={{ color: "var(--gemini-accent)" }} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong style={{ display: "block", fontSize: "13px", color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{typeLabel}</strong>
+                        <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{file.size} • {file.uploadedAt}</span>
+                      </div>
+
+                      {file.url && (
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          title="View / Download file"
+                          style={{ color: "var(--gemini-accent)", padding: "4px", borderRadius: "4px", display: "inline-flex", alignItems: "center" }}
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {currentProject.files.length === 0 && (
                   <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "30px", color: "var(--text-tertiary)", fontSize: "13px" }}>
