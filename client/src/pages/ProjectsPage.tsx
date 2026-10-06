@@ -21,20 +21,25 @@ import {
   BookOpen,
   Share2,
   Archive,
-  FolderInput,
   Check,
   Search,
-  X,
-  FileUp,
   Image as ImageIcon,
   Video as VideoIcon,
   Music as AudioIcon,
+  Download,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export type { ProjectFile, ProjectChat, Project };
 
-export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
+type ProjectsPageProps = {
+  onBack?: () => void;
+  onOpenProjectChat?: (project: Project, chatTitle?: string) => void;
+};
+
+export default function ProjectsPage({ onBack, onOpenProjectChat }: ProjectsPageProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,6 +50,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
       })
       .finally(() => setLoading(false));
   }, []);
+
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"chats" | "files" | "instructions">("chats");
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,10 +60,14 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
   const [newProjectInstructions, setNewProjectInstructions] = useState("");
   const [newProjectCategory, setNewProjectCategory] = useState("General");
 
+  // Deleting Project Confirmation Modal State
+  const [deletingProjectTarget, setDeletingProjectTarget] = useState<{ id: string; name: string } | null>(null);
+
   // Chat Actions Menu & Modal State
   const [openChatMenuId, setOpenChatMenuId] = useState<string | null>(null);
   const [showAddChatModal, setShowAddChatModal] = useState(false);
   const [newChatTitle, setNewChatTitle] = useState("");
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [toast, setToast] = useState("");
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -88,10 +98,13 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
     showToast(`Project "${newProj.name}" created successfully!`);
   }
 
-  function handleDeleteProject(id: string, name: string) {
+  function confirmDeleteProject() {
+    if (!deletingProjectTarget) return;
+    const { id, name } = deletingProjectTarget;
     setProjects(prev => prev.filter(p => p.id !== id));
     void deleteUserProject(id).catch(() => undefined);
     if (activeProjectId === id) setActiveProjectId(null);
+    setDeletingProjectTarget(null);
     showToast(`Deleted project "${name}"`);
   }
 
@@ -114,31 +127,75 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
     showToast(`Added chat "${newChat.title}" to project`);
   }
 
-  function handleProjectFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleProjectFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!activeProjectId || !e.target.files?.length) return;
     const filesArray = Array.from(e.target.files);
-    const uploaded: ProjectFile[] = filesArray.map(f => {
-      const isPdf = f.type === "application/pdf" || f.name.endsWith(".pdf");
-      const isImg = f.type.startsWith("image/");
-      const isAud = f.type.startsWith("audio/");
-      const isVid = f.type.startsWith("video/");
-      const kind: ProjectFile["type"] = isPdf ? "pdf" : isImg ? "image" : isAud ? "audio" : isVid ? "video" : "other";
-      return {
-        id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        name: f.name,
-        type: kind,
-        size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
-        uploadedAt: "Just now",
-      };
-    });
-    const target = projects.find(p => p.id === activeProjectId);
-    if (target) {
-      const updatedProj = { ...target, files: [...uploaded, ...target.files] };
-      setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
-      void saveUserProject(updatedProj).catch(() => undefined);
+    setUploadingFiles(true);
+
+    try {
+      const uploaded: ProjectFile[] = await Promise.all(
+        filesArray.map(async f => {
+          const isPdf = f.type === "application/pdf" || f.name.endsWith(".pdf");
+          const isImg = f.type.startsWith("image/");
+          const isAud = f.type.startsWith("audio/");
+          const isVid = f.type.startsWith("video/");
+          const kind: ProjectFile["type"] = isPdf
+            ? "pdf"
+            : isImg
+            ? "image"
+            : isAud
+            ? "audio"
+            : isVid
+            ? "video"
+            : "other";
+
+          // Read file as base64 Data URL
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(f);
+          });
+
+          // Attempt server upload to Cloudinary if available
+          let fileUrl = dataUrl;
+          try {
+            const res = await fetch("/api/upload", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ file: dataUrl, filename: f.name }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.url) fileUrl = data.url;
+            }
+          } catch {
+            // Fallback to dataUrl
+          }
+
+          return {
+            id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name: f.name,
+            type: kind,
+            size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+            url: fileUrl,
+            uploadedAt: "Just now",
+          };
+        })
+      );
+
+      const target = projects.find(p => p.id === activeProjectId);
+      if (target) {
+        const updatedProj = { ...target, files: [...uploaded, ...target.files] };
+        setProjects(prev => prev.map(p => p.id === activeProjectId ? updatedProj : p));
+        void saveUserProject(updatedProj).catch(() => undefined);
+      }
+      showToast(`Uploaded ${uploaded.length} file(s) to project`);
+    } catch {
+      showToast("Error processing file upload.");
+    } finally {
+      setUploadingFiles(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-    showToast(`Uploaded ${uploaded.length} file(s) to project`);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function togglePinChat(chatId: string) {
@@ -198,9 +255,16 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
   return (
     <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto" }}>
       {/* Hidden file uploader for project files */}
-      <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleProjectFileUpload} multiple accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.csv" />
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleProjectFileUpload}
+        multiple
+        accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.csv"
+      />
 
-      {/* Eyebrow & Back Button Header */}
+      {/* Header Navigation */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
         <div>
           <button
@@ -285,6 +349,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                 {currentProject.chats.map(chat => (
                   <div
                     key={chat.id}
+                    onClick={() => onOpenProjectChat?.(currentProject, chat.title)}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -294,6 +359,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                       borderRadius: "12px",
                       padding: "12px 16px",
                       position: "relative",
+                      cursor: "pointer",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -312,7 +378,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                       <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{chat.updatedAt}</span>
 
                       {/* Ellipsis (...) menu on every chat */}
-                      <div style={{ position: "relative" }}>
+                      <div style={{ position: "relative" }} onClick={e => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => setOpenChatMenuId(openChatMenuId === chat.id ? null : chat.id)}
@@ -382,12 +448,28 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                 <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "700" }}>Project Files & Assets</h3>
-                <Button onClick={() => fileInputRef.current?.click()} size="sm" style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)" }}>
-                  <FileUp size={14} /> Upload File (PDF, Image, Audio, Video)
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFiles}
+                  size="sm"
+                  style={{
+                    background: "var(--gemini-accent)",
+                    color: "var(--ink-contrast)",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    height: "32px",
+                    padding: "0 12px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Upload size={13} /> {uploadingFiles ? "Uploading..." : "Upload Files"}
                 </Button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px" }}>
                 {currentProject.files.map(file => (
                   <div
                     key={file.id}
@@ -395,7 +477,7 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                       background: "var(--surface, #1e1f20)",
                       border: "1px solid var(--border)",
                       borderRadius: "12px",
-                      padding: "14px",
+                      padding: "12px 14px",
                       display: "flex",
                       alignItems: "center",
                       gap: "12px",
@@ -406,6 +488,19 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                       <strong style={{ display: "block", fontSize: "13px", color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{file.name}</strong>
                       <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{file.size} • {file.uploadedAt}</span>
                     </div>
+
+                    {file.url && (
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={file.name}
+                        title="View / Download file"
+                        style={{ color: "var(--gemini-accent)", padding: "4px", borderRadius: "4px", display: "inline-flex", alignItems: "center" }}
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
                   </div>
                 ))}
 
@@ -507,7 +602,10 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
                       {proj.category}
                     </span>
                     <button
-                      onClick={e => { e.stopPropagation(); handleDeleteProject(proj.id, proj.name); }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setDeletingProjectTarget({ id: proj.id, name: proj.name });
+                      }}
                       style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", padding: "4px" }}
                       title="Delete project"
                     >
@@ -542,6 +640,34 @@ export default function ProjectsPage({ onBack }: { onBack?: () => void }) {
             </div>
           )}
         </>
+      )}
+
+      {/* Confirmatory Project Deletion Warning Modal */}
+      {deletingProjectTarget && (
+        <div className="modal-overlay" onClick={() => setDeletingProjectTarget(null)}>
+          <div className="modal-content" style={{ maxWidth: "420px", padding: "20px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#ea4335", marginBottom: "12px" }}>
+              <AlertTriangle size={20} />
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "var(--text-primary)" }}>
+                Delete Project?
+              </h3>
+            </div>
+            <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Are you sure you want to delete project <strong>"{deletingProjectTarget.name}"</strong>? All associated chats, uploaded files, and project system instructions will be permanently removed. This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" onClick={() => setDeletingProjectTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDeleteProject}
+                style={{ background: "#ea4335", color: "#ffffff", fontWeight: "600" }}
+              >
+                Delete Project
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Add New Chat Modal */}

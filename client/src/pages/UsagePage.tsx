@@ -1,5 +1,5 @@
 /*
- * Usage Page — Usage analytics, credit tracking, and plan details
+ * Usage Page — Usage analytics, credit tracking, top-up, and plan details
  */
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,9 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
+  Plus,
+  Check,
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
@@ -33,6 +36,23 @@ export default function UsagePage({
     typeof calculateConversationAnalytics
   > | null>(null);
 
+  const [userCredits, setUserCredits] = useState<number>(() => {
+    const stored = localStorage.getItem("hanna_user_credits");
+    return stored !== null ? Number(stored) : 500;
+  });
+
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2800);
+  };
+
+  useEffect(() => {
+    localStorage.setItem("hanna_user_credits", String(userCredits));
+  }, [userCredits]);
+
   useEffect(() => {
     void listUserConversations()
       .then(conversations =>
@@ -42,6 +62,12 @@ export default function UsagePage({
   }, []);
 
   const formatNumber = (n: number) => new Intl.NumberFormat().format(n);
+
+  const handleAddCredits = (amount: number) => {
+    setUserCredits(prev => prev + amount);
+    setShowTopUpModal(false);
+    showToast(`Successfully added +${amount} credits to your workspace!`);
+  };
 
   return (
     <div className="page-container">
@@ -63,11 +89,30 @@ export default function UsagePage({
             Track your weekly token allowance, active conversation threads, and model credit usage.
           </p>
         </div>
-        {onNavigateToUpgrade && (
-          <div className="page-header-actions">
+        <div className="page-header-actions" style={{ display: "flex", gap: "10px" }}>
+          <Button
+            onClick={() => setShowTopUpModal(true)}
+            style={{
+              background: "var(--gemini-accent)",
+              color: "var(--ink-contrast)",
+              borderRadius: "9999px",
+              padding: "0 18px",
+              height: "40px",
+              fontSize: "13px",
+              fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Plus size={15} /> Top Up Credits
+          </Button>
+
+          {onNavigateToUpgrade && (
             <Button
               className="send-button"
               onClick={onNavigateToUpgrade}
+              variant="outline"
               style={{
                 width: "auto",
                 height: "40px",
@@ -83,8 +128,8 @@ export default function UsagePage({
               <Sparkles size={15} />
               <span>Upgrade Plan</span>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Active Plan Overview */}
@@ -141,11 +186,11 @@ export default function UsagePage({
 
           <div>
             <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block", marginBottom: "4px" }}>
-              Weekly Allowance
+              Available Credits
             </span>
-            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>500 Credits</strong>
+            <strong style={{ fontSize: "20px", color: "var(--gemini-accent)" }}>{formatNumber(userCredits)} Credits</strong>
             <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>
-              Refreshed automatically
+              Live workspace balance
             </span>
           </div>
 
@@ -153,9 +198,9 @@ export default function UsagePage({
             <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block", marginBottom: "4px" }}>
               AI Model Access
             </span>
-            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>Hanna Lite (Gemini 3.5 Flash) / Hanna Pro (Gemini 3.5 Flash)</strong>
+            <strong style={{ fontSize: "20px", color: "var(--text-primary)" }}>Hanna Lite / Hanna Pro</strong>
             <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>
-              High-speed multimodal
+              Multimodal intelligence
             </span>
           </div>
         </div>
@@ -164,14 +209,30 @@ export default function UsagePage({
         <div style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "8px" }}>
             <span>Weekly Credit Usage</span>
-            <span>500 / 500 Credits Available</span>
+            <span>{userCredits} Credits Available</span>
           </div>
           <div className="credits-bar">
-            <div className="credits-bar-fill" style={{ width: "100%" }} />
+            <div className="credits-bar-fill" style={{ width: `${Math.min(100, Math.max(5, (userCredits / 1000) * 100))}%` }} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "11px", color: "var(--text-tertiary)" }}>
-            <RefreshCw size={12} />
-            <span>Resets weekly at 00:00 UTC</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-tertiary)" }}>
+              <RefreshCw size={12} />
+              <span>Resets weekly at 00:00 UTC</span>
+            </div>
+            <button
+              onClick={() => setShowTopUpModal(true)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--gemini-accent)",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              + Add Credits
+            </button>
           </div>
         </div>
       </div>
@@ -204,6 +265,58 @@ export default function UsagePage({
           </div>
         </div>
       </div>
+
+      {/* Top Up Modal */}
+      {showTopUpModal && (
+        <div className="modal-overlay" onClick={() => setShowTopUpModal(false)}>
+          <div className="modal-content" style={{ maxWidth: "480px", padding: "24px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Zap size={20} style={{ color: "var(--gemini-accent)" }} /> Workspace Credit Top-Up
+              </h3>
+              <button onClick={() => setShowTopUpModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)" }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--text-secondary)" }}>
+              Current Balance: <strong style={{ color: "var(--gemini-accent)" }}>{userCredits} Credits</strong>. Select a package to add credits instantly to your workspace.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+              {[
+                { amount: 100, price: "$1.99 USD", label: "Starter Pack" },
+                { amount: 500, price: "$5.99 USD", label: "Popular Pack" },
+                { amount: 1000, price: "$9.99 USD", label: "Pro Operator" },
+                { amount: 2500, price: "$19.99 USD", label: "Enterprise Boost" },
+              ].map(pack => (
+                <button
+                  key={pack.amount}
+                  type="button"
+                  onClick={() => handleAddCredits(pack.amount)}
+                  style={{
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "14px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--gemini-accent)", display: "block" }}>
+                    {pack.label}
+                  </span>
+                  <strong style={{ fontSize: "18px", color: "var(--text-primary)", display: "block", margin: "4px 0 2px" }}>
+                    +{pack.amount} Credits
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{pack.price}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upgrade Callout */}
       <div
@@ -251,6 +364,8 @@ export default function UsagePage({
           </Button>
         )}
       </div>
+
+      {toast && <div className="hanna-toast"><Check size={15} /> {toast}</div>}
     </div>
   );
 }
