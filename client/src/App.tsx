@@ -21,6 +21,9 @@ function App() {
         <Route path="/landing">
           <LandingPage />
         </Route>
+        <Route path="/demo">
+          <Home user={{ displayName: "Demo User", email: "demo@hanna.ai" } as any} />
+        </Route>
         <Route path="/">
           {auth.isAuthenticated ? <Home user={auth.user} onLogout={auth.logout} /> : <LoginPage auth={auth} mode="login" />}
         </Route>
