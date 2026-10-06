@@ -4,11 +4,28 @@ import { parseAndVerifyFirebaseToken } from "./_core/context";
 import { saveConnectorCredential } from "./connectorDb";
 
 function stateSecret() {
-  return (
-    process.env.OAUTH_STATE_SECRET ||
-    process.env.CREDENTIAL_ENCRYPTION_KEY ||
-    "hanna-oauth-state-secret-default-32chars"
-  );
+  const secret = process.env.OAUTH_STATE_SECRET || process.env.CREDENTIAL_ENCRYPTION_KEY;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OAUTH_STATE_SECRET or CREDENTIAL_ENCRYPTION_KEY must be set in production environment.");
+    }
+    return "hanna-oauth-state-secret-default-32chars";
+  }
+  return secret;
+}
+
+const usedNonces = new Set<string>();
+
+export function rememberNonce(nonce: string): boolean {
+  if (usedNonces.has(nonce)) {
+    return false;
+  }
+  usedNonces.add(nonce);
+  // Clean up old nonces periodically
+  if (usedNonces.size > 10000) {
+    usedNonces.clear();
+  }
+  return true;
 }
 
 function appBaseUrl() {
@@ -23,10 +40,10 @@ export function getCanonicalGoogleRedirectUri(): string {
 }
 
 
-export function generateOAuthState(uid: string): string {
+export function generateOAuthState(uid: string, provider = "google"): string {
   const nonce = crypto.randomBytes(16).toString("hex");
   const timestamp = Date.now();
-  const payload = `${uid}:${timestamp}:${nonce}`;
+  const payload = `${uid}:${provider}:${timestamp}:${nonce}`;
   const signature = crypto
     .createHmac("sha256", stateSecret())
     .update(payload)
@@ -34,14 +51,18 @@ export function generateOAuthState(uid: string): string {
   return Buffer.from(`${payload}:${signature}`).toString("base64url");
 }
 
-export function verifyOAuthState(state: string): { uid: string; valid: boolean } {
+export function verifyOAuthState(state: string, expectedProvider = "google"): { uid: string; valid: boolean } {
   try {
     const decoded = Buffer.from(state, "base64url").toString("utf8");
     const parts = decoded.split(":");
-    if (parts.length !== 4) return { uid: "", valid: false };
+    if (parts.length !== 5) {
+      return { uid: "", valid: false };
+    }
 
-    const [uid, timestampStr, nonce, signature] = parts;
-    const payload = `${uid}:${timestampStr}:${nonce}`;
+    const [uid, provider, timestampStr, nonce, signature] = parts;
+    if (provider !== expectedProvider) return { uid: "", valid: false };
+
+    const payload = `${uid}:${provider}:${timestampStr}:${nonce}`;
     const expectedSig = crypto
       .createHmac("sha256", stateSecret())
       .update(payload)
@@ -52,6 +73,9 @@ export function verifyOAuthState(state: string): { uid: string; valid: boolean }
     const timestamp = Number.parseInt(timestampStr, 10);
     // Expire state after 15 minutes
     if (Date.now() - timestamp > 15 * 60 * 1000) return { uid: "", valid: false };
+
+    // Prevent state replay
+    if (!rememberNonce(nonce)) return { uid: "", valid: false };
 
     return { uid, valid: true };
   } catch {
@@ -70,14 +94,14 @@ export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: Expre
     return;
   }
 
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     res.status(500).json({ error: "Google OAuth Client ID is not configured on server (GOOGLE_OAUTH_CLIENT_ID)." });
     return;
   }
 
   const redirectUri = getCanonicalGoogleRedirectUri();
-  const state = generateOAuthState(uid);
+  const state = generateOAuthState(uid, "google");
 
   const scope = [
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -123,14 +147,14 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
     return;
   }
 
-  const { uid, valid } = verifyOAuthState(state);
+  const { uid, valid } = verifyOAuthState(state, "google");
   if (!valid || !uid) {
     res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
     return;
   }
 
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
     res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);
@@ -188,6 +212,135 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
     res.redirect(`${appBaseUrl()}/?connector_success=google-workspace`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Google OAuth callback failed";
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(msg)}`);
+  }
+}
+
+export function getCanonicalGitHubRedirectUri(): string {
+  if (process.env.GITHUB_REDIRECT_URI && process.env.GITHUB_REDIRECT_URI.trim()) {
+    return process.env.GITHUB_REDIRECT_URI.trim();
+  }
+  return `${appBaseUrl()}/api/oauth/github/callback`;
+}
+
+/** Express handler to initiate GitHub Connector OAuth Authorization Flow */
+export async function handleGitHubOAuthAuthorize(req: ExpressRequest, res: ExpressResponse): Promise<void> {
+  const token = (req.query.id_token as string) || req.headers.authorization?.slice(7);
+  const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
+  const uid = decoded?.user_id || decoded?.sub;
+
+  if (!uid) {
+    res.status(401).json({ error: "Authentication required to initiate GitHub OAuth connection." });
+    return;
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_ID;
+  if (!clientId) {
+    res.status(500).json({ error: "GitHub OAuth Client ID is not configured on server (GITHUB_CLIENT_ID)." });
+    return;
+  }
+
+  const redirectUri = getCanonicalGitHubRedirectUri();
+  const state = generateOAuthState(uid, "github");
+  const scope = "repo read:user user:email";
+
+  const authUrl = new URL("https://github.com/login/oauth/authorize");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("scope", scope);
+  authUrl.searchParams.set("state", state);
+
+  res.redirect(authUrl.toString());
+}
+
+/** Express handler for GitHub Connector OAuth Callback */
+export async function handleGitHubOAuthCallback(req: ExpressRequest, res: ExpressResponse): Promise<void> {
+  const code = req.query.code as string;
+  const state = req.query.state as string;
+  const error = req.query.error as string;
+
+  if (error) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(error)}`);
+    return;
+  }
+
+  if (!code) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("missing_code")}`);
+    return;
+  }
+
+  if (!state) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("missing_state")}`);
+    return;
+  }
+
+  const { uid, valid } = verifyOAuthState(state, "github");
+  if (!valid || !uid) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
+    return;
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_OAUTH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);
+    return;
+  }
+
+  try {
+    const redirectUri = getCanonicalGitHubRedirectUri();
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("token_exchange_failure")}`);
+      return;
+    }
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    if (!accessToken) {
+      const err = tokenData.error_description || "No access token returned by GitHub.";
+      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(err)}`);
+      return;
+    }
+
+    // Verify GitHub user connection
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "User-Agent": "Hanna-Agent",
+      },
+    });
+
+    let githubUsername = "";
+    if (userRes.ok) {
+      const userData = await userRes.json();
+      githubUsername = userData.login || "";
+    }
+
+    await saveConnectorCredential(uid, "github", {
+      access_token: accessToken,
+      username: githubUsername,
+      is_connected: "true",
+    });
+
+    res.redirect(`${appBaseUrl()}/?connector_success=github`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "GitHub OAuth callback failed";
     res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(msg)}`);
   }
 }

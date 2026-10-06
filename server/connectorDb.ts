@@ -135,6 +135,18 @@ export async function saveConnectorCredential(
     updatedAt: new Date(),
   };
 
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection("users").doc(String(userId)).collection("connectors").doc(connector).set({
+        encryptedValues: record.encryptedValues,
+        updatedAt: record.updatedAt,
+      });
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore save failed, falling back to local store:", err);
+    }
+  }
+
   saveStoredConnectorCredential(keyFor(userId, connector), record);
   return { connector, saved: true } as const;
 }
@@ -142,6 +154,33 @@ export async function saveConnectorCredential(
 export async function listConnectorCredentials(
   userId: string | number
 ): Promise<ConnectorSummary[]> {
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      const snapshot = await firestore.collection("users").doc(String(userId)).collection("connectors").get();
+      return snapshot.docs.map((doc: any) => {
+        const connector = doc.id as ConnectorId;
+        const row = doc.data() as StoredCredential;
+        const values = JSON.parse(
+          decryptCredential(row.encryptedValues)
+        ) as ConnectorValues;
+        return {
+          connector,
+          fields: Object.fromEntries(
+            Object.keys(values).map(field => [
+              field,
+              credentialHint(values[field] ?? ""),
+            ])
+          ),
+          is_connected: values.is_connected !== "false",
+          updatedAt: row.updatedAt ? new Date((row.updatedAt as any).toDate ? (row.updatedAt as any).toDate() : row.updatedAt) : new Date(),
+        };
+      });
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore list failed, falling back to local store:", err);
+    }
+  }
+
   const all = getStoredConnectorCredentials();
   const userPrefix = `${userId}:`;
 
@@ -170,6 +209,25 @@ export async function getConnectorCredential(
   userId: string | number,
   connector: ConnectorId
 ): Promise<ConnectorCredential | undefined> {
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      const doc = await firestore.collection("users").doc(String(userId)).collection("connectors").doc(connector).get();
+      if (doc.exists) {
+        const row = doc.data() as StoredCredential;
+        return {
+          connector,
+          values: JSON.parse(
+            decryptCredential(row.encryptedValues)
+          ) as ConnectorValues,
+        };
+      }
+      return undefined;
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore get failed, falling back to local store:", err);
+    }
+  }
+
   const all = getStoredConnectorCredentials();
   const row = all[keyFor(userId, connector)] as StoredCredential | undefined;
   if (!row) return undefined;
@@ -186,6 +244,15 @@ export async function deleteConnectorCredential(
   userId: string | number,
   connector: ConnectorId
 ) {
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection("users").doc(String(userId)).collection("connectors").doc(connector).delete();
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore delete failed:", err);
+    }
+  }
+
   deleteStoredConnectorCredential(keyFor(userId, connector));
   return { success: true } as const;
 }
