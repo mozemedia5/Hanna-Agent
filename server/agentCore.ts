@@ -757,12 +757,13 @@ I have analyzed the provided image/document content and extracted key details:
     const cleanPrompt = prompt
       .replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of|render an image of|visual of)/gi, "")
       .trim() || prompt;
+    const enhancedPrompt = `${cleanPrompt}, highly detailed, photorealistic 8k resolution, cinematic lighting, ultra-sharp focus, professional composition, vibrant textures, masterpiece`;
     const seed = Math.floor(Math.random() * 100000);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
 
     responseBody = `### Hanna Image Generation
 
-Here is the visual generated based on your prompt:
+Here is the high-quality visual synthesized based on your context:
 
 ![${cleanPrompt}](${imageUrl})
 
