@@ -942,7 +942,11 @@ kbd {
   border-radius: 50%;
 }
 .message-row.user {
-  padding: 10px 14px;
+  display: block;
+  width: fit-content;
+  max-width: 85%;
+  margin-left: auto;
+  padding: 10px 16px;
   border-radius: 18px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
@@ -1204,6 +1208,20 @@ kbd {
 .message-row.user .message-content {
   color: var(--text-primary);
 }
+@keyframes rotating-ellipsis {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.rotating-ellipsis-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: rotating-ellipsis 1.6s linear infinite;
+  color: var(--gemini-accent);
+  flex-shrink: 0;
+}
+
 .message-actions {
   display: flex;
   gap: 14px;
