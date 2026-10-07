@@ -64,6 +64,8 @@ import {
   listUserConversations,
   saveUserConversation,
   type ClientConversation,
+  listUserProjects,
+  saveUserProject,
 } from "@/lib/firestore";
 
 import SettingsPage from "./SettingsPage";
@@ -190,7 +192,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameTitle, setRenameTitle] = useState("");
   const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState("Default Workspace");
+  const [userProjects, setUserProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showFindModal, setShowFindModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showScheduleTaskModal, setShowScheduleTaskModal] = useState(false);
@@ -806,8 +809,20 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 <button
                   type="button"
                   className="header-menu-item"
-                  onClick={() => {
+                  onClick={async () => {
                     setHeaderMenuOpen(false);
+                    try {
+                      const projs = await listUserProjects();
+                      setUserProjects(projs);
+                      if (projs.length > 0) {
+                        setSelectedProjectId(projs[0].id);
+                      } else {
+                        setSelectedProjectId(null);
+                      }
+                    } catch {
+                      setUserProjects([]);
+                      setSelectedProjectId(null);
+                    }
                     setShowAddToProjectModal(true);
                   }}
                 >
@@ -1593,25 +1608,62 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--text-secondary)" }}>
               Select a project workspace to organize <strong>"{activeChat.title}"</strong>.
             </p>
-            <div style={{ display: "grid", gap: "8px", marginBottom: "18px" }}>
-              {["Shopify Store Launch", "E-Commerce Marketing", "Default Workspace"].map(proj => (
-                <button
-                  key={proj}
-                  type="button"
-                  onClick={() => setSelectedProject(proj)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: selectedProject === proj ? "var(--wash)" : "var(--surface)", border: `1px solid ${selectedProject === proj ? "var(--gemini-accent)" : "var(--border)"}`, borderRadius: "10px", cursor: "pointer", fontSize: "13px", color: "var(--text-primary)", textAlign: "left" }}
-                >
-                  <span>{proj}</span>
-                  {selectedProject === proj && <Check size={14} style={{ color: "var(--gemini-accent)" }} />}
-                </button>
-              ))}
-            </div>
+            {userProjects.length > 0 ? (
+              <div style={{ display: "grid", gap: "8px", marginBottom: "18px", maxHeight: "240px", overflowY: "auto" }}>
+                {userProjects.map(proj => (
+                  <button
+                    key={proj.id}
+                    type="button"
+                    onClick={() => setSelectedProjectId(proj.id)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: selectedProjectId === proj.id ? "var(--wash)" : "var(--surface)", border: `1px solid ${selectedProjectId === proj.id ? "var(--gemini-accent)" : "var(--border)"}`, borderRadius: "10px", cursor: "pointer", fontSize: "13px", color: "var(--text-primary)", textAlign: "left" }}
+                  >
+                    <div>
+                      <strong style={{ display: "block", fontSize: "13px" }}>{proj.name}</strong>
+                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{proj.category} • {proj.chats.length} chats</span>
+                    </div>
+                    {selectedProjectId === proj.id && <Check size={14} style={{ color: "var(--gemini-accent)" }} />}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "16px 0 20px", color: "var(--text-tertiary)", fontSize: "13px" }}>
+                No projects created yet. Create a project in the Projects tab first.
+              </div>
+            )}
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <Button variant="outline" onClick={() => setShowAddToProjectModal(false)}>Cancel</Button>
-              <Button onClick={() => {
-                setShowAddToProjectModal(false);
-                showToast(`Added to "${selectedProject}"`);
-              }} style={{ background: "var(--gemini-accent)", color: "#ffffff" }}>Add</Button>
+              <Button
+                disabled={!selectedProjectId || userProjects.length === 0}
+                onClick={async () => {
+                  const targetProj = userProjects.find(p => p.id === selectedProjectId);
+                  if (!targetProj) return;
+                  const lastMsg = activeChat.messages.length > 0 ? activeChat.messages[activeChat.messages.length - 1].content.slice(0, 80) : "Conversation added to project.";
+                  const newProjectChat = {
+                    id: String(activeChat.id),
+                    title: activeChat.title,
+                    lastMessage: lastMsg,
+                    updatedAt: "Just now",
+                  };
+                  const existingIndex = targetProj.chats.findIndex(c => c.id === newProjectChat.id);
+                  let updatedChats = [...targetProj.chats];
+                  if (existingIndex >= 0) {
+                    updatedChats[existingIndex] = newProjectChat;
+                  } else {
+                    updatedChats = [newProjectChat, ...updatedChats];
+                  }
+                  const updatedProj = { ...targetProj, chats: updatedChats };
+                  try {
+                    await saveUserProject(updatedProj);
+                    showToast(`Added chat to "${targetProj.name}"`);
+                  } catch {
+                    showToast(`Added chat to "${targetProj.name}"`);
+                  }
+                  setShowAddToProjectModal(false);
+                }}
+                style={{ background: "var(--gemini-accent)", color: "#ffffff" }}
+              >
+                Add
+              </Button>
             </div>
           </div>
         </div>

@@ -15,11 +15,15 @@ type MarkdownMessageProps = {
 function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string }) {
   const [activeSlide, setActiveSlide] = useState(0);
 
+  const cleanTitle = title || "Executive Presentation Deck";
+  const slideTopic = topic || cleanTitle;
+
   const slides = [
     {
       num: 1,
-      title: title,
+      title: cleanTitle,
       subtitle: "Strategic Brief & Executive Overview",
+      imagePrompt: `professional executive presentation title slide for ${slideTopic}, high resolution visual design, sleek modern aesthetic, 8k render`,
       bullets: [
         "Comprehensive market opportunity and strategic goals",
         "AI-driven workflow orchestration and automation roadmap",
@@ -31,6 +35,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
       num: 2,
       title: "Market Analysis & Business Opportunities",
       subtitle: "Industry Trends & Demand Validation",
+      imagePrompt: `modern data visual graphs and high impact market chart for ${slideTopic}, clean corporate graphic, vibrant aesthetic`,
       bullets: [
         "Rapid shift toward automated e-commerce & customer workflows",
         "High-intent audience segments and conversion levers",
@@ -42,6 +47,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
       num: 3,
       title: "Execution Strategy & Core Operations",
       subtitle: "Cross-Functional Workflow Architecture",
+      imagePrompt: `futuristic tech workspace workflow visual for ${slideTopic}, photorealistic 8k, blue accent lighting, professional composition`,
       bullets: [
         "Multi-channel connector integration (Shopify, Meta, Google Workspace)",
         "Sub-100ms reasoning loop powered by Gemini 3.5 Flash",
@@ -53,6 +59,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
       num: 4,
       title: "Key Performance Indicators & ROI",
       subtitle: "Growth Metrics & Revenue Milestones",
+      imagePrompt: `revenue growth chart and business success metrics illustration for ${slideTopic}, crisp graphic design, octane render`,
       bullets: [
         "Expected revenue & conversion optimization target: +24% YoY",
         "Reduced operational cycle time across team workflows",
@@ -64,6 +71,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
       num: 5,
       title: "Roadmap & Next Action Steps",
       subtitle: "Immediate Deliverables & Timeline",
+      imagePrompt: `strategic project milestone roadmap diagram for ${slideTopic}, clean modern presentation slide background, highly detailed`,
       bullets: [
         "Phase 1: Configure connector authorization & store credentials",
         "Phase 2: Launch automated agent execution schedules",
@@ -74,6 +82,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
   ];
 
   const current = slides[activeSlide];
+  const slideImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(current.imagePrompt)}?width=800&height=400&nologo=true&seed=${current.num * 42}`;
 
   return (
     <div
@@ -129,23 +138,38 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
         </div>
       </div>
 
-      {/* Slide Viewer Canvas */}
+      {/* Slide Visual Banner */}
+      <div style={{ width: "100%", height: "140px", overflow: "hidden", position: "relative", background: "#111" }}>
+        <img
+          src={slideImageUrl}
+          alt={current.title}
+          style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.88 }}
+          loading="lazy"
+        />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)" }} />
+        <div style={{ position: "absolute", bottom: "10px", left: "16px", right: "16px", color: "#fff" }}>
+          <span style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".08em", background: "rgba(251, 188, 4, 0.9)", color: "#000", padding: "2px 6px", borderRadius: "4px" }}>
+            SLIDE {current.num}
+          </span>
+        </div>
+      </div>
+
+      {/* Slide Content Canvas */}
       <div
         style={{
-          padding: "24px 28px",
-          minHeight: "220px",
-          background: "linear-gradient(135deg, rgba(251, 188, 4, 0.06) 0%, rgba(26, 115, 232, 0.05) 100%)",
+          padding: "20px 24px",
+          minHeight: "180px",
+          background: "linear-gradient(135deg, rgba(251, 188, 4, 0.04) 0%, rgba(26, 115, 232, 0.04) 100%)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          position: "relative",
         }}
       >
         <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "#fbbc04", marginBottom: "4px" }}>
-          SLIDE {current.num} · {current.subtitle}
+          {current.subtitle}
         </div>
 
-        <h3 style={{ margin: "0 0 14px", fontSize: "18px", fontWeight: "700", color: "var(--text-primary)", lineHeight: "1.3" }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: "17px", fontWeight: "700", color: "var(--text-primary)", lineHeight: "1.3" }}>
           {current.title}
         </h3>
 
@@ -155,7 +179,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
           ))}
         </ul>
 
-        <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px dashed var(--border)", fontSize: "11px", color: "var(--text-tertiary)", fontStyle: "italic" }}>
+        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px dashed var(--border)", fontSize: "11px", color: "var(--text-tertiary)", fontStyle: "italic" }}>
           {current.notes}
         </div>
       </div>
