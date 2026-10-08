@@ -2,7 +2,7 @@
  * Plugins Page — Third-party service connectors & plugins
  * Shopify, Notion, Airtable, GitHub, Slack, Google Workspace, etc.
  */
-import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
+import { getFirebaseIdToken, useAuth } from "@/_core/hooks/useAuth";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 import { integrations, type IntegrationDefinition } from "@shared/integrations";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,20 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
 
+  const { user } = useAuth();
+
   useEffect(() => {
+    // Restore cached connected list for current user immediately
+    const storageKey = user?.uid ? `hanna_connected_connectors_${user.uid}` : "hanna_connected_connectors_guest";
+    try {
+      const cached = localStorage.getItem(storageKey);
+      if (cached) {
+        setConnected(JSON.parse(cached));
+      }
+    } catch {
+      // Ignore storage errors
+    }
+
     const loadConnected = async () => {
       try {
         const token = await getFirebaseIdToken();
@@ -135,13 +148,31 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         if (!response.ok) return;
         const payload = await response.json();
         const records = payload?.[0]?.result?.data?.json;
-        if (Array.isArray(records)) setConnected(records.map((record: { connector: string }) => record.connector));
+        if (Array.isArray(records)) {
+          const connectorIds = records.map((record: { connector: string }) => record.connector);
+          setConnected(connectorIds);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(connectorIds));
+          } catch {
+            // Ignore quota error
+          }
+        }
       } catch {
-        // Anonymous visitors can still browse the catalog; only authenticated users see saved state.
+        // Anonymous visitors can still browse catalog
       }
     };
     void loadConnected();
-  }, []);
+  }, [user]);
+
+  const syncConnectedStorage = (newConnected: string[]) => {
+    setConnected(newConnected);
+    const storageKey = user?.uid ? `hanna_connected_connectors_${user.uid}` : "hanna_connected_connectors_guest";
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(newConnected));
+    } catch {
+      // Ignore quota error
+    }
+  };
 
   const filteredIntegrations = useMemo(() => {
     if (!searchQuery.trim()) return integrations;
@@ -182,7 +213,8 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         body: JSON.stringify({ 0: { json: { connector: integrationId } } }),
       });
       if (response.ok) {
-        setConnected(prev => prev.filter(id => id !== integrationId));
+        const updated = connected.filter(id => id !== integrationId);
+        syncConnectedStorage(updated);
         setToast(`${integrationName} disconnected`);
       }
     } catch {
@@ -223,7 +255,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
       });
       if (!response.ok) throw new Error("OAuth handshake failed");
       if (!connected.includes(activeModal.id)) {
-        setConnected(prev => [...prev, activeModal.id]);
+        syncConnectedStorage([...connected, activeModal.id]);
       }
       setToast(`${activeModal.name} authenticated via OAuth`);
       setActiveModal(null);

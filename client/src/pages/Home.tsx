@@ -181,7 +181,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [theme, setTheme] = useState<"light" | "dark" | "system">("dark");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [modelSubMenuOpen, setModelSubMenuOpen] = useState(false);
-  const [model, setModel] = useState("Hanna Lite (default)");
+  const [model, setModel] = useState<string>(() => {
+    return localStorage.getItem("hanna_selected_model") || "Hanna Lite (default)";
+  });
+
+  const handleSelectModel = (newModel: string) => {
+    setModel(newModel);
+    localStorage.setItem("hanna_selected_model", newModel);
+  };
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1342,7 +1349,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                             type="button"
                             className={`plus-menu-item ${model === mOption.id ? "is-enabled" : ""}`}
                             onClick={() => {
-                              setModel(mOption.id);
+                              handleSelectModel(mOption.id);
                               setModelSubMenuOpen(false);
                               setPlusMenuOpen(false);
                               showToast(`Model switched to ${mOption.label}`);
