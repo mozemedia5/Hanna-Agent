@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { parseAndVerifyFirebaseToken } from "./_core/context";
 import { saveConnectorCredential } from "./connectorDb";
+import { resolveCanonicalUserId } from "./userResolver";
 
 function stateSecret() {
   const secret = process.env.OAUTH_STATE_SECRET || process.env.CREDENTIAL_ENCRYPTION_KEY;
@@ -38,7 +39,6 @@ export function getCanonicalGoogleRedirectUri(): string {
   }
   return `${appBaseUrl()}/api/oauth/google/callback`;
 }
-
 
 export function generateOAuthState(uid: string, provider = "google"): string {
   const nonce = crypto.randomBytes(16).toString("hex");
@@ -105,11 +105,11 @@ export function verifyOAuthState(state: string, expectedProvider = "google", all
 
 /** Express handler to initiate Google OAuth Authorization Flow */
 export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: ExpressResponse): Promise<void> {
-  const token = req.query.id_token as string || req.headers.authorization?.slice(7);
+  const token = (req.query.id_token as string) || req.headers.authorization?.slice(7);
   const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
-  const uid = decoded?.user_id || decoded?.sub;
+  const rawUid = decoded?.user_id || decoded?.sub;
 
-  if (!uid) {
+  if (!rawUid) {
     res.status(401).json({ error: "Authentication required to initiate Google OAuth connection." });
     return;
   }
@@ -120,10 +120,12 @@ export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: Expre
     return;
   }
 
+  const canonicalUserId = await resolveCanonicalUserId(rawUid);
   const redirectUri = getCanonicalGoogleRedirectUri();
-  const state = generateOAuthState(uid, "google");
+  const state = generateOAuthState(canonicalUserId, "google");
 
   const scope = [
+    "openid",
     "https://www.googleapis.com/auth/userinfo.profile",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/drive.readonly",
@@ -183,11 +185,13 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
     verification = verifyOAuthState(stateFromCookie, "google");
   }
 
-  const { uid, valid } = verification;
-  if (!valid || !uid) {
+  const { uid: stateUserId, valid } = verification;
+  if (!valid || !stateUserId) {
     res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
     return;
   }
+
+  const canonicalUserId = await resolveCanonicalUserId(stateUserId);
 
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
@@ -231,6 +235,22 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
       return;
     }
 
+    // Perform Google Account UserInfo Verification Step
+    let googleEmail = "";
+    let googleSub = "";
+    try {
+      const userinfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (userinfoRes.ok) {
+        const userinfo = await userinfoRes.json();
+        googleEmail = userinfo.email || "";
+        googleSub = userinfo.sub || "";
+      }
+    } catch (err) {
+      console.warn("[GoogleOAuth] UserInfo verification warning:", err);
+    }
+
     const googleConnectors = [
       "google-workspace",
       "gmail",
@@ -241,13 +261,19 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
       "google-calendar",
     ] as const;
 
+    const nowIso = new Date().toISOString();
     for (const connectorId of googleConnectors) {
-      await saveConnectorCredential(uid, connectorId, {
+      await saveConnectorCredential(canonicalUserId, connectorId, {
         access_token: accessToken,
         refresh_token: refreshToken,
         token_type: tokenData.token_type || "Bearer",
         expires_in: String(tokenData.expires_in || 3600),
+        obtained_at: String(Date.now()),
+        account: googleEmail || "authorized_google_account",
+        google_user_id: googleSub,
         is_connected: "true",
+        verified: "true",
+        last_verified_at: nowIso,
       });
     }
 
@@ -272,9 +298,9 @@ export function getCanonicalGitHubRedirectUri(): string {
 export async function handleGitHubOAuthAuthorize(req: ExpressRequest, res: ExpressResponse): Promise<void> {
   const token = (req.query.id_token as string) || req.headers.authorization?.slice(7);
   const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
-  const uid = decoded?.user_id || decoded?.sub;
+  const rawUid = decoded?.user_id || decoded?.sub;
 
-  if (!uid) {
+  if (!rawUid) {
     res.status(401).json({ error: "Authentication required to initiate GitHub OAuth connection." });
     return;
   }
@@ -285,8 +311,9 @@ export async function handleGitHubOAuthAuthorize(req: ExpressRequest, res: Expre
     return;
   }
 
+  const canonicalUserId = await resolveCanonicalUserId(rawUid);
   const redirectUri = getCanonicalGitHubRedirectUri();
-  const state = generateOAuthState(uid, "github");
+  const state = generateOAuthState(canonicalUserId, "github");
   const scope = "repo read:user user:email";
 
   const authUrl = new URL("https://github.com/login/oauth/authorize");
@@ -319,13 +346,15 @@ export async function handleGitHubOAuthCallback(req: ExpressRequest, res: Expres
     return;
   }
 
-  const { uid, valid } = verifyOAuthState(state, "github");
-  if (!valid || !uid) {
+  const { uid: stateUserId, valid } = verifyOAuthState(state, "github");
+  if (!valid || !stateUserId) {
     res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
     return;
   }
 
-  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_ID;
+  const canonicalUserId = await resolveCanonicalUserId(stateUserId);
+
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_SECRET;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_OAUTH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
@@ -377,10 +406,11 @@ export async function handleGitHubOAuthCallback(req: ExpressRequest, res: Expres
       githubUsername = userData.login || "";
     }
 
-    await saveConnectorCredential(uid, "github", {
+    await saveConnectorCredential(canonicalUserId, "github", {
       access_token: accessToken,
       username: githubUsername,
       is_connected: "true",
+      verified: "true",
     });
 
     res.redirect(`${appBaseUrl()}/?connector_success=github`);

@@ -160,7 +160,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   };
 
   const handleConnect = async (integration: IntegrationDefinition) => {
-    if (integration.id === "google-workspace" || integration.id === "gmail") {
+    if (integration.id === "gmail" || integration.id.startsWith("google")) {
       const token = await getFirebaseIdToken();
       const authUrl = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
       window.location.href = authUrl;
@@ -196,7 +196,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     if (!activeModal) return;
     setSaving(true);
     try {
-      if (activeModal.id === "google-workspace" || activeModal.id === "gmail") {
+      if (activeModal.id === "gmail" || activeModal.id.startsWith("google")) {
         const token = await getFirebaseIdToken();
         window.location.href = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
         return;
