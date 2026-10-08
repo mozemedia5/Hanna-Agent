@@ -43,6 +43,30 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-firebase": ["firebase/app", "firebase/auth", "firebase/firestore"],
+            "vendor-recharts": ["recharts"],
+            "vendor-markdown": [
+              "react-markdown",
+              "remark-gfm",
+              "remark-math",
+              "rehype-katex",
+              "katex",
+              "highlight.js",
+            ],
+            "vendor-radix": [
+              "@radix-ui/react-dialog",
+              "@radix-ui/react-dropdown-menu",
+              "@radix-ui/react-select",
+              "@radix-ui/react-tabs",
+              "@radix-ui/react-tooltip",
+            ],
+            "vendor-lucide": ["lucide-react"],
+          },
+        },
+      },
     },
     define: {
       ...Object.fromEntries(
