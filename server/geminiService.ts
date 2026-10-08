@@ -140,6 +140,12 @@ async function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function getBackoffDelay(attempt: number, baseMs = 500, maxMs = 5000): number {
+  const exponential = baseMs * Math.pow(2, attempt - 1);
+  const jitter = Math.floor(Math.random() * 200);
+  return Math.min(exponential + jitter, maxMs);
+}
+
 function buildGeminiRequestBody(options: GeminiRequestOptions) {
   const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
@@ -235,7 +241,7 @@ export async function generateGeminiContent(
 
         if (classification.retryable && attempt < maxAttempts) {
           lastError = providerErr;
-          await delay(attempt === 1 ? 500 : 1000);
+          await delay(getBackoffDelay(attempt));
           continue;
         }
 
@@ -285,7 +291,7 @@ export async function generateGeminiContent(
         if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
           lastError = err;
           if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
-            await delay(attempt === 1 ? 500 : 1000);
+            await delay(getBackoffDelay(attempt));
             continue;
           }
         }
@@ -303,7 +309,7 @@ export async function generateGeminiContent(
         );
         if (attempt < maxAttempts) {
           lastError = timeoutErr;
-          await delay(attempt === 1 ? 500 : 1000);
+          await delay(getBackoffDelay(attempt));
           continue;
         }
         throw timeoutErr;
@@ -322,7 +328,7 @@ export async function generateGeminiContent(
 
       if (attempt < maxAttempts) {
         lastError = networkErr;
-        await delay(attempt === 1 ? 500 : 1000);
+        await delay(getBackoffDelay(attempt));
         continue;
       }
       throw networkErr;
@@ -397,7 +403,7 @@ export async function streamGeminiContent(
 
         if (classification.retryable && attempt < maxAttempts) {
           lastError = providerErr;
-          await delay(attempt === 1 ? 500 : 1000);
+          await delay(getBackoffDelay(attempt));
           continue;
         }
 
@@ -469,7 +475,7 @@ export async function streamGeminiContent(
         if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
           lastError = err;
           if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
-            await delay(attempt === 1 ? 500 : 1000);
+            await delay(getBackoffDelay(attempt));
             continue;
           }
         }
@@ -487,7 +493,7 @@ export async function streamGeminiContent(
         );
         if (attempt < maxAttempts) {
           lastError = timeoutErr;
-          await delay(attempt === 1 ? 500 : 1000);
+          await delay(getBackoffDelay(attempt));
           continue;
         }
         throw timeoutErr;
@@ -506,7 +512,7 @@ export async function streamGeminiContent(
 
       if (attempt < maxAttempts) {
         lastError = networkErr;
-        await delay(attempt === 1 ? 500 : 1000);
+        await delay(getBackoffDelay(attempt));
         continue;
       }
       throw networkErr;
@@ -580,7 +586,7 @@ export async function invokeGeminiToolTurn(
 
         if (classification.retryable && attempt < maxAttempts) {
           lastError = providerErr;
-          await delay(attempt === 1 ? 500 : 1000);
+          await delay(getBackoffDelay(attempt));
           continue;
         }
 
@@ -651,7 +657,7 @@ export async function invokeGeminiToolTurn(
         if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
           lastError = err;
           if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
-            await delay(attempt === 1 ? 500 : 1000);
+            await delay(getBackoffDelay(attempt));
             continue;
           }
         }
@@ -669,7 +675,7 @@ export async function invokeGeminiToolTurn(
         );
         if (attempt < maxAttempts) {
           lastError = timeoutErr;
-          await delay(attempt === 1 ? 500 : 1000);
+          await delay(getBackoffDelay(attempt));
           continue;
         }
         throw timeoutErr;
@@ -688,7 +694,7 @@ export async function invokeGeminiToolTurn(
 
       if (attempt < maxAttempts) {
         lastError = networkErr;
-        await delay(attempt === 1 ? 500 : 1000);
+        await delay(getBackoffDelay(attempt));
         continue;
       }
       throw networkErr;

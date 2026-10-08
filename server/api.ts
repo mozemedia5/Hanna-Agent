@@ -160,6 +160,40 @@ app.all(["/api/mcp", "/mcp"], async (req, res) => {
   res.json(result);
 });
 
+// Vercel Cron Endpoint for Scheduled Task Execution
+app.all(["/api/cron/execute-tasks", "/cron/execute-tasks"], async (req, res) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = (req.headers["authorization"] as string) || "";
+  const cronHeader = req.headers["x-vercel-cron"];
+  const queryCronSecret = typeof req.query.cronSecret === "string" ? req.query.cronSecret : undefined;
+
+  const isAuthorized =
+    Boolean(cronHeader) ||
+    (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+    (cronSecret && queryCronSecret === cronSecret);
+
+  if (!isAuthorized) {
+    return res.status(401).json({ error: "Unauthorized cron execution request." });
+  }
+
+  try {
+    const { runDueTasksAcrossAllUsers } = await import("./taskDb");
+    const { executeHannaRequest } = await import("./routers");
+
+    const result = await runDueTasksAcrossAllUsers(async (task) => {
+      const prompt = String(task.parameters?.prompt || task.description || task.title);
+      const numericUserId = typeof task.userId === "number" ? task.userId : undefined;
+      const resText = await executeHannaRequest(prompt, "Scheduled Task Execution", numericUserId);
+      return resText.text || "Scheduled task executed successfully.";
+    });
+
+    return res.json({ success: true, executedCount: result.executedCount, results: result.results });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Cron task execution failed";
+    return res.status(500).json({ error: msg });
+  }
+});
+
 const trpcMiddleware: RequestHandler = createExpressMiddleware({
   router: appRouter,
   createContext,

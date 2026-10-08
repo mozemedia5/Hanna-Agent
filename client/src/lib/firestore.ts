@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   orderBy,
@@ -113,7 +114,6 @@ export async function deleteUserProject(projectId: string): Promise<void> {
   try {
     const { db, uid } = requireStore();
     const ref = doc(db, "users", uid, "projects", projectId);
-    const { deleteDoc } = await import("firebase/firestore");
     await deleteDoc(ref);
   } catch {
     // Offline or session error fallback
@@ -124,7 +124,6 @@ export async function deleteUserConversation(conversationId: string) {
   try {
     const { db, uid } = requireStore();
     const ref = doc(db, "users", uid, "conversations", conversationId);
-    const { deleteDoc } = await import("firebase/firestore");
     await deleteDoc(ref);
   } catch {
     // Session offline or unauthenticated fallback
