@@ -743,23 +743,21 @@ I have analyzed the provided image/document content and extracted key details:
 3. **Recommended Actions**
    - Specify any additional queries or automated workflows you would like Hanna to execute based on this document.`;
   } else if (/(draw|generate an image|create an image|make an image|generate a picture|create a picture|design a logo|generate a poster|paint|picture of|render an image|visual of)/.test(lower)) {
-    const cleanPrompt = prompt
-      .replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of|render an image of|visual of)/gi, "")
-      .trim() || prompt;
-    const enhancedPrompt = `${cleanPrompt}, high quality, photorealistic, 8k resolution, highly detailed, crisp focus, vibrant studio lighting, cinematic composition`;
-    const seed = Math.floor(Math.random() * 100000);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    const { optimizeImagePrompt } = require("./ai/promptOptimizer");
+    const optimized = optimizeImagePrompt(prompt);
 
     responseBody = `### Hanna Image Generation
 
 Here is the high-quality visual synthesized directly from your prompt:
 
-![${cleanPrompt}](${imageUrl})
+![${optimized.rawPrompt}](${optimized.imageUrl}#expandedPrompt=${encodeURIComponent(optimized.expandedPrompt)}&seed=${optimized.seed})
 
 **Generation Metadata:**
-- **Prompt:** ${cleanPrompt}
-- **Aspect Ratio / Resolution:** 1024x1024 (1:1 Square)
-- **Engine:** Hanna Image Synthesis Engine
+- **Raw Prompt:** ${optimized.rawPrompt}
+- **Expanded Prompt:** ${optimized.expandedPrompt}
+- **Aspect Ratio:** ${optimized.aspectRatio}
+- **Seed:** ${optimized.seed}
+- **Engine:** Hanna Image Synthesis Pipeline (ChatGPT-Style)
 - **Status:** Rendered successfully`;
   } else if (/(slide|presentation|deck|google slides|powerpoint|create slides|build a deck|generate slides)/.test(lower)) {
     const topic = prompt
