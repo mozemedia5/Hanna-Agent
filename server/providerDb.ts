@@ -10,6 +10,7 @@ import {
   getStoredProviderCredentials,
   saveStoredProviderCredential,
 } from "./persistentStore";
+import { resolveCanonicalUserId } from "./userResolver";
 
 export const providerCatalog = [
   {
@@ -221,8 +222,9 @@ export type CredentialRecord = {
 const keyFor = (userId: number | string, provider: string) => `${userId}:${provider}`;
 
 export async function listProviderCredentials(userId: number | string) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const all = getStoredProviderCredentials();
-  const userPrefix = `${userId}:`;
+  const userPrefix = `${canonicalUserId}:`;
 
   return Object.entries(all)
     .filter(([k]) => k.startsWith(userPrefix))
@@ -241,8 +243,9 @@ export async function getProviderCredentialById(
   userId: number | string,
   provider: string
 ) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const all = getStoredProviderCredentials();
-  const row = all[keyFor(userId, provider)] as CredentialRecord | undefined;
+  const row = all[keyFor(canonicalUserId, provider)] as CredentialRecord | undefined;
   if (!row || !row.isEnabled) return undefined;
 
   const resolved = resolveProviderAndModel(row.provider);
@@ -264,11 +267,12 @@ export async function getProviderCredentialForRequest(
   prompt: string,
   requestedProviderOrModel?: string
 ) {
+  const canonicalUserId = userId !== undefined ? await resolveCanonicalUserId(userId) : undefined;
   const resolved = resolveProviderAndModel(requestedProviderOrModel);
 
   // If user has a stored custom provider key, use it
-  if (userId && resolved.isCustom) {
-    const userCred = await getProviderCredentialById(userId, resolved.provider);
+  if (canonicalUserId && resolved.isCustom) {
+    const userCred = await getProviderCredentialById(canonicalUserId, resolved.provider);
     if (userCred && userCred.apiKey) {
       return {
         provider: resolved.provider,
@@ -289,7 +293,6 @@ export async function getProviderCredentialForRequest(
         endpoint: "",
       };
     }
-    // Groq requested but key missing -> Return explicit custom error status instead of corrupting Gemini with llama models
     return {
       provider: "llama",
       apiKey: "",
@@ -328,6 +331,7 @@ export async function upsertProviderCredential(
   apiKey: string,
   endpoint = ""
 ) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const record: CredentialRecord = {
     provider,
     displayName,
@@ -338,7 +342,7 @@ export async function upsertProviderCredential(
     updatedAt: new Date(),
   };
 
-  saveStoredProviderCredential(keyFor(userId, provider), record);
+  saveStoredProviderCredential(keyFor(canonicalUserId, provider), record);
 
   return {
     provider,
@@ -352,6 +356,7 @@ export async function deleteProviderCredential(
   userId: number | string,
   provider: string
 ) {
-  deleteStoredProviderCredential(keyFor(userId, provider));
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  deleteStoredProviderCredential(keyFor(canonicalUserId, provider));
   return { success: true } as const;
 }

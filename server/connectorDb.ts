@@ -10,6 +10,7 @@ import {
   getStoredConnectorCredentials,
   saveStoredConnectorCredential,
 } from "./persistentStore";
+import { resolveCanonicalUserId } from "./userResolver";
 
 export type { ConnectorId };
 
@@ -113,8 +114,18 @@ const approvals = new Map<string, ApprovalRequest>();
 const keyFor = (userId: string | number, connector: ConnectorId) =>
   `${userId}:${connector}`;
 
-export async function saveConnectorCredential(
-  userId: string | number,
+const GOOGLE_FAMILY: ConnectorId[] = [
+  "google-workspace",
+  "gmail",
+  "google-drive",
+  "google-docs",
+  "google-sheets",
+  "google-slides",
+  "google-calendar",
+];
+
+async function saveConnectorCredentialInternal(
+  canonicalUserId: string,
   connector: ConnectorId,
   values: ConnectorValues
 ) {
@@ -138,51 +149,76 @@ export async function saveConnectorCredential(
   const firestore = (await import("./firestore")).getAdminFirestore();
   if (firestore) {
     try {
-      await firestore.collection("users").doc(String(userId)).collection("connectors").doc(connector).set({
-        encryptedValues: record.encryptedValues,
-        updatedAt: record.updatedAt,
-      });
+      await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("connectors")
+        .doc(connector)
+        .set({
+          encryptedValues: record.encryptedValues,
+          updatedAt: record.updatedAt,
+        });
     } catch (err) {
-      console.warn("[ConnectorDb] Firestore save failed, falling back to local store:", err);
+      console.warn("[ConnectorDb] Firestore save failed:", err);
     }
   }
 
-  saveStoredConnectorCredential(keyFor(userId, connector), record);
+  saveStoredConnectorCredential(keyFor(canonicalUserId, connector), record);
   return { connector, saved: true } as const;
+}
+
+export async function saveConnectorCredential(
+  userId: string | number,
+  connector: ConnectorId,
+  values: ConnectorValues
+) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  return saveConnectorCredentialInternal(canonicalUserId, connector, values);
 }
 
 export async function listConnectorCredentials(
   userId: string | number
 ): Promise<ConnectorSummary[]> {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+
   const firestore = (await import("./firestore")).getAdminFirestore();
   if (firestore) {
     try {
-      const snapshot = await firestore.collection("users").doc(String(userId)).collection("connectors").get();
-      return snapshot.docs.map((doc: any) => {
-        const connector = doc.id as ConnectorId;
-        const row = doc.data() as StoredCredential;
-        const values = JSON.parse(
-          decryptCredential(row.encryptedValues)
-        ) as ConnectorValues;
-        return {
-          connector,
-          fields: Object.fromEntries(
-            Object.keys(values).map(field => [
-              field,
-              credentialHint(values[field] ?? ""),
-            ])
-          ),
-          is_connected: values.is_connected !== "false",
-          updatedAt: row.updatedAt ? new Date((row.updatedAt as any).toDate ? (row.updatedAt as any).toDate() : row.updatedAt) : new Date(),
-        };
-      });
+      const snapshot = await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("connectors")
+        .get();
+
+      if (!snapshot.empty) {
+        return snapshot.docs.map((doc: any) => {
+          const connector = doc.id as ConnectorId;
+          const row = doc.data() as StoredCredential;
+          const values = JSON.parse(
+            decryptCredential(row.encryptedValues)
+          ) as ConnectorValues;
+          return {
+            connector,
+            fields: Object.fromEntries(
+              Object.keys(values).map(field => [
+                field,
+                credentialHint(values[field] ?? ""),
+              ])
+            ),
+            is_connected: values.is_connected !== "false",
+            updatedAt: row.updatedAt
+              ? new Date((row.updatedAt as any).toDate ? (row.updatedAt as any).toDate() : row.updatedAt)
+              : new Date(),
+          };
+        });
+      }
     } catch (err) {
-      console.warn("[ConnectorDb] Firestore list failed, falling back to local store:", err);
+      console.warn("[ConnectorDb] Firestore list failed:", err);
     }
   }
 
   const all = getStoredConnectorCredentials();
-  const userPrefix = `${userId}:`;
+  const userPrefix = `${canonicalUserId}:`;
 
   return Object.entries(all)
     .filter(([key]) => key.startsWith(userPrefix))
@@ -205,76 +241,154 @@ export async function listConnectorCredentials(
     });
 }
 
-const GOOGLE_FAMILY: ConnectorId[] = [
-  "google-workspace",
-  "gmail",
-  "google-drive",
-  "google-docs",
-  "google-sheets",
-  "google-slides",
-  "google-calendar",
-];
+async function ensureFreshGoogleToken(
+  canonicalUserId: string,
+  credential: ConnectorCredential
+): Promise<ConnectorCredential> {
+  const { access_token, refresh_token, obtained_at, expires_in } = credential.values;
+  if (!access_token || !refresh_token) return credential;
+
+  const obtainedMs = Number.parseInt(obtained_at || "0", 10);
+  const expiresSec = Number.parseInt(expires_in || "3600", 10);
+  const expiresAtMs = obtainedMs + expiresSec * 1000;
+  const nowMs = Date.now();
+
+  // Return existing token if it remains valid for > 5 minutes
+  if (obtainedMs > 0 && expiresAtMs - nowMs > 300_000) {
+    return credential;
+  }
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return credential;
+  }
+
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token,
+        grant_type: "refresh_token",
+      }),
+    });
+
+    if (!response.ok) {
+      return credential;
+    }
+
+    const tokenData = await response.json();
+    if (tokenData.access_token) {
+      const newValues = {
+        ...credential.values,
+        access_token: tokenData.access_token,
+        expires_in: String(tokenData.expires_in || expiresSec),
+        obtained_at: String(Date.now()),
+        ...(tokenData.refresh_token ? { refresh_token: tokenData.refresh_token } : {}),
+      };
+
+      for (const googleConn of GOOGLE_FAMILY) {
+        await saveConnectorCredentialInternal(canonicalUserId, googleConn, newValues);
+      }
+
+      return {
+        connector: credential.connector,
+        values: newValues,
+      };
+    }
+  } catch (err) {
+    console.warn("[GoogleTokenRefresh] Token refresh failed:", err);
+  }
+
+  return credential;
+}
 
 export async function getConnectorCredential(
   userId: string | number,
   connector: ConnectorId
 ): Promise<ConnectorCredential | undefined> {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const isGoogle = GOOGLE_FAMILY.includes(connector);
   const connectorsToTry = isGoogle
     ? [connector, ...GOOGLE_FAMILY.filter(c => c !== connector)]
     : [connector];
 
   const firestore = (await import("./firestore")).getAdminFirestore();
+  let foundCred: ConnectorCredential | undefined;
+
   if (firestore) {
     try {
       for (const conn of connectorsToTry) {
-        const doc = await firestore.collection("users").doc(String(userId)).collection("connectors").doc(conn).get();
+        const doc = await firestore
+          .collection("users")
+          .doc(canonicalUserId)
+          .collection("connectors")
+          .doc(conn)
+          .get();
+
         if (doc.exists) {
           const row = doc.data() as StoredCredential;
-          return {
+          foundCred = {
             connector,
             values: JSON.parse(
               decryptCredential(row.encryptedValues)
             ) as ConnectorValues,
           };
+          break;
         }
       }
-      return undefined;
     } catch (err) {
-      console.warn("[ConnectorDb] Firestore get failed, falling back to local store:", err);
+      console.warn("[ConnectorDb] Firestore get failed:", err);
     }
   }
 
-  const all = getStoredConnectorCredentials();
-  for (const conn of connectorsToTry) {
-    const row = all[keyFor(userId, conn)] as StoredCredential | undefined;
-    if (row) {
-      return {
-        connector,
-        values: JSON.parse(
-          decryptCredential(row.encryptedValues)
-        ) as ConnectorValues,
-      };
+  if (!foundCred) {
+    const all = getStoredConnectorCredentials();
+    for (const conn of connectorsToTry) {
+      const row = all[keyFor(canonicalUserId, conn)] as StoredCredential | undefined;
+      if (row) {
+        foundCred = {
+          connector,
+          values: JSON.parse(
+            decryptCredential(row.encryptedValues)
+          ) as ConnectorValues,
+        };
+        break;
+      }
     }
   }
 
-  return undefined;
+  if (foundCred && isGoogle && foundCred.values.refresh_token) {
+    foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred);
+  }
+
+  return foundCred;
 }
 
 export async function deleteConnectorCredential(
   userId: string | number,
   connector: ConnectorId
 ) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const firestore = (await import("./firestore")).getAdminFirestore();
   if (firestore) {
     try {
-      await firestore.collection("users").doc(String(userId)).collection("connectors").doc(connector).delete();
+      await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("connectors")
+        .doc(connector)
+        .delete();
     } catch (err) {
       console.warn("[ConnectorDb] Firestore delete failed:", err);
     }
   }
 
-  deleteStoredConnectorCredential(keyFor(userId, connector));
+  deleteStoredConnectorCredential(keyFor(canonicalUserId, connector));
   return { success: true } as const;
 }
 

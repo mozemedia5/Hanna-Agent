@@ -7,7 +7,7 @@ import {
   createDefaultToolRegistry,
   runAgentLoop,
 } from "../../server/agentCore";
-import { getConnectorCredential, listConnectorCredentials } from "../../server/connectorDb";
+import { getConnectorCredential, listConnectorCredentials, type ConnectorCredential, type ConnectorAction } from "../../server/connectorDb";
 import { executeConnectorAction } from "../../server/connectorAdapters";
 import { listMcpTools } from "../../server/mcpServer";
 import { getProviderCredentialForRequest } from "../../server/providerDb";
@@ -15,6 +15,7 @@ import { invokeGeminiAgentTurn, invokeUserProvider, streamUserProvider } from ".
 import { GeminiProviderError, sanitizeErrorText } from "../../server/geminiService";
 import { classifyProviderError, isFallbackEligible, markProviderCooldown } from "../../server/ai/providerFallback";
 import { consumeDailyTokens, type HannaTier } from "../../server/usage";
+import { resolveCanonicalUserId } from "../../server/userResolver";
 
 export type IntentRouteType = "route_a" | "route_b";
 
@@ -109,20 +110,16 @@ export function analyzePromptIntent(
 
 /**
  * Route A: Standard Streaming Handler
- * Handles single-pass direct streaming SSE connection.
- * Includes Action Interceptor Handover: if an implicit external action is detected,
- * throws a pivot event to transfer execution window directly to Route B.
  */
 export async function executeRouteAStream(
   prompt: string,
   context: string | undefined,
-  userId: number | undefined,
+  userId: string | number | undefined,
   model: string | undefined,
   sendSSE: (event: string, data: unknown) => void
 ): Promise<void> {
   const lower = prompt.toLowerCase();
 
-  // Action Interceptor Pivot Check
   if (/(connect|execute|update|send slack|post message|shopify store|deploy vercel|create ad)/.test(lower)) {
     sendSSE("pivot", {
       targetRoute: "route_b",
@@ -197,7 +194,6 @@ export async function executeRouteAStream(
       });
       return;
     } catch (primaryErr) {
-      // Check fallback eligibility
       const classified = classifyProviderError(primaryErr);
       const isCustomExplicitSelection = model && model !== "Hanna Default" && model !== "Hanna Lite" && model !== "Hanna Pro" && model !== "automatic" && model !== "default";
 
@@ -245,7 +241,6 @@ export async function executeRouteAStream(
         }
       }
 
-      // If explicit selection or fallback also exhausted
       if (primaryErr instanceof GeminiProviderError) {
         sendSSE("error", primaryErr.toJSON());
       } else {
@@ -272,14 +267,12 @@ export async function executeRouteAStream(
 }
 
 /**
- * Route B: Agentic Loop (ReAct / Coordinator Pattern) SSE Handler
- * State-managed orchestrator loop (Plan -> Act -> Observe -> Reflect)
- * emitting step-by-step trace events, tool executions, and dynamic markdown breakdowns.
+ * Route B: Agentic Loop SSE Handler
  */
 export async function executeRouteBLoop(
   prompt: string,
   context: string | undefined,
-  userId: number | undefined,
+  userId: string | number | undefined,
   model: string | undefined,
   sendSSE: (event: string, data: unknown) => void
 ): Promise<void> {
@@ -289,7 +282,8 @@ export async function executeRouteBLoop(
   sendSSE("plan", { plan: basePlan });
 
   try {
-    const provider = await getProviderCredentialForRequest(userId, prompt, model);
+    const canonicalUserId = userId ? await resolveCanonicalUserId(userId) : undefined;
+    const provider = await getProviderCredentialForRequest(canonicalUserId, prompt, model);
     if (!provider.apiKey) {
       sendSSE("error", {
         success: false,
@@ -301,10 +295,10 @@ export async function executeRouteBLoop(
       return;
     }
 
-    const connectedSummaries = userId ? await listConnectorCredentials(userId) : [];
-    const connectedCredentials = userId
+    const connectedSummaries = canonicalUserId ? await listConnectorCredentials(canonicalUserId) : [];
+    const connectedCredentials = canonicalUserId
       ? (await Promise.all(
-          connectedSummaries.map(s => getConnectorCredential(userId, s.connector))
+          connectedSummaries.map(s => getConnectorCredential(canonicalUserId, s.connector))
         )).filter((c): c is NonNullable<typeof c> => Boolean(c))
       : [];
 
@@ -315,8 +309,9 @@ export async function executeRouteBLoop(
       const cred = connectedCredentials.find(c => c.connector === summary.connector);
       if (!cred) continue;
 
+      // Register connector execution wrapper tool
       registry.register({
-        id: `connector.${summary.connector}.execute`,
+        id: `connector_${summary.connector}_execute`,
         label: `${summary.connector} Execution Wrapper`,
         description: `Execute actions in ${summary.connector} with secure user OAuth token injection.`,
         category: "connector",
@@ -326,7 +321,7 @@ export async function executeRouteBLoop(
         availability: "available",
         execute: async (args) => {
           sendSSE("tool_start", { connector: summary.connector, action: args.action || "execute", args });
-          const actionName = String(args.action || "list_products");
+          const actionName = String(args.action || (summary.connector.startsWith("google") ? "drive_search" : "list_products"));
           const result = await executeConnectorAction(cred, {
             connector: summary.connector,
             action: actionName,
@@ -336,6 +331,32 @@ export async function executeRouteBLoop(
           return result;
         },
       });
+
+      // Register specific Google tools if Google connector is active
+      if (summary.connector.startsWith("google") || summary.connector === "gmail") {
+        const defaultAction = summary.connector === "gmail" ? "mail_search" : summary.connector === "google-calendar" ? "calendar_read" : "drive_search";
+        const toolId = `connector_${summary.connector}_${defaultAction}`;
+        registry.register({
+          id: toolId,
+          label: `${summary.connector} ${defaultAction.replaceAll("_", " ")}`,
+          description: `Search and interact with ${summary.connector} for workspace queries.`,
+          category: "connector",
+          provider: summary.connector,
+          requiresApproval: false,
+          scopes: [`${summary.connector}:${defaultAction}`],
+          availability: "available",
+          execute: async (args) => {
+            sendSSE("tool_start", { connector: summary.connector, action: defaultAction, args });
+            const result = await executeConnectorAction(cred, {
+              connector: summary.connector,
+              action: defaultAction,
+              parameters: args,
+            } as ConnectorAction);
+            sendSSE("tool_result", { connector: summary.connector, action: defaultAction, result });
+            return result;
+          },
+        });
+      }
     }
 
     sendSSE("trace", { stage: "understand", detail: "Intent analyzed and scoped tools loaded." });
@@ -346,7 +367,7 @@ export async function executeRouteBLoop(
         userMessage: prompt,
         history: context ? [context] : [],
         requestId: `req_agent_${Date.now()}`,
-        userId,
+        userId: canonicalUserId as unknown as number,
       },
       async state => {
         sendSSE("trace", { stage: "decide", detail: `Executing step ${state.step + 1} decision evaluation...` });
@@ -508,7 +529,8 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
     return;
   }
 
-  const firebaseUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+  const rawUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+  const canonicalUserId = await resolveCanonicalUserId(rawUid);
 
   const { prompt, context, model, agenticMode } = req.body || {};
 
@@ -520,7 +542,7 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
   // Check 2500 daily credit allowance before starting AI execution
   const tier: HannaTier = model === "Hanna Pro" ? "pro" : "lite";
   const requestedTokens = Math.ceil(prompt.length / 4);
-  const quota = consumeDailyTokens(firebaseUid, requestedTokens, tier);
+  const quota = consumeDailyTokens(canonicalUserId, requestedTokens, tier);
 
   if (!quota.allowed) {
     res.status(429).json({
@@ -539,15 +561,15 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  const connectedSummaries = await listConnectorCredentials(firebaseUid);
+  const connectedSummaries = await listConnectorCredentials(canonicalUserId);
   const intent = analyzePromptIntent(prompt, connectedSummaries.length > 0, Boolean(agenticMode));
 
   sendSSE("intent", intent);
 
   if (intent.route === "route_a") {
-    await executeRouteAStream(prompt, context, firebaseUid as unknown as number, model, sendSSE);
+    await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE);
   } else {
-    await executeRouteBLoop(prompt, context, firebaseUid as unknown as number, model, sendSSE);
+    await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE);
   }
 
   res.end();
@@ -566,7 +588,8 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
 
-  const firebaseUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+  const rawUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
+  const canonicalUserId = await resolveCanonicalUserId(rawUid);
 
   const body = await req.json().catch(() => ({}));
   const { prompt, context, model, agenticMode } = body || {};
@@ -581,7 +604,7 @@ export async function POST(req: Request): Promise<Response> {
   // Check 2500 daily credit allowance before starting AI execution
   const tier: HannaTier = model === "Hanna Pro" ? "pro" : "lite";
   const requestedTokens = Math.ceil(prompt.length / 4);
-  const quota = consumeDailyTokens(firebaseUid, requestedTokens, tier);
+  const quota = consumeDailyTokens(canonicalUserId, requestedTokens, tier);
 
   if (!quota.allowed) {
     return new Response(
@@ -599,15 +622,15 @@ export async function POST(req: Request): Promise<Response> {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
 
-      const connectedSummaries = await listConnectorCredentials(firebaseUid);
+      const connectedSummaries = await listConnectorCredentials(canonicalUserId);
       const intent = analyzePromptIntent(prompt, connectedSummaries.length > 0, Boolean(agenticMode));
 
       sendSSE("intent", intent);
 
       if (intent.route === "route_a") {
-        await executeRouteAStream(prompt, context, firebaseUid as unknown as number, model, sendSSE);
+        await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE);
       } else {
-        await executeRouteBLoop(prompt, context, firebaseUid as unknown as number, model, sendSSE);
+        await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE);
       }
 
       controller.close();

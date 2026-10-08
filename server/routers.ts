@@ -39,6 +39,7 @@ import {
   type ConnectorCredential,
   type ConnectorId,
 } from "./connectorDb";
+import { resolveCanonicalUserId } from "./userResolver";
 import {
   deleteConversation,
   getAnalytics,
@@ -140,7 +141,8 @@ export async function executeHannaRequest(
   clientIp?: string,
   agenticModeInput: boolean = false
 ) {
-  const connectedSummariesForIntent = userId ? await listConnectorCredentials(userId) : [];
+  const canonicalUserId = userId !== undefined ? await resolveCanonicalUserId(userId) : undefined;
+  const connectedSummariesForIntent = canonicalUserId ? await listConnectorCredentials(canonicalUserId) : [];
   const intent = analyzePromptIntent(prompt, connectedSummariesForIntent.length > 0, agenticModeInput);
   const agenticMode = intent.route === "route_b";
 
@@ -158,16 +160,16 @@ export async function executeHannaRequest(
     }
     try {
       const provider = await getProviderCredentialForRequest(
-        userId,
+        canonicalUserId,
         prompt,
         requestedModel
       );
       const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-      const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
+      const quotaKey = canonicalUserId ? String(canonicalUserId) : `anon_${clientIp || "guest"}`;
       const quota = consumeDailyTokens(quotaKey, Math.ceil(prompt.length / 4), tier);
       if (!quota.allowed) {
         throw new Error(
-          userId
+          canonicalUserId
             ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
             : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
         );
@@ -178,10 +180,10 @@ export async function executeHannaRequest(
         );
       }
 
-      const connectedSummaries = userId ? await listConnectorCredentials(userId) : [];
-      const connectedCredentials = userId
+      const connectedSummaries = canonicalUserId ? await listConnectorCredentials(canonicalUserId) : [];
+      const connectedCredentials = canonicalUserId
         ? (await Promise.all(
-            connectedSummaries.map(summary => getConnectorCredential(userId, summary.connector))
+            connectedSummaries.map(summary => getConnectorCredential(canonicalUserId, summary.connector))
           )).filter((credential): credential is ConnectorCredential => Boolean(credential))
         : [];
       const registry = buildConnectedAgentRegistry(connectedCredentials);
@@ -271,14 +273,14 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
   // Normal Direct Chat Mode
   try {
     const provider = await getProviderCredentialForRequest(
-      userId,
+      canonicalUserId,
       prompt,
       requestedModel
     );
 
     // Auto-select connected connector tools for user if connected, even if not explicitly invoked in prompt
-    if (userId) {
-      const connectedConnectors = await listConnectorCredentials(userId);
+    if (canonicalUserId) {
+      const connectedConnectors = await listConnectorCredentials(canonicalUserId);
       if (connectedConnectors.length > 0) {
         const autoConnectorList = connectedConnectors
           .map(c => {
@@ -293,7 +295,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
     }
 
     const tier: HannaTier = requestedModel === "Hanna Pro" ? "pro" : "lite";
-    const quotaKey = userId ? String(userId) : `anon_${clientIp || "guest"}`;
+    const quotaKey = canonicalUserId ? String(canonicalUserId) : `anon_${clientIp || "guest"}`;
     const quota = consumeDailyTokens(
       quotaKey,
       Math.ceil(prompt.length / 4),
@@ -302,7 +304,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
 
     if (!quota.allowed) {
       throw new Error(
-        userId
+        canonicalUserId
           ? `Daily ${tier === "pro" ? "Hanna Pro" : "Hanna Lite"} token limit reached. Connect your own model to continue. Your allowance refreshes at ${quota.resetAt}.`
           : `Daily token limit reached for unauthenticated requests. Sign in or connect your own provider key to continue. Allowance refreshes at ${quota.resetAt}.`
       );
@@ -313,10 +315,10 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       );
 
     let enrichedContext = context || "";
-    if (userId) {
-      const connectedProviders = await listProviderCredentials(userId);
-      const connectedConnectors = await listConnectorCredentials(userId);
-      const userProfile = await getProfile(String(userId)).catch(() => null);
+    if (canonicalUserId) {
+      const connectedProviders = await listProviderCredentials(canonicalUserId);
+      const connectedConnectors = await listConnectorCredentials(canonicalUserId);
+      const userProfile = await getProfile(String(canonicalUserId)).catch(() => null);
 
       const providerNames = connectedProviders.map(
         p => p.displayName || p.provider
