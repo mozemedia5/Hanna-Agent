@@ -108,21 +108,26 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
   // Fetch existing scheduled tasks
   const loadTasks = async () => {
     try {
-      const response = await fetch("/api/trpc/hanna.listScheduledTasks?batch=1");
+      const token = await getFirebaseIdToken();
+      const response = await fetch("/api/trpc/hanna.listScheduledTasks?batch=1", {
+        headers: {
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (!response.ok) return;
       const payload = await response.json();
       const rawTasks = payload?.[0]?.result?.data?.json?.tasks;
       if (Array.isArray(rawTasks)) {
         const mapped = rawTasks.map((t: any) => ({
-          id: t.id || `task_${Math.random()}`,
+          id: t.id,
           title: t.title || "Scheduled Task",
           prompt: t.description || t.parameters?.prompt || "",
-          executionTime: t.parameters?.executionTime || t.cronOrSchedule || "Soon",
-          repeat: t.parameters?.repeat || "once",
-          tools: t.parameters?.tools || [],
-          imageUrl: t.parameters?.imageUrl,
+          executionTime: t.parameters?.executionTime || t.executionTime || t.nextRunAt || "Soon",
+          repeat: t.repeat || t.parameters?.repeat || "once",
+          tools: t.tools || t.parameters?.tools || [],
+          imageUrl: t.imageUrl || t.parameters?.imageUrl,
           status: t.status || "scheduled",
-          createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          createdAt: t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }));
         setScheduledTasks(mapped);
       }
@@ -174,51 +179,70 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
     }
     setSubmitting(true);
     try {
+      const token = await getFirebaseIdToken();
+      const isoExecutionTime = taskDate ? new Date(taskDate).toISOString() : new Date().toISOString();
+
       const response = await fetch("/api/trpc/hanna.scheduleTask?batch=1", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           "0": {
-            title: taskTitle.trim(),
-            prompt: taskPrompt.trim(),
-            executionTime: taskDate || new Date().toISOString(),
-            repeat: taskRepeat,
-            tools: selectedConnectors,
-            imageUrl: taskImageUrl || undefined,
+            json: {
+              title: taskTitle.trim(),
+              prompt: taskPrompt.trim(),
+              executionTime: isoExecutionTime,
+              repeat: taskRepeat,
+              tools: selectedConnectors,
+              imageUrl: taskImageUrl || undefined,
+            },
           },
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to schedule task");
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMsg = payload?.[0]?.error?.json?.message || payload?.error || "Failed to schedule task";
+        throw new Error(errorMsg);
+      }
+
+      const createdServerTask = payload?.[0]?.result?.data?.json?.task;
+      if (!createdServerTask) {
+        throw new Error("Server returned invalid response for scheduled task.");
+      }
+
       showToast(`Task "${taskTitle.trim()}" scheduled successfully!`);
 
-      // Push real notification
       pushWorkspaceNotification(
         `Task Scheduled: ${taskTitle.trim()}`,
         `Scheduled for ${taskDate || "immediate execution"} using ${selectedConnectors.join(", ") || "standard operator tools"}.`,
         "Scheduled Task"
       );
 
-      // Local optimistic update
       const newTask: ScheduledTask = {
-        id: `task_${Date.now()}`,
-        title: taskTitle.trim(),
-        prompt: taskPrompt.trim(),
-        executionTime: taskDate || "Scheduled",
-        repeat: taskRepeat,
-        tools: [...selectedConnectors],
-        imageUrl: taskImageUrl || undefined,
-        status: "scheduled",
-        createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        id: createdServerTask.id,
+        title: createdServerTask.title,
+        prompt: createdServerTask.description || taskPrompt.trim(),
+        executionTime: createdServerTask.parameters?.executionTime || createdServerTask.executionTime || taskDate || "Scheduled",
+        repeat: createdServerTask.repeat || taskRepeat,
+        tools: createdServerTask.tools || [...selectedConnectors],
+        imageUrl: createdServerTask.imageUrl || taskImageUrl || undefined,
+        status: createdServerTask.status || "scheduled",
+        createdAt: createdServerTask.createdAt ? new Date(createdServerTask.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
+
       setScheduledTasks(prev => [newTask, ...prev]);
 
       setTaskTitle("");
       setTaskPrompt("");
       setTaskDate("");
       setTaskImageUrl(null);
-    } catch {
-      showToast("Error scheduling task. Please check server connection.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error scheduling task";
+      showToast(`Error: ${msg}`);
     } finally {
       setSubmitting(false);
     }
@@ -743,18 +767,25 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                                 ...(token ? { authorization: `Bearer ${token}` } : {}),
                               },
                               body: JSON.stringify({
-                                "0": { taskId: task.id },
+                                "0": {
+                                  json: { taskId: task.id },
+                                },
                               }),
                             });
-                            if (!response.ok) throw new Error("Execution failed");
-                            const payload = await response.json();
+
+                            const payload = await response.json().catch(() => null);
+                            if (!response.ok) {
+                              const errorMsg = payload?.[0]?.error?.json?.message || payload?.error || "Execution failed";
+                              throw new Error(errorMsg);
+                            }
+
                             const resText = payload?.[0]?.result?.data?.json?.result || "Task executed successfully by AI.";
+                            const updatedTask = payload?.[0]?.result?.data?.json?.task;
 
                             setScheduledTasks(prev =>
-                              prev.map(st => (st.id === task.id ? { ...st, status: "completed" } : st))
+                              prev.map(st => (st.id === task.id ? { ...st, status: updatedTask?.status || "completed" } : st))
                             );
 
-                            // Push task execution report notification
                             pushWorkspaceNotification(
                               `Task Report: ${task.title}`,
                               `AI Execution Report: ${resText.slice(0, 150)}...`,
@@ -762,8 +793,9 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
                             );
 
                             setExecutionModalResult({ title: task.title, result: resText });
-                          } catch {
-                            showToast("Task execution error.");
+                          } catch (err) {
+                            const msg = err instanceof Error ? err.message : "Task execution error.";
+                            showToast(`Error: ${msg}`);
                           } finally {
                             setExecutingTaskId(null);
                           }
@@ -787,9 +819,34 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
 
                       <button
                         type="button"
-                        onClick={() => {
-                          setScheduledTasks(prev => prev.filter(st => st.id !== task.id));
-                          showToast("Task cancelled");
+                        onClick={async () => {
+                          try {
+                            const token = await getFirebaseIdToken();
+                            const response = await fetch("/api/trpc/hanna.cancelScheduledTask?batch=1", {
+                              method: "POST",
+                              headers: {
+                                "content-type": "application/json",
+                                ...(token ? { authorization: `Bearer ${token}` } : {}),
+                              },
+                              body: JSON.stringify({
+                                "0": {
+                                  json: { taskId: task.id },
+                                },
+                              }),
+                            });
+
+                            const payload = await response.json().catch(() => null);
+                            if (!response.ok) {
+                              const errorMsg = payload?.[0]?.error?.json?.message || payload?.error || "Failed to cancel task";
+                              throw new Error(errorMsg);
+                            }
+
+                            setScheduledTasks(prev => prev.filter(st => st.id !== task.id));
+                            showToast("Task cancelled successfully");
+                          } catch (err) {
+                            const msg = err instanceof Error ? err.message : "Failed to cancel task";
+                            showToast(`Error: ${msg}`);
+                          }
                         }}
                         style={{
                           background: "transparent",

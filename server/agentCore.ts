@@ -1,5 +1,17 @@
 import { routeHannaRequest, type HannaRoute } from "./hannaRouting";
 import type { IntegrationDefinition } from "../shared/integrations";
+import {
+  createScheduledTask,
+  listScheduledTasksForUser,
+  getScheduledTaskForUser,
+  cancelScheduledTaskForUser,
+  executeScheduledTaskNowForUser,
+  runDueTasksAcrossAllUsers,
+  type ScheduledTaskRecord,
+  type ScheduledTaskRepeat,
+  type ScheduledTaskStatus,
+} from "./taskDb";
+import { resolveCanonicalUserId } from "./userResolver";
 
 export type AgentStage =
   | "understand"
@@ -110,7 +122,6 @@ export type ScheduledTask = {
 
 export class TaskSchedulerManager {
   private static instance: TaskSchedulerManager;
-  private readonly tasks = new Map<string, ScheduledTask>();
 
   public static getInstance(): TaskSchedulerManager {
     if (!TaskSchedulerManager.instance) {
@@ -119,91 +130,56 @@ export class TaskSchedulerManager {
     return TaskSchedulerManager.instance;
   }
 
-  scheduleTask(
-    task: Omit<ScheduledTask, "id" | "status" | "createdAt">
-  ): ScheduledTask {
-    const id = `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const created: ScheduledTask = {
-      ...task,
-      id,
-      status: "scheduled",
-      createdAt: new Date().toISOString(),
-    };
-    this.tasks.set(id, created);
-    return created;
-  }
-
-  markCompleted(taskId: string, resultSummary: string): boolean {
-    const existing = this.tasks.get(taskId);
-    if (!existing) return false;
-    existing.status = "completed";
-    existing.lastExecutionResult = resultSummary;
-    existing.executedAt = new Date().toISOString();
-    this.tasks.set(taskId, existing);
-    return true;
-  }
-
-  markFailed(taskId: string, errorMsg: string): boolean {
-    const existing = this.tasks.get(taskId);
-    if (!existing) return false;
-    existing.status = "failed";
-    existing.lastExecutionResult = errorMsg;
-    existing.executedAt = new Date().toISOString();
-    this.tasks.set(taskId, existing);
-    return true;
+  async scheduleTask(
+    userIdOrUid: string | number,
+    params: {
+      userId?: number;
+      title: string;
+      prompt: string;
+      executionTime: string;
+      repeat?: ScheduledTaskRepeat;
+      tools?: string[];
+      imageUrl?: string | null;
+      action?: string;
+      parameters?: Record<string, unknown>;
+    }
+  ): Promise<ScheduledTaskRecord> {
+    const canonicalUid = await resolveCanonicalUserId(userIdOrUid);
+    return createScheduledTask({
+      uid: canonicalUid,
+      userId: typeof userIdOrUid === "number" ? userIdOrUid : params.userId,
+      ...params,
+    });
   }
 
   async runDueTasks(
-    executor: (task: ScheduledTask) => Promise<string>
+    executor: (task: ScheduledTaskRecord) => Promise<string>
   ): Promise<{ executedCount: number }> {
-    const now = new Date();
-    let executedCount = 0;
-    for (const task of Array.from(this.tasks.values())) {
-      if (task.status === "scheduled") {
-        const timeStr = String(task.parameters?.executionTime || "");
-        const parseTime = timeStr ? new Date(timeStr) : null;
-        const isDue = parseTime && !isNaN(parseTime.getTime()) ? parseTime <= now : true;
-
-        if (isDue) {
-          task.status = "active";
-          try {
-            const summary = await executor(task);
-            this.markCompleted(task.id, summary);
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : "Execution error";
-            this.markFailed(task.id, msg);
-          }
-          executedCount++;
-        }
-      }
-    }
-    return { executedCount };
+    return runDueTasksAcrossAllUsers(executor);
   }
 
-  listTasks(userId?: number): ScheduledTask[] {
-    const all = Array.from(this.tasks.values());
-    if (userId !== undefined)
-      return all.filter(t => t.userId === userId || !t.userId);
-    return all;
+  async listTasks(userIdOrUid: string | number): Promise<ScheduledTaskRecord[]> {
+    const canonicalUid = await resolveCanonicalUserId(userIdOrUid);
+    return listScheduledTasksForUser(canonicalUid);
   }
 
-  cancelTask(taskId: string, userId?: number): boolean {
-    const existing = this.tasks.get(taskId);
-    if (!existing) return false;
-    if (
-      userId !== undefined &&
-      existing.userId !== undefined &&
-      existing.userId !== userId
-    ) {
-      return false;
-    }
-    existing.status = "cancelled";
-    this.tasks.set(taskId, existing);
-    return true;
+  async cancelTask(userIdOrUid: string | number, taskId: string): Promise<boolean> {
+    const canonicalUid = await resolveCanonicalUserId(userIdOrUid);
+    return cancelScheduledTaskForUser(canonicalUid, taskId);
   }
 
-  getTask(taskId: string): ScheduledTask | undefined {
-    return this.tasks.get(taskId);
+  async getTask(userIdOrUid: string | number, taskId: string): Promise<ScheduledTaskRecord | undefined> {
+    const canonicalUid = await resolveCanonicalUserId(userIdOrUid);
+    return getScheduledTaskForUser(canonicalUid, taskId);
+  }
+
+  async executeTaskNow(
+    userIdOrUid: string | number,
+    taskId: string,
+    executor: (task: ScheduledTaskRecord) => Promise<string>
+  ) {
+    const canonicalUid = await resolveCanonicalUserId(userIdOrUid);
+    return executeScheduledTaskNowForUser(canonicalUid, taskId, executor);
   }
 }
 
@@ -267,18 +243,29 @@ const defaultTools: AgentTool[] = [
     scopes: ["task:write"],
     riskLevel: "medium",
     execute: async (args, context) => {
+      const canonicalUid = context.userId ? await resolveCanonicalUserId(context.userId) : "guest";
       const title = String(args.title || "Scheduled task");
-      const schedule = String(
-        args.schedule || args.cron || "At specified time"
-      );
-      const action = String(args.action || "general_automation");
-      const scheduled = taskScheduler.scheduleTask({
+      const prompt = String(args.prompt || args.description || title);
+      const schedule = args.schedule || args.cron;
+      const executionTime = String(args.executionTime || schedule || new Date().toISOString());
+      const repeat = (args.repeat as ScheduledTaskRepeat) || "once";
+      const tools = Array.isArray(args.tools) ? (args.tools as string[]) : [];
+      const imageUrl = args.imageUrl ? String(args.imageUrl) : undefined;
+
+      const scheduled = await createScheduledTask({
+        uid: canonicalUid,
         userId: context.userId,
         title,
-        description: args.description ? String(args.description) : undefined,
-        cronOrSchedule: schedule,
-        action,
-        parameters: args.parameters as Record<string, unknown> | undefined,
+        prompt,
+        executionTime,
+        repeat,
+        tools,
+        imageUrl,
+        action: String(args.action || "general_automation"),
+        parameters: {
+          cronOrSchedule: schedule ? String(schedule) : undefined,
+          ...(args.parameters as Record<string, unknown> | undefined || {}),
+        },
       });
       return { scheduled: true, task: scheduled };
     },
@@ -294,7 +281,8 @@ const defaultTools: AgentTool[] = [
     riskLevel: "low",
     readOnly: true,
     execute: async (_args, context) => {
-      const tasks = taskScheduler.listTasks(context.userId);
+      const canonicalUid = context.userId ? await resolveCanonicalUserId(context.userId) : "guest";
+      const tasks = await listScheduledTasksForUser(canonicalUid);
       return { tasks };
     },
   },
@@ -308,8 +296,9 @@ const defaultTools: AgentTool[] = [
     scopes: ["task:write"],
     riskLevel: "medium",
     execute: async (args, context) => {
+      const canonicalUid = context.userId ? await resolveCanonicalUserId(context.userId) : "guest";
       const taskId = String(args.taskId || args.id || "");
-      const cancelled = taskScheduler.cancelTask(taskId, context.userId);
+      const cancelled = await cancelScheduledTaskForUser(canonicalUid, taskId);
       return { taskId, cancelled };
     },
   },

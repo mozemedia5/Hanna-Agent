@@ -96,6 +96,34 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
       return respond(res, 200, await handleMcpRequest(requestBody(req) as never));
     }
 
+    if (path === "/api/cron/execute-tasks" || path === "/cron/execute-tasks") {
+      const cronSecret = process.env.CRON_SECRET;
+      const headers = req.headers || {};
+      const authHeader = typeof headers.authorization === "string" ? headers.authorization : "";
+      const cronHeader = headers["x-vercel-cron"];
+
+      const isAuthorized =
+        Boolean(cronHeader) ||
+        (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+        (cronSecret && new URLSearchParams((req.url || "").split("?")[1] || "").get("cronSecret") === cronSecret);
+
+      if (!isAuthorized) {
+        return respond(res, 401, { error: "Unauthorized cron execution request." });
+      }
+
+      const { runDueTasksAcrossAllUsers } = await import("../server/taskDb");
+      const { executeHannaRequest } = await import("../server/routers");
+
+      const result = await runDueTasksAcrossAllUsers(async (task) => {
+        const prompt = String(task.parameters?.prompt || task.description || task.title);
+        const numericUserId = typeof task.userId === "number" ? task.userId : undefined;
+        const resText = await executeHannaRequest(prompt, "Scheduled Task Execution", numericUserId);
+        return resText.text || "Scheduled task executed successfully.";
+      });
+
+      return respond(res, 200, { success: true, executedCount: result.executedCount, results: result.results });
+    }
+
     if (path.startsWith("/api/trpc/") || path.startsWith("/trpc/")) {
       const express = (await import("express")).default;
 

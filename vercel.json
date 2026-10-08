@@ -10,6 +10,12 @@
       "maxDuration": 10
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/execute-tasks",
+      "schedule": "* * * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/api/:path+", "destination": "/api/index.js" },
     { "source": "/trpc/:path+", "destination": "/api/index.js" },
