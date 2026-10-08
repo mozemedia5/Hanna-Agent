@@ -13,7 +13,7 @@
   "crons": [
     {
       "path": "/api/cron/execute-tasks",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [
