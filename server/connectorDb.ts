@@ -366,6 +366,15 @@ export async function getConnectorCredential(
     foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred);
   }
 
+  if (foundCred && foundCred.connector === "shopify" && (foundCred.values.refreshToken || foundCred.values.refresh_token)) {
+    const { ensureFreshShopifyToken } = await import("./shopifyOAuth");
+    const freshValues = await ensureFreshShopifyToken(canonicalUserId, foundCred.values);
+    foundCred = {
+      connector: "shopify",
+      values: freshValues,
+    };
+  }
+
   return foundCred;
 }
 

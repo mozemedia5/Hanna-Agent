@@ -16,6 +16,8 @@ import {
   handleGoogleOAuthCallback,
   handleGitHubOAuthAuthorize,
   handleGitHubOAuthCallback,
+  handleShopifyOAuthAuthorize,
+  handleShopifyOAuthCallback,
 } from "./oauthRoutes";
 import { handleProductionHealthDiagnostics } from "./health";
 
@@ -58,6 +60,10 @@ app.get(["/api/oauth/google/callback", "/oauth/google/callback"], handleGoogleOA
 // GitHub OAuth Endpoints
 app.get(["/api/oauth/github/authorize", "/oauth/github/authorize"], handleGitHubOAuthAuthorize);
 app.get(["/api/oauth/github/callback", "/oauth/github/callback"], handleGitHubOAuthCallback);
+
+// Shopify OAuth Endpoints
+app.get(["/api/oauth/shopify/authorize", "/oauth/shopify/authorize"], handleShopifyOAuthAuthorize);
+app.get(["/api/oauth/shopify/callback", "/oauth/shopify/callback"], handleShopifyOAuthCallback);
 
 app.get(["/api/health", "/health"], async (req, res) => {
   if (req.query.diag === "true") {
