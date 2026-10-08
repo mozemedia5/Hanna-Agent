@@ -116,7 +116,8 @@ export async function executeRouteAStream(
   context: string | undefined,
   userId: string | number | undefined,
   model: string | undefined,
-  sendSSE: (event: string, data: unknown) => void
+  sendSSE: (event: string, data: unknown) => void,
+  studyMode?: boolean
 ): Promise<void> {
   const lower = prompt.toLowerCase();
 
@@ -174,6 +175,7 @@ export async function executeRouteAStream(
           ...provider,
           prompt,
           context,
+          studyMode,
         },
         chunk => {
           hasEmittedTokens = true;
@@ -274,7 +276,8 @@ export async function executeRouteBLoop(
   context: string | undefined,
   userId: string | number | undefined,
   model: string | undefined,
-  sendSSE: (event: string, data: unknown) => void
+  sendSSE: (event: string, data: unknown) => void,
+  studyMode?: boolean
 ): Promise<void> {
   sendSSE("status", { state: "executing_route_b", message: "Initializing ReAct Agentic Orchestrator Loop..." });
 
@@ -388,6 +391,7 @@ export async function executeRouteBLoop(
             prompt: `${prompt}${toolResultsCtx}`,
             context: context || "Execute ReAct loop step by step.",
             tools: toolsDef,
+            studyMode,
           });
         } catch (turnErr) {
           const classified = classifyProviderError(turnErr);
@@ -532,7 +536,7 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
   const rawUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
   const canonicalUserId = await resolveCanonicalUserId(rawUid);
 
-  const { prompt, context, model, agenticMode } = req.body || {};
+  const { prompt, context, model, agenticMode, studyMode } = req.body || {};
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     res.status(400).json({ error: "Prompt string is required." });
@@ -567,9 +571,9 @@ export async function handleApiChatRoute(req: ExpressRequest, res: ExpressRespon
   sendSSE("intent", intent);
 
   if (intent.route === "route_a") {
-    await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE);
+    await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE, Boolean(studyMode));
   } else {
-    await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE);
+    await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE, Boolean(studyMode));
   }
 
   res.end();
@@ -592,7 +596,7 @@ export async function POST(req: Request): Promise<Response> {
   const canonicalUserId = await resolveCanonicalUserId(rawUid);
 
   const body = await req.json().catch(() => ({}));
-  const { prompt, context, model, agenticMode } = body || {};
+  const { prompt, context, model, agenticMode, studyMode } = body || {};
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return new Response(JSON.stringify({ error: "Prompt string is required." }), {
@@ -628,9 +632,9 @@ export async function POST(req: Request): Promise<Response> {
       sendSSE("intent", intent);
 
       if (intent.route === "route_a") {
-        await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE);
+        await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE, Boolean(studyMode));
       } else {
-        await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE);
+        await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE, Boolean(studyMode));
       }
 
       controller.close();

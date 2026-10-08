@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { invokeUserProvider } from "./providerAdapters";
+import { getEffectiveSystemPrompt, invokeUserProvider, STUDY_MODE_SYSTEM_PROMPT } from "./providerAdapters";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,6 +23,18 @@ describe("invokeUserProvider", () => {
       "https://api.openai.com/v1/chat/completions",
       expect.objectContaining({ method: "POST" })
     );
+  });
+
+  it("uses STUDY_MODE_SYSTEM_PROMPT when studyMode is active", () => {
+    const prompt = getEffectiveSystemPrompt({
+      provider: "openai",
+      apiKey: "sk-test",
+      model: "gpt-4o",
+      prompt: "Explain photosynthesis",
+      studyMode: true,
+    });
+    expect(prompt).toContain(STUDY_MODE_SYSTEM_PROMPT);
+    expect(prompt).toContain("Socratic educator");
   });
 
   it("surfaces provider failures for the safe Hanna fallback", async () => {

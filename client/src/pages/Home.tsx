@@ -56,6 +56,7 @@ import {
   Bot,
 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
+import { ToolExecutionStatusBlock } from "@/components/ToolExecutionStatusBlock";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
@@ -117,6 +118,8 @@ type Message = {
   time?: string;
   tokenCount?: number;
   attachments?: UploadedFile[];
+  workedForSeconds?: number;
+  toolLogs?: any[];
 };
 
 const estimateTokens = (c: string) => Math.max(1, Math.ceil(c.length / 4));
@@ -292,6 +295,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const hasMessages = activeChat.messages.length > 0;
 
   const chatWorkflow = useChatWorkflow();
+  const taskStartTimeRef = useRef<number>(Date.now());
 
   // Dynamic ~5-word status messages when AI is working
   const thinkingAction = useMemo(() => {
@@ -649,6 +653,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
       setChats(current => current.map(c => c.id === chatId ? { ...c, messages: [...c.messages, placeholderAssistantMsg] } : c));
 
+      taskStartTimeRef.current = Date.now();
+
       const reply = await chatWorkflow.submitPrompt(fullPrompt, {
         context: combinedContext,
         model: model === "Custom" ? "custom" : model,
@@ -661,12 +667,16 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         throw new Error(chatWorkflow.error || "Hanna returned an empty response.");
       }
 
+      const elapsedSec = Math.max(0.2, Number(((Date.now() - taskStartTimeRef.current) / 1000).toFixed(1)));
+
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: "assistant",
         content: finalReplyContent,
         tokenCount: estimateTokens(finalReplyContent),
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        workedForSeconds: elapsedSec,
+        toolLogs: chatWorkflow.toolLogs,
       };
 
       let finalTitle = chatWithUser.title;
@@ -1036,6 +1046,34 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                             );
                           })}
                         </div>
+                      )}
+
+                      {message.role === "assistant" && (isStreamingThisMsg || isThinking) && (
+                        <ToolExecutionStatusBlock
+                          toolInfo={
+                            chatWorkflow.toolLogs.length > 0
+                              ? chatWorkflow.toolLogs[chatWorkflow.toolLogs.length - 1]
+                              : {
+                                  connector: selectedTools.includes("Web Search") || webSearchMode ? "Web Search" : "Tool Execution",
+                                  action: "execute",
+                                  status: "running",
+                                  startTime: taskStartTimeRef.current,
+                                }
+                          }
+                          isStreaming={true}
+                        />
+                      )}
+
+                      {message.role === "assistant" && !isStreamingThisMsg && !isThinking && message.workedForSeconds !== undefined && (
+                        <ToolExecutionStatusBlock
+                          toolInfo={{
+                            connector: message.toolLogs?.[0]?.connector || (selectedTools.includes("Web Search") ? "Web Search" : "Tool Task"),
+                            action: message.toolLogs?.[0]?.action || "execute",
+                            durationSeconds: message.workedForSeconds,
+                            status: "completed",
+                          }}
+                          isStreaming={false}
+                        />
                       )}
 
                       {displayContent || isStreamingThisMsg ? (

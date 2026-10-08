@@ -47,6 +47,10 @@ export type ToolLogItem = {
   args?: Record<string, unknown>;
   result?: unknown;
   timestamp: string;
+  startTime?: number;
+  endTime?: number;
+  durationSeconds?: number;
+  status?: "running" | "completed" | "error";
 };
 
 export type MarkdownCardPayload = {
@@ -156,6 +160,7 @@ export function useChatWorkflow() {
             context: options.context,
             model: options.model,
             agenticMode: options.agenticMode,
+            studyMode: options.studyMode,
             userId: options.userId,
           }),
         });
@@ -235,6 +240,8 @@ export function useChatWorkflow() {
                       action: data.action,
                       args: data.args,
                       timestamp: new Date().toLocaleTimeString(),
+                      startTime: data.startTime || Date.now(),
+                      status: "running",
                     },
                   ],
                 }));
@@ -243,11 +250,21 @@ export function useChatWorkflow() {
               case "tool_result":
                 setState(prev => ({
                   ...prev,
-                  toolLogs: prev.toolLogs.map(log =>
-                    log.connector === data.connector && log.action === data.action
-                      ? { ...log, result: data.result }
-                      : log
-                  ),
+                  toolLogs: prev.toolLogs.map(log => {
+                    if (log.connector === data.connector && log.action === data.action && log.status !== "completed") {
+                      const endTime = data.endTime || Date.now();
+                      const start = log.startTime || endTime - 800;
+                      const duration = Math.max(0.1, Number(((endTime - start) / 1000).toFixed(1)));
+                      return {
+                        ...log,
+                        result: data.result,
+                        endTime,
+                        durationSeconds: duration,
+                        status: "completed",
+                      };
+                    }
+                    return log;
+                  }),
                 }));
                 break;
 

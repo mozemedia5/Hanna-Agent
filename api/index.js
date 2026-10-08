@@ -653,6 +653,17 @@ var init_geminiService = __esm({
 });
 
 // server/providerAdapters.ts
+function getEffectiveSystemPrompt(request) {
+  const isStudy = Boolean(
+    request.studyMode || request.prompt?.includes("[STUDY MODE: ACTIVE]") || request.context?.includes("[STUDY MODE: ACTIVE]")
+  );
+  if (isStudy) {
+    return `${STUDY_MODE_SYSTEM_PROMPT}
+
+${HANNA_SYSTEM_PROMPT}`;
+  }
+  return HANNA_SYSTEM_PROMPT;
+}
 function sanitizeError(message) {
   return message.replace(/AIzaSy[A-Za-z0-9_-]{33}/g, "AIzaSy\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022").replace(/sk-ant-[A-Za-z0-9_-]{30,}/g, "sk-ant-\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022").replace(/sk-[A-Za-z0-9_-]{30,}/g, "sk-\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022").replace(/gsk_[A-Za-z0-9_-]{30,}/g, "gsk_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022");
 }
@@ -679,7 +690,7 @@ async function invokeUserProvider(request) {
       model: request.model,
       prompt: request.prompt,
       context: request.context,
-      systemPrompt: HANNA_SYSTEM_PROMPT,
+      systemPrompt: getEffectiveSystemPrompt(request),
       route: "invokeUserProvider"
     });
     return res.text;
@@ -696,7 +707,7 @@ async function invokeUserProvider(request) {
       body: JSON.stringify({
         model: request.model || "claude-3-5-sonnet-20241022",
         max_tokens: 2e3,
-        system: HANNA_SYSTEM_PROMPT,
+        system: getEffectiveSystemPrompt(request),
         messages: [{ role: "user", content: message }]
       })
     });
@@ -728,7 +739,7 @@ async function invokeUserProvider(request) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: HANNA_SYSTEM_PROMPT },
+        { role: "system", content: getEffectiveSystemPrompt(request) },
         { role: "user", content: message }
       ]
     })
@@ -764,7 +775,7 @@ async function streamUserProvider(request, onChunk) {
         model: request.model,
         prompt: request.prompt,
         context: request.context,
-        systemPrompt: HANNA_SYSTEM_PROMPT,
+        systemPrompt: getEffectiveSystemPrompt(request),
         route: "streamUserProvider"
       },
       onChunk
@@ -807,7 +818,7 @@ async function invokeGeminiAgentTurn(request) {
       model: request.model,
       prompt: request.prompt,
       context: request.context,
-      systemPrompt: HANNA_SYSTEM_PROMPT,
+      systemPrompt: getEffectiveSystemPrompt(request),
       tools: sanitizedTools,
       route: "invokeGeminiAgentTurn"
     });
@@ -846,7 +857,7 @@ async function invokeGeminiAgentTurn(request) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: HANNA_SYSTEM_PROMPT },
+        { role: "system", content: getEffectiveSystemPrompt(request) },
         { role: "user", content: message }
       ],
       ...formattedTools && formattedTools.length > 0 ? { tools: formattedTools } : {}
@@ -885,11 +896,27 @@ async function invokeGeminiAgentTurn(request) {
     text: msgChoice?.content || "I\u2019m ready to help. Could you clarify your request?"
   };
 }
-var HANNA_SYSTEM_PROMPT;
+var STUDY_MODE_SYSTEM_PROMPT, HANNA_SYSTEM_PROMPT;
 var init_providerAdapters = __esm({
   "server/providerAdapters.ts"() {
     "use strict";
     init_geminiService();
+    STUDY_MODE_SYSTEM_PROMPT = `You are an elite, patient, adaptive Socratic educator.
+
+ROLE:
+Act as an elite, patient, adaptive Socratic educator (similar to Google Gemini's advanced tutor personas).
+
+BEHAVIOR:
+- Instead of just giving flat answers, break down complex topics using analogies.
+- Use bold text for key terms.
+- Use LaTeX formatting (\\(...\\) for inline formulas and \\[
+...
+\\] for block formulas) for all technical/mathematical formulas.
+- Ask 1-2 targeted clarifying or conceptual check questions at the end of responses to test user understanding.
+
+TONE & STRUCTURE:
+- Tone: Encouraging, concise, accessible to non-native speakers.
+- Structure: Highly organized using clean markdown headers.`;
     HANNA_SYSTEM_PROMPT = `You are Hanna, a calm, intelligent, and helpful general AI assistant.
 You assist users across general questions, reasoning, e-commerce, study & learning, software development, content generation, market research, and workflow automation. You can also execute actions agentically when the agent mode is activated or when a task requires agentic tools.
 
@@ -5418,7 +5445,7 @@ function analyzePromptIntent(prompt, hasConnectedApps = false, agenticModeFlag =
     capabilities: ["single_pass_stream"]
   };
 }
-async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
+async function executeRouteAStream(prompt, context, userId, model, sendSSE, studyMode) {
   const lower = prompt.toLowerCase();
   if (/(connect|execute|update|send slack|post message|shopify store|deploy vercel|create ad)/.test(lower)) {
     sendSSE("pivot", {
@@ -5469,7 +5496,8 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
         {
           ...provider,
           prompt,
-          context
+          context,
+          studyMode
         },
         (chunk) => {
           hasEmittedTokens = true;
@@ -5553,7 +5581,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE) {
     });
   }
 }
-async function executeRouteBLoop(prompt, context, userId, model, sendSSE) {
+async function executeRouteBLoop(prompt, context, userId, model, sendSSE, studyMode) {
   sendSSE("status", { state: "executing_route_b", message: "Initializing ReAct Agentic Orchestrator Loop..." });
   const basePlan = buildAgentPlan(prompt);
   sendSSE("plan", { plan: basePlan });
@@ -5650,7 +5678,8 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
             ...provider,
             prompt: `${prompt}${toolResultsCtx}`,
             context: context || "Execute ReAct loop step by step.",
-            tools: toolsDef
+            tools: toolsDef,
+            studyMode
           });
         } catch (turnErr) {
           const classified = classifyProviderError(turnErr);
@@ -5773,7 +5802,7 @@ async function handleApiChatRoute(req, res) {
   }
   const rawUid = decodedToken?.user_id || decodedToken?.sub || "test_user";
   const canonicalUserId = await resolveCanonicalUserId(rawUid);
-  const { prompt, context, model, agenticMode } = req.body || {};
+  const { prompt, context, model, agenticMode, studyMode } = req.body || {};
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     res.status(400).json({ error: "Prompt string is required." });
     return;
@@ -5801,9 +5830,9 @@ data: ${JSON.stringify(data)}
   const intent = analyzePromptIntent(prompt, connectedSummaries.length > 0, Boolean(agenticMode));
   sendSSE("intent", intent);
   if (intent.route === "route_a") {
-    await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE);
+    await executeRouteAStream(prompt, context, canonicalUserId, model, sendSSE, Boolean(studyMode));
   } else {
-    await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE);
+    await executeRouteBLoop(prompt, context, canonicalUserId, model, sendSSE, Boolean(studyMode));
   }
   res.end();
 }
