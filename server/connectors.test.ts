@@ -3,9 +3,11 @@ import { executeConnectorAction } from "./connectorAdapters";
 import {
   approveRequest,
   createApprovalRequest,
+  getConnectorCredential,
   listConnectorCredentials,
   saveConnectorCredential,
 } from "./connectorDb";
+import { generateOAuthState, verifyOAuthState } from "./oauthRoutes";
 import { appRouter } from "./routers";
 
 describe("authenticated Shopify and Slack connectors", () => {
@@ -224,5 +226,21 @@ describe("authenticated Shopify and Slack connectors", () => {
     );
     expect(calResult.verification.status).toBe("verified");
     expect(calResult.summary).toContain("Checked Google Calendar");
+  });
+
+  it("verifies Google OAuth state correctly and supports fallback credential lookup across Google family", async () => {
+    const state = generateOAuthState("user123", "google");
+    const verified = verifyOAuthState(state, "google");
+    expect(verified.valid).toBe(true);
+    expect(verified.uid).toBe("user123");
+
+    await saveConnectorCredential("user123", "google-workspace", {
+      access_token: "test_access_token_123",
+      is_connected: "true",
+    });
+
+    const gmailCred = await getConnectorCredential("user123", "gmail");
+    expect(gmailCred).toBeDefined();
+    expect(gmailCred?.values.access_token).toBe("test_access_token_123");
   });
 });

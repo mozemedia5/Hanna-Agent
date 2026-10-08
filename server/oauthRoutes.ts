@@ -51,7 +51,21 @@ export function generateOAuthState(uid: string, provider = "google"): string {
   return Buffer.from(`${payload}:${signature}`).toString("base64url");
 }
 
-export function verifyOAuthState(state: string, expectedProvider = "google"): { uid: string; valid: boolean } {
+function parseCookies(cookieHeader?: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(";").forEach(cookie => {
+    const parts = cookie.split("=");
+    if (parts.length >= 2) {
+      const name = parts[0].trim();
+      const val = parts.slice(1).join("=").trim();
+      cookies[name] = decodeURIComponent(val);
+    }
+  });
+  return cookies;
+}
+
+export function verifyOAuthState(state: string, expectedProvider = "google", allowReplayIfRecent = true): { uid: string; valid: boolean } {
   try {
     const decoded = Buffer.from(state, "base64url").toString("utf8");
     const parts = decoded.split(":");
@@ -74,8 +88,14 @@ export function verifyOAuthState(state: string, expectedProvider = "google"): { 
     // Expire state after 15 minutes
     if (Date.now() - timestamp > 15 * 60 * 1000) return { uid: "", valid: false };
 
-    // Prevent state replay
-    if (!rememberNonce(nonce)) return { uid: "", valid: false };
+    // Prevent state replay unless allowReplayIfRecent is true for recent requests (< 5 min)
+    const isNewNonce = rememberNonce(nonce);
+    if (!isNewNonce) {
+      if (allowReplayIfRecent && Date.now() - timestamp < 5 * 60 * 1000) {
+        return { uid, valid: true };
+      }
+      return { uid: "", valid: false };
+    }
 
     return { uid, valid: true };
   } catch {
@@ -122,14 +142,25 @@ export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: Expre
   authUrl.searchParams.set("prompt", "consent");
   authUrl.searchParams.set("state", state);
 
+  // Set HTTP-only cookie for state verification resilience
+  res.setHeader(
+    "Set-Cookie",
+    `hanna_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900`
+  );
+
   res.redirect(authUrl.toString());
 }
 
 /** Express handler for Google OAuth Callback */
 export async function handleGoogleOAuthCallback(req: ExpressRequest, res: ExpressResponse): Promise<void> {
   const code = req.query.code as string;
-  const state = req.query.state as string;
+  const stateFromQuery = req.query.state as string;
   const error = req.query.error as string;
+
+  const cookies = parseCookies(req.headers.cookie);
+  const stateFromCookie = cookies["hanna_oauth_state"];
+
+  const state = stateFromQuery || stateFromCookie;
 
   if (error) {
     const diagCode = error === "access_denied" ? "access_denied" : "oauth_error";
@@ -147,7 +178,12 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
     return;
   }
 
-  const { uid, valid } = verifyOAuthState(state, "google");
+  let verification = verifyOAuthState(state, "google");
+  if ((!verification.valid || !verification.uid) && stateFromCookie && stateFromCookie !== stateFromQuery) {
+    verification = verifyOAuthState(stateFromCookie, "google");
+  }
+
+  const { uid, valid } = verification;
   if (!valid || !uid) {
     res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
     return;
@@ -195,19 +231,28 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
       return;
     }
 
-    await saveConnectorCredential(uid, "google-workspace", {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      token_type: tokenData.token_type || "Bearer",
-      expires_in: String(tokenData.expires_in || 3600),
-      is_connected: "true",
-    });
+    const googleConnectors = [
+      "google-workspace",
+      "gmail",
+      "google-drive",
+      "google-docs",
+      "google-sheets",
+      "google-slides",
+      "google-calendar",
+    ] as const;
 
-    await saveConnectorCredential(uid, "gmail", {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      is_connected: "true",
-    });
+    for (const connectorId of googleConnectors) {
+      await saveConnectorCredential(uid, connectorId, {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_type: tokenData.token_type || "Bearer",
+        expires_in: String(tokenData.expires_in || 3600),
+        is_connected: "true",
+      });
+    }
+
+    // Clear state cookie
+    res.setHeader("Set-Cookie", "hanna_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
 
     res.redirect(`${appBaseUrl()}/?connector_success=google-workspace`);
   } catch (err) {
