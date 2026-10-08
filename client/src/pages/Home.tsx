@@ -79,6 +79,12 @@ import ProjectsPage, { type Project } from "./ProjectsPage";
 import ScheduleTaskPage from "./ScheduleTaskPage";
 import FilesPage, { addStoredFiles, getFileTypeBadgeLabel, type StoredFileItem } from "./FilesPage";
 import { useChatWorkflow } from "@/hooks/useChatWorkflow";
+import {
+  getUserCredits,
+  saveUserCredits,
+  calculateTaskCredits,
+  recordCreditTransaction,
+} from "@/lib/credits";
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 import InstallAppBanner from "@/components/InstallAppBanner";
@@ -207,16 +213,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [lightboxImageUrl, setLightboxModalImageUrl] = useState<string | null>(null);
 
   // Workspace Live Credits & Top-Up Modal State
-  const [userCredits, setUserCredits] = useState<number>(() => {
-    const stored = localStorage.getItem("hanna_user_credits");
-    return stored !== null ? Number(stored) : 500;
-  });
+  const [userCredits, setUserCredits] = useState<number>(getUserCredits);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    localStorage.setItem("hanna_user_credits", String(userCredits));
-  }, [userCredits]);
+    const syncCredits = () => setUserCredits(getUserCredits());
+    window.addEventListener("hanna_credits_updated", syncCredits);
+    window.addEventListener("storage", syncCredits);
+    return () => {
+      window.removeEventListener("hanna_credits_updated", syncCredits);
+      window.removeEventListener("storage", syncCredits);
+    };
+  }, []);
 
   // Handle OAuth Redirect URL Parameters (?connector_success=... or ?connector_error=...)
   useEffect(() => {
@@ -559,14 +568,22 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   }, [activeChat.messages, chatWorkflow.streamingText, isThinking]);
 
   const submitMessage = async () => {
-    if (userCredits <= 0) {
-      showToast("Workspace credits depleted. Please top up your credits.");
+    const text = composer.trim();
+    if ((!text && attachments.length === 0) || isThinking) return;
+
+    const taskEval = calculateTaskCredits(text, {
+      agenticMode,
+      hasDeepResearch: selectedTools.includes("Deep Research") || deepThinkMode,
+      hasStudyMode: selectedTools.includes("Study") || studyMode,
+      hasMultipleTools: selectedTools.length > 1,
+    });
+
+    if (userCredits < taskEval.credits) {
+      showToast(`This ${taskEval.taskType.toLowerCase()} requires ${taskEval.credits} credits. Current balance: ${userCredits}.`);
       setShowTopUpModal(true);
       return;
     }
 
-    const text = composer.trim();
-    if ((!text && attachments.length === 0) || isThinking) return;
     const chatId = activeChatId;
     const sentAttachments = [...attachments];
 
@@ -661,7 +678,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         title: finalTitle,
         messages: [...chatWithUser.messages.filter(m => m.id !== assistantMessageId), assistantMessage],
       };
-      setUserCredits(prev => Math.max(0, prev - 1));
+      const newCredits = saveUserCredits(userCredits - taskEval.credits);
+      setUserCredits(newCredits);
+      recordCreditTransaction(taskEval.taskType, text || "Workspace execution", taskEval.credits, newCredits);
       setChats(current => current.map(c => c.id === chatId ? completedChat : c));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
@@ -1528,8 +1547,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   <div><strong>{user?.displayName || "User"}</strong><span>{user?.email || ""}</span></div>
                 </div>
                 <div className="profile-popup-credits">
-                  <div className="credits-row"><CreditCard size={16} /><span>Credits</span><span className="credits-amount">2.5k left</span></div>
-                  <div className="credits-bar"><div className="credits-bar-fill" /></div>
+                  <div className="credits-row"><CreditCard size={16} /><span>Credits</span><span className="credits-amount">{userCredits} left</span></div>
+                  <div className="credits-bar"><div className="credits-bar-fill" style={{ width: `${Math.min(100, Math.max(5, (userCredits / 1000) * 100))}%` }} /></div>
                   <div className="credits-actions">
                     <Button variant="outline" size="sm" onClick={() => { navigate("usage"); setShowProfilePopup(false); }}>Usage</Button>
                     <Button size="sm" className="upgrade-btn" onClick={() => { navigate("upgrade"); setShowProfilePopup(false); }}>Upgrade</Button>
@@ -1981,7 +2000,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   key={pack.amount}
                   type="button"
                   onClick={() => {
-                    setUserCredits(prev => prev + pack.amount);
+                    const newBalance = saveUserCredits(userCredits + pack.amount);
+                    setUserCredits(newBalance);
+                    recordCreditTransaction("Credit Top-Up", `Top-up package +${pack.amount}`, 0, newBalance);
                     setShowTopUpModal(false);
                     showToast(`+${pack.amount} Credits added to your workspace!`);
                   }}

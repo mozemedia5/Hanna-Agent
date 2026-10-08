@@ -32,14 +32,15 @@ afterEach(() => {
   cleanup();
 });
 
-describe("SettingsPage Component PWA Section", () => {
-  it("renders PWA installation section and Install Hanna App button", async () => {
+describe("SettingsPage Component", () => {
+  it("renders profile settings, credit quota, and functional hanna-agent.vercel.app affiliate referral link", async () => {
     render(<SettingsPage theme="dark" onThemeChange={vi.fn()} />);
 
-    expect(screen.getByText(/Desktop & Mobile Application \(PWA\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hanna Workspace App/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Install Hanna App/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Installable/i)).toBeInTheDocument();
+    expect(screen.getByText(/Profile & Account/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Workspace Identity" })).toBeInTheDocument();
+    expect(screen.getAllByText(/Weekly Credit Allowance/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Affiliate Program & Referral Accountability/i)).toBeInTheDocument();
+    expect(screen.getByText(/https:\/\/hanna-agent\.vercel\.app\/\?ref=demo/i)).toBeInTheDocument();
   });
 
   it("calls back navigation handler when back button is clicked", () => {
