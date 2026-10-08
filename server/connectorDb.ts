@@ -205,22 +205,39 @@ export async function listConnectorCredentials(
     });
 }
 
+const GOOGLE_FAMILY: ConnectorId[] = [
+  "google-workspace",
+  "gmail",
+  "google-drive",
+  "google-docs",
+  "google-sheets",
+  "google-slides",
+  "google-calendar",
+];
+
 export async function getConnectorCredential(
   userId: string | number,
   connector: ConnectorId
 ): Promise<ConnectorCredential | undefined> {
+  const isGoogle = GOOGLE_FAMILY.includes(connector);
+  const connectorsToTry = isGoogle
+    ? [connector, ...GOOGLE_FAMILY.filter(c => c !== connector)]
+    : [connector];
+
   const firestore = (await import("./firestore")).getAdminFirestore();
   if (firestore) {
     try {
-      const doc = await firestore.collection("users").doc(String(userId)).collection("connectors").doc(connector).get();
-      if (doc.exists) {
-        const row = doc.data() as StoredCredential;
-        return {
-          connector,
-          values: JSON.parse(
-            decryptCredential(row.encryptedValues)
-          ) as ConnectorValues,
-        };
+      for (const conn of connectorsToTry) {
+        const doc = await firestore.collection("users").doc(String(userId)).collection("connectors").doc(conn).get();
+        if (doc.exists) {
+          const row = doc.data() as StoredCredential;
+          return {
+            connector,
+            values: JSON.parse(
+              decryptCredential(row.encryptedValues)
+            ) as ConnectorValues,
+          };
+        }
       }
       return undefined;
     } catch (err) {
@@ -229,15 +246,19 @@ export async function getConnectorCredential(
   }
 
   const all = getStoredConnectorCredentials();
-  const row = all[keyFor(userId, connector)] as StoredCredential | undefined;
-  if (!row) return undefined;
+  for (const conn of connectorsToTry) {
+    const row = all[keyFor(userId, conn)] as StoredCredential | undefined;
+    if (row) {
+      return {
+        connector,
+        values: JSON.parse(
+          decryptCredential(row.encryptedValues)
+        ) as ConnectorValues,
+      };
+    }
+  }
 
-  return {
-    connector,
-    values: JSON.parse(
-      decryptCredential(row.encryptedValues)
-    ) as ConnectorValues,
-  };
+  return undefined;
 }
 
 export async function deleteConnectorCredential(
