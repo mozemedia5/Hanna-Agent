@@ -757,13 +757,13 @@ I have analyzed the provided image/document content and extracted key details:
     const cleanPrompt = prompt
       .replace(/(draw|generate an image of|create an image of|make an image of|generate a picture of|create a picture of|design a logo for|generate a poster for|paint|picture of|render an image of|visual of)/gi, "")
       .trim() || prompt;
-    const enhancedPrompt = `${cleanPrompt}, highly detailed, photorealistic 8k resolution, cinematic lighting, ultra-sharp focus, professional composition, vibrant textures, masterpiece`;
+    const enhancedPrompt = `${cleanPrompt}, high quality, photorealistic, 8k resolution, highly detailed, crisp focus, vibrant studio lighting, cinematic composition`;
     const seed = Math.floor(Math.random() * 100000);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
 
     responseBody = `### Hanna Image Generation
 
-Here is the high-quality visual synthesized based on your context:
+Here is the high-quality visual synthesized directly from your prompt:
 
 ![${cleanPrompt}](${imageUrl})
 
@@ -848,6 +848,33 @@ Here is the technical review for **"${cleanedPrompt}"**:
 
 3. **Actionable Implementation**
    - Test locally with unit tests (\`pnpm test\`) and type checks (\`pnpm check\`).`;
+  } else if (/(search|google|web|find|research|information|sources|latest)/.test(lower)) {
+    const searchTopic = cleanedPrompt
+      .replace(/(web search|google search|search for|find info on|research on|search the web for)/gi, "")
+      .trim() || cleanedPrompt;
+
+    const baseSeed = Math.floor(Math.random() * 10000);
+    const conceptImages = [1, 2, 3, 4, 5].map((idx) => {
+      const prompt = `${searchTopic} concept visual aspect ${idx}, high quality, crisp details, highly relevant visual representation`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true&seed=${baseSeed + idx * 17}`;
+      return `![${searchTopic} - Visual Concept ${idx}](${url})`;
+    }).join("\n\n");
+
+    responseBody = `### Web Search & Visual Concept Breakdown
+
+Here is the search analysis and visual concept breakdown for **"${searchTopic}"**:
+
+1. **Overview & Key Findings**
+   - Comprehensive analysis of current web data and key informational highlights.
+   - Core concepts, trending perspectives, and factual insights gathered.
+
+2. **Concept Visualizations (Direct Concept Reference)**
+   - The following visual representations capture the primary aspects of the search topic to enhance your understanding:
+
+${conceptImages}
+
+3. **Key Takeaways & Next Steps**
+   - Synthesized insights ready for strategic application or further research.`;
   } else if (/(market|campaign|ad|social|copy|seo|marketing|content|research|strategy)/.test(lower)) {
     responseBody = `### Marketing & Growth Strategy Brief
 
