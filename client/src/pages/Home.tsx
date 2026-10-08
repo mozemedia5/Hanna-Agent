@@ -218,6 +218,32 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     localStorage.setItem("hanna_user_credits", String(userCredits));
   }, [userCredits]);
 
+  // Handle OAuth Redirect URL Parameters (?connector_success=... or ?connector_error=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const successConnector = params.get("connector_success");
+    const errorMsg = params.get("connector_error");
+
+    if (successConnector) {
+      const connName =
+        successConnector === "google-workspace"
+          ? "Google Workspace & Gmail"
+          : successConnector === "github"
+          ? "GitHub"
+          : successConnector;
+      showToast(`${connName} connected successfully via OAuth!`);
+      // Clear URL search params without page refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete("connector_success");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+    } else if (errorMsg) {
+      showToast(`OAuth connection error: ${decodeURIComponent(errorMsg)}`);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("connector_error");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+    }
+  }, []);
+
   // Confirmatory Delete Chat Modal
   const [deleteChatId, setDeleteChatId] = useState<number | null>(null);
 
