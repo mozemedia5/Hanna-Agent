@@ -677,7 +677,7 @@ export const appRouter = router({
           provider: input?.provider,
         })
       ),
-    scheduleTask: publicProcedure
+    scheduleTask: protectedProcedure
       .input(
         z.object({
           title: z.string().min(1).max(300),
@@ -685,51 +685,97 @@ export const appRouter = router({
           executionTime: z.string().min(1),
           repeat: z.enum(["once", "daily", "weekly", "monthly"]).default("once"),
           tools: z.array(z.string()).default([]),
+          imageUrl: z.string().max(5000000).optional(),
         })
       )
-      .mutation(({ ctx, input }) => {
-        const scheduled = taskScheduler.scheduleTask({
-          userId: ctx.user?.id,
+      .mutation(async ({ ctx, input }) => {
+        const canonicalUid = await resolveCanonicalUserId(ctx.user.openId || ctx.user.id);
+        const scheduled = await taskScheduler.scheduleTask(canonicalUid, {
+          userId: ctx.user.id,
           title: input.title,
-          description: input.prompt,
-          cronOrSchedule: `${input.executionTime} (${input.repeat})`,
+          prompt: input.prompt,
+          executionTime: input.executionTime,
+          repeat: input.repeat,
+          tools: input.tools,
+          imageUrl: input.imageUrl,
           action: "scheduled_agent_run",
           parameters: {
             prompt: input.prompt,
             executionTime: input.executionTime,
             repeat: input.repeat,
             tools: input.tools,
+            imageUrl: input.imageUrl,
           },
         });
         return { success: true, task: scheduled };
       }),
-    executeScheduledTasks: publicProcedure.mutation(async ({ ctx }) => {
-      const result = await taskScheduler.runDueTasks(async (task) => {
-        const prompt = String(task.parameters?.prompt || task.description || task.title);
-        const res = await executeHannaRequest(prompt, "Scheduled Task Execution", task.userId);
-        return res.text || "Scheduled task executed successfully.";
-      });
-      return { success: true, executedCount: result.executedCount };
-    }),
-    listScheduledTasks: publicProcedure.query(({ ctx }) => {
-      const tasks = taskScheduler.listTasks(ctx.user?.id);
+    executeScheduledTasks: publicProcedure
+      .input(z.object({ cronSecret: z.string().optional() }).optional())
+      .mutation(async ({ ctx, input }) => {
+        const cronSecret = process.env.CRON_SECRET;
+        const authHeader = (ctx.req?.headers?.["authorization"] as string) || "";
+        const cronHeader = (ctx.req?.headers?.["x-vercel-cron"] as string) || "";
+
+        const isAuthorizedCron =
+          Boolean(cronHeader) ||
+          (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+          (cronSecret && input?.cronSecret === cronSecret) ||
+          Boolean(ctx.user?.role === "admin");
+
+        if (!isAuthorizedCron) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Unauthorized cron execution request.",
+          });
+        }
+
+        const result = await taskScheduler.runDueTasks(async (task) => {
+          const prompt = String(task.parameters?.prompt || task.description || task.title);
+          const numericUserId = typeof task.userId === "number" ? task.userId : undefined;
+          const res = await executeHannaRequest(prompt, "Scheduled Task Execution", numericUserId);
+          return res.text || "Scheduled task executed successfully.";
+        });
+        return { success: true, executedCount: result.executedCount };
+      }),
+    listScheduledTasks: protectedProcedure.query(async ({ ctx }) => {
+      const canonicalUid = await resolveCanonicalUserId(ctx.user.openId || ctx.user.id);
+      const tasks = await taskScheduler.listTasks(canonicalUid);
       return { tasks };
     }),
-    executeScheduledTaskNow: publicProcedure
+    executeScheduledTaskNow: protectedProcedure
       .input(z.object({ taskId: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const task = taskScheduler.getTask(input.taskId);
+        const canonicalUid = await resolveCanonicalUserId(ctx.user.openId || ctx.user.id);
+        const task = await taskScheduler.getTask(canonicalUid, input.taskId);
         if (!task) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Scheduled task not found.",
+            message: "Scheduled task not found or access denied.",
           });
         }
-        const prompt = String(task.parameters?.prompt || task.description || task.title);
-        const res = await executeHannaRequest(prompt, "Scheduled Task Execution", ctx.user?.id);
-        const resultText = res.text || "Scheduled task executed successfully by AI.";
-        taskScheduler.markCompleted(task.id, resultText);
-        return { success: true, result: resultText, task };
+        const executionResult = await taskScheduler.executeTaskNow(
+          canonicalUid,
+          input.taskId,
+          async (t) => {
+            const prompt = String(t.parameters?.prompt || t.description || t.title);
+            const res = await executeHannaRequest(prompt, "Scheduled Task Execution", ctx.user.id);
+            return res.text || "Scheduled task executed successfully by AI.";
+          }
+        );
+        return { success: executionResult.success, result: executionResult.result, task: executionResult.task };
+      }),
+    cancelScheduledTask: protectedProcedure
+      .input(z.object({ taskId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const canonicalUid = await resolveCanonicalUserId(ctx.user.openId || ctx.user.id);
+        const cancelled = await taskScheduler.cancelTask(canonicalUid, input.taskId);
+        if (!cancelled) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Scheduled task not found or access denied.",
+          });
+        }
+        return { success: true, taskId: input.taskId };
       }),
   }),
 });

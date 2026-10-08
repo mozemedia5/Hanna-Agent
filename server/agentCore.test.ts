@@ -60,7 +60,7 @@ describe("Hanna Agent Core", () => {
       }),
     });
 
-    const userTasks = taskScheduler.listTasks(42);
+    const userTasks = await taskScheduler.listTasks(42);
     expect(userTasks.some(t => t.title === "Daily Sales Report")).toBe(true);
   });
 
