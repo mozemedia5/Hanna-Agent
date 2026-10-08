@@ -33,15 +33,18 @@ async function shopifyGraphql(
   variables: Record<string, unknown>,
   fetcher: typeof fetch
 ): Promise<ServiceResponse> {
-  const domain = shopifyDomain(credential.values.storeDomain ?? "");
+  const domain = shopifyDomain(credential.values.storeDomain || credential.values.shop || "");
   if (!domain) throw new Error("Shopify store domain is required.");
+  const token = credential.values.accessToken || credential.values.access_token || "";
+  if (!token) throw new Error("Shopify access token is missing.");
+
   const response = await fetcher(
     `https://${domain}/admin/api/2026-07/graphql.json`,
     {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "X-Shopify-Access-Token": credential.values.accessToken ?? "",
+        "X-Shopify-Access-Token": token,
       },
       body: JSON.stringify({ query, variables }),
     }

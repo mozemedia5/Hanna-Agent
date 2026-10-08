@@ -2793,15 +2793,17 @@ function shopifyDomain(value) {
   return value.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 async function shopifyGraphql(credential, query, variables, fetcher) {
-  const domain = shopifyDomain(credential.values.storeDomain ?? "");
+  const domain = shopifyDomain(credential.values.storeDomain || credential.values.shop || "");
   if (!domain) throw new Error("Shopify store domain is required.");
+  const token = credential.values.accessToken || credential.values.access_token || "";
+  if (!token) throw new Error("Shopify access token is missing.");
   const response = await fetcher(
     `https://${domain}/admin/api/2026-07/graphql.json`,
     {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "X-Shopify-Access-Token": credential.values.accessToken ?? ""
+        "X-Shopify-Access-Token": token
       },
       body: JSON.stringify({ query, variables })
     }
@@ -3582,8 +3584,484 @@ var init_firestore = __esm({
   }
 });
 
-// server/connectorDb.ts
+// server/shopifyConfig.ts
+var SHOPIFY_OAUTH_SCOPES, SHOPIFY_OAUTH_SCOPES_STRING;
+var init_shopifyConfig = __esm({
+  "server/shopifyConfig.ts"() {
+    "use strict";
+    SHOPIFY_OAUTH_SCOPES = [
+      "read_analytics",
+      "read_analytics_annotations",
+      "write_analytics_annotations",
+      "read_app_proxy",
+      "write_app_proxy",
+      "read_assigned_fulfillment_orders",
+      "write_assigned_fulfillment_orders",
+      "read_audit_events",
+      "read_customer_events",
+      "read_cart_transforms",
+      "write_cart_transforms",
+      "read_all_cart_transforms",
+      "read_validations",
+      "write_validations",
+      "read_cash_tracking",
+      "write_cash_tracking",
+      "read_channels",
+      "write_channels",
+      "read_checkout_kit_enhanced_buyer_events",
+      "read_checkout_and_accounts_configurations",
+      "write_checkout_and_accounts_configurations",
+      "read_checkout_branding_settings",
+      "write_checkout_branding_settings",
+      "write_checkouts",
+      "read_checkouts",
+      "read_companies",
+      "write_companies",
+      "read_custom_fulfillment_services",
+      "write_custom_fulfillment_services",
+      "read_custom_pixels",
+      "write_custom_pixels",
+      "read_customers",
+      "write_customers",
+      "read_customer_data_erasure",
+      "write_customer_data_erasure",
+      "read_customer_merge",
+      "write_customer_merge",
+      "read_delivery_customizations",
+      "write_delivery_customizations",
+      "read_price_rules",
+      "write_price_rules",
+      "read_discounts",
+      "write_discounts",
+      "read_discovery",
+      "write_discovery",
+      "write_draft_orders",
+      "read_draft_orders",
+      "read_files",
+      "write_files",
+      "read_fulfillment_constraint_rules",
+      "write_fulfillment_constraint_rules",
+      "read_fulfillments",
+      "write_fulfillments",
+      "read_gift_card_transactions",
+      "write_gift_card_transactions",
+      "read_gift_cards",
+      "write_gift_cards",
+      "write_inventory",
+      "read_inventory",
+      "read_inventory_purchase_orders",
+      "write_inventory_shipments",
+      "read_inventory_shipments",
+      "write_inventory_shipments_received_items",
+      "read_inventory_shipments_received_items",
+      "write_inventory_transfers",
+      "read_inventory_transfers",
+      "read_legal_policies",
+      "write_legal_policies",
+      "read_delivery_option_generators",
+      "write_delivery_option_generators",
+      "read_locales",
+      "write_locales",
+      "write_locations",
+      "read_locations",
+      "read_marketing_integrated_campaigns",
+      "write_marketing_integrated_campaigns",
+      "write_marketing_events",
+      "read_marketing_events",
+      "read_markets",
+      "write_markets",
+      "read_markets_home",
+      "write_markets_home",
+      "read_merchant_managed_fulfillment_orders",
+      "write_merchant_managed_fulfillment_orders",
+      "read_metaobject_definitions",
+      "write_metaobject_definitions",
+      "read_metaobjects",
+      "write_metaobjects",
+      "read_online_store_navigation",
+      "write_online_store_navigation",
+      "read_online_store_pages",
+      "write_online_store_pages",
+      "write_order_edits",
+      "read_order_edits",
+      "read_orders",
+      "write_orders",
+      "write_packing_slip_templates",
+      "read_packing_slip_templates",
+      "read_payment_notifications",
+      "write_payment_notifications",
+      "read_payment_terms",
+      "write_payment_terms",
+      "read_payment_customizations",
+      "write_payment_customizations",
+      "read_privacy_settings",
+      "write_privacy_settings",
+      "read_product_feeds",
+      "write_product_feeds",
+      "read_product_listings",
+      "write_product_listings",
+      "read_products",
+      "write_products",
+      "read_publications",
+      "write_publications",
+      "read_purchase_options",
+      "write_purchase_options",
+      "write_reports",
+      "read_reports",
+      "read_resource_feedbacks",
+      "write_resource_feedbacks",
+      "read_returns",
+      "write_returns",
+      "read_rollouts",
+      "read_script_tags",
+      "write_script_tags",
+      "read_shopify_payments_provider_accounts_sensitive",
+      "read_shipping",
+      "write_shipping",
+      "read_shopify_payments_accounts",
+      "read_shopify_payments_payouts",
+      "read_shopify_payments_bank_accounts",
+      "read_shopify_payments_disputes",
+      "write_shopify_payments_disputes",
+      "read_content",
+      "write_content",
+      "read_store_credit_account_transactions",
+      "write_store_credit_account_transactions",
+      "read_store_credit_accounts",
+      "write_theme_code",
+      "read_themes",
+      "write_themes",
+      "read_third_party_fulfillment_orders",
+      "write_third_party_fulfillment_orders",
+      "read_translations",
+      "read_pixels",
+      "write_pixels",
+      "customer_read_companies",
+      "customer_write_companies",
+      "customer_write_customers",
+      "customer_read_customers",
+      "customer_read_draft_orders",
+      "customer_read_markets",
+      "customer_read_metaobjects",
+      "customer_read_orders",
+      "customer_write_orders",
+      "customer_read_store_credit_account_transactions",
+      "customer_read_store_credit_accounts",
+      "unauthenticated_write_bulk_operations",
+      "unauthenticated_read_bulk_operations",
+      "unauthenticated_read_bundles",
+      "unauthenticated_write_checkouts",
+      "unauthenticated_read_checkouts",
+      "unauthenticated_write_customers",
+      "unauthenticated_read_customers",
+      "unauthenticated_read_customer_tags",
+      "unauthenticated_read_metaobjects",
+      "unauthenticated_read_product_pickup_locations",
+      "unauthenticated_read_product_inventory",
+      "unauthenticated_read_product_listings",
+      "unauthenticated_read_product_tags",
+      "unauthenticated_read_selling_plans",
+      "unauthenticated_read_shop_pay_installments_pricing",
+      "unauthenticated_read_content",
+      "shop_app:oauth"
+    ];
+    SHOPIFY_OAUTH_SCOPES_STRING = SHOPIFY_OAUTH_SCOPES.join(",");
+  }
+});
+
+// server/shopifyOAuth.ts
+var shopifyOAuth_exports = {};
+__export(shopifyOAuth_exports, {
+  ensureFreshShopifyToken: () => ensureFreshShopifyToken,
+  exchangeShopifyCode: () => exchangeShopifyCode,
+  generateShopifyOAuthState: () => generateShopifyOAuthState,
+  getCanonicalShopifyRedirectUri: () => getCanonicalShopifyRedirectUri,
+  getShopifyCredentials: () => getShopifyCredentials,
+  normalizeShopifyDomain: () => normalizeShopifyDomain,
+  parseShopifyScopes: () => parseShopifyScopes,
+  verifyShopifyHmac: () => verifyShopifyHmac,
+  verifyShopifyOAuthState: () => verifyShopifyOAuthState
+});
 import crypto3 from "node:crypto";
+function stateSecret() {
+  const secret = process.env.OAUTH_STATE_SECRET || process.env.CREDENTIAL_ENCRYPTION_KEY;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OAUTH_STATE_SECRET or CREDENTIAL_ENCRYPTION_KEY must be set in production environment.");
+    }
+    return "hanna-shopify-oauth-state-secret-default-32chars";
+  }
+  return secret;
+}
+function appBaseUrl() {
+  return (process.env.APP_BASE_URL || "https://hanna-agent.vercel.app").replace(/\/$/, "");
+}
+function getCanonicalShopifyRedirectUri() {
+  if (process.env.SHOPIFY_REDIRECT_URI && process.env.SHOPIFY_REDIRECT_URI.trim()) {
+    return process.env.SHOPIFY_REDIRECT_URI.trim();
+  }
+  return `${appBaseUrl()}/api/oauth/shopify/callback`;
+}
+function getShopifyCredentials() {
+  const clientId = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_OAUTH_CLIENT_ID || "";
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_OAUTH_CLIENT_SECRET || "";
+  return { clientId, clientSecret };
+}
+function normalizeShopifyDomain(rawShop) {
+  if (!rawShop || typeof rawShop !== "string") return null;
+  let cleaned = rawShop.trim().toLowerCase();
+  cleaned = cleaned.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  if (!cleaned.includes(".")) {
+    cleaned = `${cleaned}.myshopify.com`;
+  }
+  const shopifyRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
+  if (!shopifyRegex.test(cleaned)) {
+    return null;
+  }
+  return cleaned;
+}
+async function consumeNonceDurable(canonicalUserId, nonce) {
+  const firestore = getAdminFirestore();
+  if (firestore) {
+    try {
+      const docRef = firestore.collection("users").doc(canonicalUserId).collection("oauth_nonces").doc(nonce);
+      const snapshot = await docRef.get();
+      if (snapshot.exists) {
+        return false;
+      }
+      await docRef.set({
+        usedAt: /* @__PURE__ */ new Date(),
+        nonce
+      });
+      return true;
+    } catch (err) {
+      console.warn("[ShopifyOAuth] Durable nonce check error, falling back to in-memory:", err);
+    }
+  }
+  if (usedShopifyNonces.has(nonce)) {
+    return false;
+  }
+  usedShopifyNonces.add(nonce);
+  if (usedShopifyNonces.size > 1e4) {
+    usedShopifyNonces.clear();
+  }
+  return true;
+}
+function generateShopifyOAuthState(canonicalUserId, shop) {
+  const nonce = crypto3.randomBytes(16).toString("hex");
+  const timestamp2 = Date.now();
+  const provider = "shopify";
+  const payload = `${canonicalUserId}:${provider}:${shop}:${timestamp2}:${nonce}`;
+  const signature = crypto3.createHmac("sha256", stateSecret()).update(payload).digest("hex");
+  return Buffer.from(`${payload}:${signature}`).toString("base64url");
+}
+async function verifyShopifyOAuthState(state, expectedShop) {
+  if (!state || typeof state !== "string") {
+    return { uid: "", shop: "", valid: false, reason: "missing_state" };
+  }
+  try {
+    const decoded = Buffer.from(state, "base64url").toString("utf8");
+    const parts = decoded.split(":");
+    if (parts.length !== 6) {
+      return { uid: "", shop: "", valid: false, reason: "malformed_state" };
+    }
+    const [uid, provider, shop, timestampStr, nonce, signature] = parts;
+    if (provider !== "shopify") {
+      return { uid: "", shop: "", valid: false, reason: "invalid_provider" };
+    }
+    const payload = `${uid}:${provider}:${shop}:${timestampStr}:${nonce}`;
+    const expectedSig = crypto3.createHmac("sha256", stateSecret()).update(payload).digest("hex");
+    const sigBuf = Buffer.from(signature, "hex");
+    const expBuf = Buffer.from(expectedSig, "hex");
+    if (sigBuf.length !== expBuf.length || !crypto3.timingSafeEqual(sigBuf, expBuf)) {
+      return { uid: "", shop: "", valid: false, reason: "invalid_signature" };
+    }
+    const timestamp2 = Number.parseInt(timestampStr, 10);
+    if (Date.now() - timestamp2 > 15 * 60 * 1e3) {
+      return { uid: "", shop: "", valid: false, reason: "expired_state" };
+    }
+    if (expectedShop) {
+      const normExpected = normalizeShopifyDomain(expectedShop);
+      const normStateShop = normalizeShopifyDomain(shop);
+      if (!normExpected || !normStateShop || normExpected !== normStateShop) {
+        return { uid: "", shop: "", valid: false, reason: "shop_mismatch" };
+      }
+    }
+    const canonicalUserId = await resolveCanonicalUserId(uid);
+    const isNewNonce = await consumeNonceDurable(canonicalUserId, nonce);
+    if (!isNewNonce) {
+      return { uid: "", shop: "", valid: false, reason: "replayed_state" };
+    }
+    return { uid: canonicalUserId, shop, valid: true };
+  } catch (err) {
+    return { uid: "", shop: "", valid: false, reason: "state_error" };
+  }
+}
+function verifyShopifyHmac(query) {
+  const hmac = query.hmac;
+  if (!hmac || typeof hmac !== "string") return false;
+  const { clientSecret } = getShopifyCredentials();
+  if (!clientSecret) return false;
+  const params = [];
+  const sortedKeys = Object.keys(query).sort();
+  for (const key of sortedKeys) {
+    if (key === "hmac" || key === "signature") continue;
+    const value = query[key];
+    if (value === void 0) continue;
+    if (Array.isArray(value)) {
+      params.push(`${key}=${value.join(",")}`);
+    } else {
+      params.push(`${key}=${value}`);
+    }
+  }
+  const message = params.join("&");
+  const calculatedHmac = crypto3.createHmac("sha256", clientSecret).update(message).digest("hex");
+  const hmacBuf = Buffer.from(hmac, "hex");
+  const calcBuf = Buffer.from(calculatedHmac, "hex");
+  if (hmacBuf.length !== calcBuf.length) return false;
+  return crypto3.timingSafeEqual(hmacBuf, calcBuf);
+}
+async function exchangeShopifyCode(shop, code, fetcher = fetch) {
+  const { clientId, clientSecret } = getShopifyCredentials();
+  if (!clientId || !clientSecret) {
+    throw new Error("Shopify Client ID and Secret are not configured on server.");
+  }
+  const normShop = normalizeShopifyDomain(shop);
+  if (!normShop) {
+    throw new Error("Invalid Shopify store domain.");
+  }
+  const url = `https://${normShop}/admin/oauth/access_token`;
+  const response = await fetcher(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      expiring: 1
+      // Requests expiring offline token pair with refresh token
+    })
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Shopify token exchange failed (${response.status}): ${errText}`);
+  }
+  const data = await response.json();
+  if (!data.access_token) {
+    throw new Error("Shopify token exchange returned response missing access_token.");
+  }
+  return data;
+}
+function parseShopifyScopes(scopeString) {
+  const grantedScopes = (scopeString || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const missingScopes = SHOPIFY_OAUTH_SCOPES.filter(
+    (s) => !grantedScopes.includes(s)
+  );
+  return { grantedScopes, missingScopes };
+}
+async function ensureFreshShopifyToken(canonicalUserId, credentialValues, fetcher = fetch) {
+  const { accessToken, access_token, refreshToken, refresh_token, expiresAt, expires_in, obtainedAt, obtained_at, storeDomain } = credentialValues;
+  const currentAccess = accessToken || access_token || "";
+  const currentRefresh = refreshToken || refresh_token || "";
+  const domain = storeDomain || credentialValues.shop || "";
+  if (!currentRefresh) {
+    return credentialValues;
+  }
+  let expiresAtMs = 0;
+  if (expiresAt) {
+    expiresAtMs = Number.parseInt(expiresAt, 10);
+  } else if (expires_in) {
+    const obtained = Number.parseInt(obtainedAt || obtained_at || "0", 10);
+    const secs = Number.parseInt(expires_in, 10);
+    expiresAtMs = obtained + secs * 1e3;
+  }
+  const nowMs = Date.now();
+  if (expiresAtMs > 0 && expiresAtMs - nowMs > 3e5) {
+    return credentialValues;
+  }
+  const lockKey = `${canonicalUserId}:${domain}`;
+  if (inFlightRefreshes.has(lockKey)) {
+    return inFlightRefreshes.get(lockKey);
+  }
+  const refreshPromise = (async () => {
+    try {
+      const { clientId, clientSecret } = getShopifyCredentials();
+      if (!clientId || !clientSecret || !domain) {
+        return credentialValues;
+      }
+      const normShop = normalizeShopifyDomain(domain);
+      if (!normShop) return credentialValues;
+      const refreshUrl = `https://${normShop}/admin/oauth/access_token`;
+      const res = await fetcher(refreshUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          grant_type: "refresh_token",
+          refresh_token: currentRefresh
+        })
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn("[ShopifyTokenRefresh] Refresh failed:", res.status, errText);
+        return credentialValues;
+      }
+      const data = await res.json();
+      if (!data.access_token) {
+        return credentialValues;
+      }
+      const now2 = Date.now();
+      const expiresInSec = Number(data.expires_in || 86400);
+      const newExpiresAt = now2 + expiresInSec * 1e3;
+      const refreshExpiresInSec = Number(data.refresh_token_expires_in || 0);
+      const updatedValues = {
+        ...credentialValues,
+        accessToken: data.access_token,
+        access_token: data.access_token,
+        refreshToken: data.refresh_token || currentRefresh,
+        refresh_token: data.refresh_token || currentRefresh,
+        expiresAt: String(newExpiresAt),
+        expires_in: String(expiresInSec),
+        obtainedAt: String(now2),
+        obtained_at: String(now2),
+        storeDomain: normShop,
+        is_connected: "true",
+        verified: "true"
+      };
+      if (refreshExpiresInSec > 0) {
+        updatedValues.refreshTokenExpiresAt = String(now2 + refreshExpiresInSec * 1e3);
+      }
+      await saveConnectorCredential(canonicalUserId, "shopify", updatedValues);
+      return updatedValues;
+    } finally {
+      inFlightRefreshes.delete(lockKey);
+    }
+  })();
+  inFlightRefreshes.set(lockKey, refreshPromise);
+  return refreshPromise;
+}
+var usedShopifyNonces, inFlightRefreshes;
+var init_shopifyOAuth = __esm({
+  "server/shopifyOAuth.ts"() {
+    "use strict";
+    init_shopifyConfig();
+    init_firestore();
+    init_connectorDb();
+    init_userResolver();
+    usedShopifyNonces = /* @__PURE__ */ new Set();
+    inFlightRefreshes = /* @__PURE__ */ new Map();
+  }
+});
+
+// server/connectorDb.ts
+import crypto4 from "node:crypto";
 async function saveConnectorCredentialInternal(canonicalUserId, connector, values) {
   if (!values || Object.keys(values).length === 0) {
     throw new Error(`${connector} requires at least one credential field`);
@@ -3760,6 +4238,14 @@ async function getConnectorCredential(userId, connector) {
   if (foundCred && isGoogle && foundCred.values.refresh_token) {
     foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred);
   }
+  if (foundCred && foundCred.connector === "shopify" && (foundCred.values.refreshToken || foundCred.values.refresh_token)) {
+    const { ensureFreshShopifyToken: ensureFreshShopifyToken2 } = await Promise.resolve().then(() => (init_shopifyOAuth(), shopifyOAuth_exports));
+    const freshValues = await ensureFreshShopifyToken2(canonicalUserId, foundCred.values);
+    foundCred = {
+      connector: "shopify",
+      values: freshValues
+    };
+  }
   return foundCred;
 }
 async function deleteConnectorCredential(userId, connector) {
@@ -3784,7 +4270,7 @@ function validateAction(action) {
 function createApprovalRequest(userId, action) {
   validateAction(action);
   const now2 = /* @__PURE__ */ new Date();
-  const id = `approval_${crypto3.randomUUID()}`;
+  const id = `approval_${crypto4.randomUUID()}`;
   const request = {
     id,
     userId,
@@ -6279,8 +6765,143 @@ init_route();
 init_context();
 init_connectorDb();
 init_userResolver();
-import crypto4 from "node:crypto";
-function stateSecret() {
+import crypto5 from "node:crypto";
+
+// server/shopifyOAuthRoutes.ts
+init_context();
+init_connectorDb();
+init_shopifyConfig();
+init_shopifyOAuth();
+init_userResolver();
+function appBaseUrl2() {
+  return (process.env.APP_BASE_URL || "https://hanna-agent.vercel.app").replace(/\/$/, "");
+}
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(";").forEach((cookie) => {
+    const parts = cookie.split("=");
+    if (parts.length >= 2) {
+      const name = parts[0].trim();
+      const val = parts.slice(1).join("=").trim();
+      cookies[name] = decodeURIComponent(val);
+    }
+  });
+  return cookies;
+}
+async function handleShopifyOAuthAuthorize(req, res) {
+  const token = req.query.id_token || req.headers.authorization?.slice(7);
+  const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
+  const rawUid = decoded?.user_id || decoded?.sub;
+  if (!rawUid) {
+    res.status(401).json({ error: "Authentication required to initiate Shopify OAuth connection." });
+    return;
+  }
+  const rawShop = req.query.shop || req.query.store || req.query.storeDomain;
+  const normShop = normalizeShopifyDomain(rawShop);
+  if (!normShop) {
+    res.status(400).json({ error: "Invalid or missing Shopify store domain. Must be a valid '*.myshopify.com' hostname." });
+    return;
+  }
+  const { clientId } = getShopifyCredentials();
+  if (!clientId) {
+    res.status(500).json({ error: "Shopify Client ID is not configured on server (SHOPIFY_CLIENT_ID)." });
+    return;
+  }
+  const canonicalUserId = await resolveCanonicalUserId(rawUid);
+  const redirectUri = getCanonicalShopifyRedirectUri();
+  const state = generateShopifyOAuthState(canonicalUserId, normShop);
+  const authUrl = new URL(`https://${normShop}/admin/oauth/authorize`);
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("scope", SHOPIFY_OAUTH_SCOPES_STRING);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("state", state);
+  res.setHeader(
+    "Set-Cookie",
+    `hanna_shopify_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900`
+  );
+  res.redirect(authUrl.toString());
+}
+async function handleShopifyOAuthCallback(req, res) {
+  const code = req.query.code;
+  const rawShop = req.query.shop;
+  const stateFromQuery = req.query.state;
+  const error = req.query.error;
+  const errorDescription = req.query.error_description;
+  const cookies = parseCookies(req.headers.cookie);
+  const stateFromCookie = cookies["hanna_shopify_oauth_state"];
+  const state = stateFromQuery || stateFromCookie;
+  if (error) {
+    const diagCode = error === "access_denied" ? "access_denied" : "oauth_error";
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent(errorDescription || diagCode)}`);
+    return;
+  }
+  if (!code) {
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent("missing_code")}`);
+    return;
+  }
+  const normShop = normalizeShopifyDomain(rawShop);
+  if (!normShop) {
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent("invalid_shop")}`);
+    return;
+  }
+  if (!state) {
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent("missing_state")}`);
+    return;
+  }
+  let verification = await verifyShopifyOAuthState(state, normShop);
+  if ((!verification.valid || !verification.uid) && stateFromCookie && stateFromCookie !== stateFromQuery) {
+    verification = await verifyShopifyOAuthState(stateFromCookie, normShop);
+  }
+  if (!verification.valid || !verification.uid) {
+    const diag = verification.reason || "state_mismatch";
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent(diag)}`);
+    return;
+  }
+  const isHmacValid = verifyShopifyHmac(req.query);
+  if (!isHmacValid) {
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent("invalid_hmac")}`);
+    return;
+  }
+  const canonicalUserId = await resolveCanonicalUserId(verification.uid);
+  try {
+    const tokenData = await exchangeShopifyCode(normShop, code);
+    const { grantedScopes, missingScopes } = parseShopifyScopes(tokenData.scope);
+    const now2 = Date.now();
+    const expiresInSec = Number(tokenData.expires_in || 86400);
+    const expiresAtMs = now2 + expiresInSec * 1e3;
+    const refreshExpiresInSec = Number(tokenData.refresh_token_expires_in || 0);
+    const credentialValues = {
+      storeDomain: normShop,
+      accessToken: tokenData.access_token,
+      access_token: tokenData.access_token,
+      refreshToken: tokenData.refresh_token || "",
+      refresh_token: tokenData.refresh_token || "",
+      expiresAt: String(expiresAtMs),
+      expires_in: String(expiresInSec),
+      obtainedAt: String(now2),
+      obtained_at: String(now2),
+      grantedScopes: JSON.stringify(grantedScopes),
+      scope: tokenData.scope,
+      missingScopes: JSON.stringify(missingScopes),
+      is_connected: "true",
+      verified: "true",
+      connectedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    if (refreshExpiresInSec > 0) {
+      credentialValues.refreshTokenExpiresAt = String(now2 + refreshExpiresInSec * 1e3);
+    }
+    await saveConnectorCredential(canonicalUserId, "shopify", credentialValues);
+    res.setHeader("Set-Cookie", "hanna_shopify_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
+    res.redirect(`${appBaseUrl2()}/integrations?connector_success=shopify&shop=${encodeURIComponent(normShop)}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Shopify OAuth callback failed";
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent(msg)}`);
+  }
+}
+
+// server/oauthRoutes.ts
+function stateSecret2() {
   const secret = process.env.OAUTH_STATE_SECRET || process.env.CREDENTIAL_ENCRYPTION_KEY;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
@@ -6301,23 +6922,23 @@ function rememberNonce(nonce) {
   }
   return true;
 }
-function appBaseUrl() {
+function appBaseUrl3() {
   return (process.env.APP_BASE_URL || "https://hanna-agent.vercel.app").replace(/\/$/, "");
 }
 function getCanonicalGoogleRedirectUri() {
   if (process.env.GOOGLE_REDIRECT_URI && process.env.GOOGLE_REDIRECT_URI.trim()) {
     return process.env.GOOGLE_REDIRECT_URI.trim();
   }
-  return `${appBaseUrl()}/api/oauth/google/callback`;
+  return `${appBaseUrl3()}/api/oauth/google/callback`;
 }
 function generateOAuthState(uid, provider = "google") {
-  const nonce = crypto4.randomBytes(16).toString("hex");
+  const nonce = crypto5.randomBytes(16).toString("hex");
   const timestamp2 = Date.now();
   const payload = `${uid}:${provider}:${timestamp2}:${nonce}`;
-  const signature = crypto4.createHmac("sha256", stateSecret()).update(payload).digest("hex");
+  const signature = crypto5.createHmac("sha256", stateSecret2()).update(payload).digest("hex");
   return Buffer.from(`${payload}:${signature}`).toString("base64url");
 }
-function parseCookies(cookieHeader) {
+function parseCookies2(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
   cookieHeader.split(";").forEach((cookie) => {
@@ -6340,7 +6961,7 @@ function verifyOAuthState(state, expectedProvider = "google", allowReplayIfRecen
     const [uid, provider, timestampStr, nonce, signature] = parts;
     if (provider !== expectedProvider) return { uid: "", valid: false };
     const payload = `${uid}:${provider}:${timestampStr}:${nonce}`;
-    const expectedSig = crypto4.createHmac("sha256", stateSecret()).update(payload).digest("hex");
+    const expectedSig = crypto5.createHmac("sha256", stateSecret2()).update(payload).digest("hex");
     if (signature !== expectedSig) return { uid: "", valid: false };
     const timestamp2 = Number.parseInt(timestampStr, 10);
     if (Date.now() - timestamp2 > 15 * 60 * 1e3) return { uid: "", valid: false };
@@ -6400,20 +7021,20 @@ async function handleGoogleOAuthCallback(req, res) {
   const code = req.query.code;
   const stateFromQuery = req.query.state;
   const error = req.query.error;
-  const cookies = parseCookies(req.headers.cookie);
+  const cookies = parseCookies2(req.headers.cookie);
   const stateFromCookie = cookies["hanna_oauth_state"];
   const state = stateFromQuery || stateFromCookie;
   if (error) {
     const diagCode = error === "access_denied" ? "access_denied" : "oauth_error";
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(diagCode)}`);
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent(diagCode)}`);
     return;
   }
   if (!code) {
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("missing_code")}`);
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("missing_code")}`);
     return;
   }
   if (!state) {
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("missing_state")}`);
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("missing_state")}`);
     return;
   }
   let verification = verifyOAuthState(state, "google");
@@ -6422,14 +7043,14 @@ async function handleGoogleOAuthCallback(req, res) {
   }
   const { uid: stateUserId, valid } = verification;
   if (!valid || !stateUserId) {
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
     return;
   }
   const canonicalUserId = await resolveCanonicalUserId(stateUserId);
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);
     return;
   }
   try {
@@ -6448,14 +7069,14 @@ async function handleGoogleOAuthCallback(req, res) {
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       const diagCode = errText.includes("redirect_uri_mismatch") ? "redirect_uri_mismatch" : errText.includes("invalid_grant") ? "invalid_grant" : "token_exchange_failure";
-      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(diagCode)}`);
+      res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent(diagCode)}`);
       return;
     }
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
     const refreshToken = tokenData.refresh_token || "";
     if (!accessToken) {
-      res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent("No access token returned by Google.")}`);
+      res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("No access token returned by Google.")}`);
       return;
     }
     let googleEmail = "";
@@ -6497,10 +7118,117 @@ async function handleGoogleOAuthCallback(req, res) {
       });
     }
     res.setHeader("Set-Cookie", "hanna_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
-    res.redirect(`${appBaseUrl()}/?connector_success=google-workspace`);
+    res.redirect(`${appBaseUrl3()}/?connector_success=google-workspace`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Google OAuth callback failed";
-    res.redirect(`${appBaseUrl()}/?connector_error=${encodeURIComponent(msg)}`);
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent(msg)}`);
+  }
+}
+function getCanonicalGitHubRedirectUri() {
+  if (process.env.GITHUB_REDIRECT_URI && process.env.GITHUB_REDIRECT_URI.trim()) {
+    return process.env.GITHUB_REDIRECT_URI.trim();
+  }
+  return `${appBaseUrl3()}/api/oauth/github/callback`;
+}
+async function handleGitHubOAuthAuthorize(req, res) {
+  const token = req.query.id_token || req.headers.authorization?.slice(7);
+  const decoded = token ? parseAndVerifyFirebaseToken(token) : null;
+  const rawUid = decoded?.user_id || decoded?.sub;
+  if (!rawUid) {
+    res.status(401).json({ error: "Authentication required to initiate GitHub OAuth connection." });
+    return;
+  }
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_ID;
+  if (!clientId) {
+    res.status(500).json({ error: "GitHub OAuth Client ID is not configured on server (GITHUB_CLIENT_ID)." });
+    return;
+  }
+  const canonicalUserId = await resolveCanonicalUserId(rawUid);
+  const redirectUri = getCanonicalGitHubRedirectUri();
+  const state = generateOAuthState(canonicalUserId, "github");
+  const scope = "repo read:user user:email";
+  const authUrl = new URL("https://github.com/login/oauth/authorize");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("scope", scope);
+  authUrl.searchParams.set("state", state);
+  res.redirect(authUrl.toString());
+}
+async function handleGitHubOAuthCallback(req, res) {
+  const code = req.query.code;
+  const state = req.query.state;
+  const error = req.query.error;
+  if (error) {
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent(error)}`);
+    return;
+  }
+  if (!code) {
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("missing_code")}`);
+    return;
+  }
+  if (!state) {
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("missing_state")}`);
+    return;
+  }
+  const { uid: stateUserId, valid } = verifyOAuthState(state, "github");
+  if (!valid || !stateUserId) {
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("state_mismatch")}`);
+    return;
+  }
+  const canonicalUserId = await resolveCanonicalUserId(stateUserId);
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_SECRET;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_OAUTH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);
+    return;
+  }
+  try {
+    const redirectUri = getCanonicalGitHubRedirectUri();
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json"
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri
+      })
+    });
+    if (!tokenRes.ok) {
+      res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("token_exchange_failure")}`);
+      return;
+    }
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      const err = tokenData.error_description || "No access token returned by GitHub.";
+      res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent(err)}`);
+      return;
+    }
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "User-Agent": "Hanna-Agent"
+      }
+    });
+    let githubUsername = "";
+    if (userRes.ok) {
+      const userData = await userRes.json();
+      githubUsername = userData.login || "";
+    }
+    await saveConnectorCredential(canonicalUserId, "github", {
+      access_token: accessToken,
+      username: githubUsername,
+      is_connected: "true",
+      verified: "true"
+    });
+    res.redirect(`${appBaseUrl3()}/?connector_success=github`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "GitHub OAuth callback failed";
+    res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent(msg)}`);
   }
 }
 
@@ -6543,6 +7271,18 @@ async function handler(req, res) {
     }
     if (path2 === "/api/oauth/google/callback" || path2 === "/oauth/google/callback") {
       return handleGoogleOAuthCallback(req, res);
+    }
+    if (path2 === "/api/oauth/github/authorize" || path2 === "/oauth/github/authorize") {
+      return handleGitHubOAuthAuthorize(req, res);
+    }
+    if (path2 === "/api/oauth/github/callback" || path2 === "/oauth/github/callback") {
+      return handleGitHubOAuthCallback(req, res);
+    }
+    if (path2 === "/api/oauth/shopify/authorize" || path2 === "/oauth/shopify/authorize") {
+      return handleShopifyOAuthAuthorize(req, res);
+    }
+    if (path2 === "/api/oauth/shopify/callback" || path2 === "/oauth/shopify/callback") {
+      return handleShopifyOAuthCallback(req, res);
     }
     if (path2 === "/api/config" || path2 === "/config") {
       if (method !== "GET") return respond(res, 405, { error: "Method not allowed." });

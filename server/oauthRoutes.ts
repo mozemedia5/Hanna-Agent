@@ -287,6 +287,11 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
   }
 }
 
+export {
+  handleShopifyOAuthAuthorize,
+  handleShopifyOAuthCallback,
+} from "./shopifyOAuthRoutes";
+
 export function getCanonicalGitHubRedirectUri(): string {
   if (process.env.GITHUB_REDIRECT_URI && process.env.GITHUB_REDIRECT_URI.trim()) {
     return process.env.GITHUB_REDIRECT_URI.trim();
