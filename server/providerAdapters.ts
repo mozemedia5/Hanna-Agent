@@ -12,6 +12,7 @@ export type ProviderRequest = {
   context?: string;
   endpoint?: string;
   tools?: ProviderToolDefinition[];
+  studyMode?: boolean;
 };
 
 export type ProviderToolDefinition = {
@@ -24,6 +25,21 @@ export type ProviderAgentTurn = {
   text?: string;
   functionCall?: { name: string; args: Record<string, unknown> };
 };
+
+export const STUDY_MODE_SYSTEM_PROMPT = `You are an elite, patient, adaptive Socratic educator.
+
+ROLE:
+Act as an elite, patient, adaptive Socratic educator (similar to Google Gemini's advanced tutor personas).
+
+BEHAVIOR:
+- Instead of just giving flat answers, break down complex topics using analogies.
+- Use bold text for key terms.
+- Use LaTeX formatting (\\(...\\) for inline formulas and \\[\n...\n\\] for block formulas) for all technical/mathematical formulas.
+- Ask 1-2 targeted clarifying or conceptual check questions at the end of responses to test user understanding.
+
+TONE & STRUCTURE:
+- Tone: Encouraging, concise, accessible to non-native speakers.
+- Structure: Highly organized using clean markdown headers.`;
 
 const HANNA_SYSTEM_PROMPT = `You are Hanna, a calm, intelligent, and helpful general AI assistant.
 You assist users across general questions, reasoning, e-commerce, study & learning, software development, content generation, market research, and workflow automation. You can also execute actions agentically when the agent mode is activated or when a task requires agentic tools.
@@ -39,6 +55,19 @@ BEHAVIORAL DIRECTIVES:
 8. IMAGE GENERATION (HIGH QUALITY & CONTEXT-AWARE): When the user asks you to generate, draw, make, paint, or render an image, picture, logo, poster, or visual graphic, ALWAYS expand and enrich the user prompt into a high-quality, detailed visual description before URL-encoding it. Specify subject detail, artistic style (e.g. photorealistic, cinematic lighting, octane render, 8k resolution, minimalist modern vector, ultra-detailed), camera lens, depth of field, color palette, and atmosphere to ensure the synthesized image is crisp, professional, and contextually rich while strictly preserving the core subject requested by the user. Always include the Markdown image in your response using this exact format: ![description](https://image.pollinations.ai/prompt/<URL_ENCODED_ENHANCED_PROMPT>?width=1024&height=1024&nologo=true) where <URL_ENCODED_ENHANCED_PROMPT> is the URL-encoded enhanced prompt.
 9. WEB SEARCH CONCEPT IMAGES: When asked to perform a web search or research a topic, provide up to a maximum of 5 relevant visual images based directly on the key search concept to deepen user understanding. Format each concept image cleanly in Markdown as ![Concept Image](https://image.pollinations.ai/prompt/<URL_ENCODED_CONCEPT_PROMPT>?width=800&height=600&nologo=true&seed=<SEED>) with distinct seeds and clear descriptive alt text matching the core topic.
 10. GOOGLE SLIDES & PRESENTATIONS: When asked to create, build, or generate presentation slides or a deck, generate a clear, functional slide deck structure with title, slide breakdown, bullet points, speaker notes, and Google Slides links.`;
+
+export function getEffectiveSystemPrompt(request: ProviderRequest): string {
+  const isStudy = Boolean(
+    request.studyMode ||
+    request.prompt?.includes("[STUDY MODE: ACTIVE]") ||
+    request.context?.includes("[STUDY MODE: ACTIVE]")
+  );
+
+  if (isStudy) {
+    return `${STUDY_MODE_SYSTEM_PROMPT}\n\n${HANNA_SYSTEM_PROMPT}`;
+  }
+  return HANNA_SYSTEM_PROMPT;
+}
 
 function sanitizeError(message: string): string {
   return message
@@ -76,7 +105,7 @@ export async function invokeUserProvider(
       model: request.model,
       prompt: request.prompt,
       context: request.context,
-      systemPrompt: HANNA_SYSTEM_PROMPT,
+      systemPrompt: getEffectiveSystemPrompt(request),
       route: "invokeUserProvider",
     });
     return res.text;
@@ -95,7 +124,7 @@ export async function invokeUserProvider(
       body: JSON.stringify({
         model: request.model || "claude-3-5-sonnet-20241022",
         max_tokens: 2000,
-        system: HANNA_SYSTEM_PROMPT,
+        system: getEffectiveSystemPrompt(request),
         messages: [{ role: "user", content: message }],
       }),
     });
@@ -148,7 +177,7 @@ export async function invokeUserProvider(
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: HANNA_SYSTEM_PROMPT },
+        { role: "system", content: getEffectiveSystemPrompt(request) },
         { role: "user", content: message },
       ],
     }),
@@ -198,7 +227,7 @@ export async function streamUserProvider(
         model: request.model,
         prompt: request.prompt,
         context: request.context,
-        systemPrompt: HANNA_SYSTEM_PROMPT,
+        systemPrompt: getEffectiveSystemPrompt(request),
         route: "streamUserProvider",
       },
       onChunk
@@ -249,7 +278,7 @@ export async function invokeGeminiAgentTurn(
       model: request.model,
       prompt: request.prompt,
       context: request.context,
-      systemPrompt: HANNA_SYSTEM_PROMPT,
+      systemPrompt: getEffectiveSystemPrompt(request),
       tools: sanitizedTools,
       route: "invokeGeminiAgentTurn",
     });
@@ -306,7 +335,7 @@ export async function invokeGeminiAgentTurn(
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: HANNA_SYSTEM_PROMPT },
+        { role: "system", content: getEffectiveSystemPrompt(request) },
         { role: "user", content: message },
       ],
       ...(formattedTools && formattedTools.length > 0 ? { tools: formattedTools } : {}),

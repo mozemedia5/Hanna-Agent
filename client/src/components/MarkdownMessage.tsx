@@ -326,6 +326,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -335,7 +336,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `hanna-generated-image-${Date.now()}.png`;
+      a.download = `web-image-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -357,15 +358,15 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
 
   return (
     <div
-      className="gemini-image-card"
+      className="chatgpt-image-card my-4 overflow-hidden rounded-xl border border-border bg-card shadow-md transition-all duration-200 hover:shadow-lg max-w-xl"
       style={{
         margin: "16px 0",
-        borderRadius: "16px",
+        borderRadius: "12px",
         overflow: "hidden",
         border: "1px solid var(--border)",
         background: "var(--surface-raised)",
-        maxWidth: "640px",
-        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+        maxWidth: "600px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.10)",
       }}
     >
       <div
@@ -373,7 +374,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "10px 14px",
+          padding: "8px 12px",
           borderBottom: "1px solid var(--border)",
           background: "var(--surface)",
           fontSize: "12px",
@@ -381,7 +382,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "600", color: "var(--text-primary)" }}>
           <Sparkles size={14} style={{ color: "var(--gemini-accent)" }} />
-          <span>Hanna Visual Media</span>
+          <span>Web Image</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -399,10 +400,10 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
                 fontSize: "11px",
                 cursor: "pointer",
               }}
-              title="Copy prompt"
+              title="Copy description"
             >
               {copiedPrompt ? <Check size={13} /> : <Copy size={13} />}
-              <span>{copiedPrompt ? "Copied" : "Prompt"}</span>
+              <span>{copiedPrompt ? "Copied" : "Copy"}</span>
             </button>
           )}
 
@@ -419,7 +420,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
               fontSize: "11px",
               cursor: "pointer",
             }}
-            title="Download full resolution image"
+            title="Save image"
           >
             <Download size={13} />
             <span>{downloading ? "Saving..." : "Save"}</span>
@@ -445,38 +446,68 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", cursor: "pointer", minHeight: isLoaded ? "auto" : "240px" }} onClick={() => setLightboxOpen(true)}>
-        {!isLoaded && (
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "16 / 9",
+          minHeight: "200px",
+          background: "var(--surface-hover, #222)",
+          cursor: "pointer",
+          overflow: "hidden",
+        }}
+        onClick={() => setLightboxOpen(true)}
+      >
+        {!isLoaded && !hasError && (
           <div
-            className="image-skeleton-shimmer"
+            className="image-skeleton-loader"
             style={{
               position: "absolute",
               inset: 0,
-              background: "linear-gradient(90deg, var(--surface-raised) 25%, var(--surface-hover) 50%, var(--surface-raised) 75%)",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%)",
               backgroundSize: "200% 100%",
               animation: "shimmer 1.5s infinite ease-in-out",
             }}
           />
         )}
-        <img
-          src={src}
-          alt={alt || "Generated AI Visual"}
-          onLoad={() => setIsLoaded(true)}
-          style={{
-            width: "100%",
-            height: "auto",
-            display: "block",
-            maxHeight: "500px",
-            objectFit: "cover",
-            opacity: isLoaded ? 1 : 0,
-            transition: "opacity 300ms ease",
-          }}
-          loading="lazy"
-        />
+
+        {hasError ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              color: "var(--text-tertiary)",
+              gap: "8px",
+              fontSize: "12px",
+            }}
+          >
+            <Sparkles size={20} />
+            <span>Image visual preview</span>
+          </div>
+        ) : (
+          <img
+            src={src}
+            alt={alt || "Web Search Image"}
+            onLoad={() => setIsLoaded(true)}
+            onError={() => setHasError(true)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+              opacity: isLoaded ? 1 : 0,
+              transition: "opacity 250ms ease-in-out",
+            }}
+            loading="lazy"
+          />
+        )}
       </div>
 
       {alt && (
-        <div style={{ padding: "8px 14px", fontSize: "11px", color: "var(--text-tertiary)", borderTop: "1px solid var(--border)" }}>
+        <div style={{ padding: "8px 12px", fontSize: "11px", color: "var(--text-tertiary)", borderTop: "1px solid var(--border)" }}>
           {alt}
         </div>
       )}
@@ -518,7 +549,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
             >
               <X size={18} />
             </button>
-            <img src={src} alt={alt || "Expanded image"} style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: "16px" }} />
+            <img src={src} alt={alt || "Expanded image"} style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: "12px" }} />
           </div>
         </div>
       )}
@@ -528,7 +559,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
 
 export function cleanResponseSymbols(text: string): string {
   if (!text) return "";
-  return text
+  let cleaned = text
     // Strip random noise patterns like *@#$#% or #$#%* or similar unparsed symbol noise
     .replace(/[*#$%\\]{4,}/g, "")
     // Convert raw LaTeX block math delimiters \[ ... \] to standard $$ ... $$ for remark-math
@@ -539,6 +570,12 @@ export function cleanResponseSymbols(text: string): string {
     .replace(/\s*\\\)/g, "$ ")
     // Remove standalone horizontal rule dividers (e.g. --- or *** or ___) that cut through responses
     .replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, "");
+
+  // Convert raw standalone image URLs (not already formatted as markdown image ![...](...)) into markdown image syntax
+  const rawUrlRegex = /(?<!\!\[[^\]]*\]\()(https?:\/\/[^\s<>)]+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?[^\s<>)]*)?|https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>)]+)/gi;
+  cleaned = cleaned.replace(rawUrlRegex, (url) => `\n\n![Web Image](${url})\n\n`);
+
+  return cleaned;
 }
 
 type ChartDataPayload = {
