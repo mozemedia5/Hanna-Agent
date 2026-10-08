@@ -5,7 +5,21 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { Check, Copy, Download, Maximize2, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, Presentation } from "lucide-react";
+import { Check, Copy, Download, Maximize2, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, Presentation, BarChart3 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 type MarkdownMessageProps = {
   content: string;
@@ -311,6 +325,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -342,15 +357,15 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
 
   return (
     <div
-      className="chatgpt-image-container"
+      className="gemini-image-card"
       style={{
         margin: "16px 0",
         borderRadius: "16px",
         overflow: "hidden",
         border: "1px solid var(--border)",
         background: "var(--surface-raised)",
-        maxWidth: "600px",
-        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
+        maxWidth: "640px",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
       }}
     >
       <div
@@ -366,7 +381,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "600", color: "var(--text-primary)" }}>
           <Sparkles size={14} style={{ color: "var(--gemini-accent)" }} />
-          <span>Hanna Image Generator</span>
+          <span>Hanna Visual Media</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -430,11 +445,32 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", cursor: "pointer" }} onClick={() => setLightboxOpen(true)}>
+      <div style={{ position: "relative", cursor: "pointer", minHeight: isLoaded ? "auto" : "240px" }} onClick={() => setLightboxOpen(true)}>
+        {!isLoaded && (
+          <div
+            className="image-skeleton-shimmer"
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(90deg, var(--surface-raised) 25%, var(--surface-hover) 50%, var(--surface-raised) 75%)",
+              backgroundSize: "200% 100%",
+              animation: "shimmer 1.5s infinite ease-in-out",
+            }}
+          />
+        )}
         <img
           src={src}
           alt={alt || "Generated AI Visual"}
-          style={{ width: "100%", height: "auto", display: "block", maxHeight: "500px", objectFit: "cover" }}
+          onLoad={() => setIsLoaded(true)}
+          style={{
+            width: "100%",
+            height: "auto",
+            display: "block",
+            maxHeight: "500px",
+            objectFit: "cover",
+            opacity: isLoaded ? 1 : 0,
+            transition: "opacity 300ms ease",
+          }}
           loading="lazy"
         />
       </div>
@@ -482,7 +518,7 @@ function ChatGPTImageCard({ src, alt }: { src: string; alt?: string }) {
             >
               <X size={18} />
             </button>
-            <img src={src} alt={alt || "Expanded image"} style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: "12px" }} />
+            <img src={src} alt={alt || "Expanded image"} style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: "16px" }} />
           </div>
         </div>
       )}
@@ -503,6 +539,143 @@ export function cleanResponseSymbols(text: string): string {
     .replace(/\s*\\\)/g, "$ ")
     // Remove standalone horizontal rule dividers (e.g. --- or *** or ___) that cut through responses
     .replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, "");
+}
+
+type ChartDataPayload = {
+  type?: "line" | "bar" | "area";
+  title?: string;
+  data: Array<Record<string, unknown>>;
+  xKey?: string;
+  yKeys?: string[];
+};
+
+function ChatGPTDataChart({ payload }: { payload: ChartDataPayload }) {
+  if (!payload || !Array.isArray(payload.data) || payload.data.length === 0) return null;
+
+  const chartType = payload.type || "bar";
+  const title = payload.title || "Interactive Data Visualization";
+  const xKey = payload.xKey || Object.keys(payload.data[0])[0] || "name";
+
+  const allKeys = Object.keys(payload.data[0]);
+  const yKeys = payload.yKeys || allKeys.filter(k => k !== xKey && typeof payload.data[0][k] === "number");
+
+  // ChatGPT Signature minimalist palette: deep blues, teals, and soft slates
+  const palette = ["#2563eb", "#0d9488", "#475569", "#6366f1", "#0891b2"];
+
+  return (
+    <div
+      className="chatgpt-chart-card"
+      style={{
+        margin: "20px 0",
+        borderRadius: "12px",
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+        padding: "16px 20px 12px",
+        boxShadow: "var(--shadow-small)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "16px",
+          fontSize: "13px",
+          fontWeight: "600",
+          color: "var(--text-primary)",
+        }}
+      >
+        <BarChart3 size={16} style={{ color: "#2563eb" }} />
+        <span>{title}</span>
+      </div>
+
+      <div style={{ width: "100%", height: 260 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === "line" ? (
+            <LineChart data={payload.data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+              <XAxis dataKey={xKey} stroke="var(--text-tertiary)" fontSize={11} tickLine={false} />
+              <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  color: "var(--text-primary)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              {yKeys.map((key, idx) => (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={palette[idx % palette.length]}
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              ))}
+            </LineChart>
+          ) : chartType === "area" ? (
+            <AreaChart data={payload.data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+              <XAxis dataKey={xKey} stroke="var(--text-tertiary)" fontSize={11} tickLine={false} />
+              <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  color: "var(--text-primary)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              {yKeys.map((key, idx) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  fill={palette[idx % palette.length]}
+                  stroke={palette[idx % palette.length]}
+                  fillOpacity={0.2}
+                />
+              ))}
+            </AreaChart>
+          ) : (
+            <BarChart data={payload.data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+              <XAxis dataKey={xKey} stroke="var(--text-tertiary)" fontSize={11} tickLine={false} />
+              <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  color: "var(--text-primary)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              {yKeys.map((key, idx) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  fill={palette[idx % palette.length]}
+                  radius={[4, 4, 0, 0]}
+                />
+              ))}
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
 }
 
 export default function MarkdownMessage({ content, isStreaming }: MarkdownMessageProps) {
@@ -545,6 +718,18 @@ export default function MarkdownMessage({ content, isStreaming }: MarkdownMessag
           code({ className, children, ...props }) {
             const match = /language-([\w-]+)/.exec(className || "");
             const code = String(children).replace(/\n$/, "");
+
+            if (match && (match[1] === "chart" || match[1] === "json:chart")) {
+              try {
+                const parsed = JSON.parse(code);
+                if (parsed && Array.isArray(parsed.data)) {
+                  return <ChatGPTDataChart payload={parsed} />;
+                }
+              } catch {
+                // Fallback to standard code block if JSON parsing fails
+              }
+            }
+
             if (!match)
               return (
                 <code className="inline-code" {...props}>
