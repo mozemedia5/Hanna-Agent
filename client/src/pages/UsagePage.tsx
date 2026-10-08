@@ -20,8 +20,16 @@ import {
   Plus,
   Check,
   X,
+  History,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import {
+  getUserCredits,
+  saveUserCredits,
+  getCreditHistory,
+  recordCreditTransaction,
+  type CreditTransaction,
+} from "@/lib/credits";
 
 type UsagePageProps = {
   onNavigateToUpgrade?: () => void;
@@ -36,10 +44,8 @@ export default function UsagePage({
     typeof calculateConversationAnalytics
   > | null>(null);
 
-  const [userCredits, setUserCredits] = useState<number>(() => {
-    const stored = localStorage.getItem("hanna_user_credits");
-    return stored !== null ? Number(stored) : 500;
-  });
+  const [userCredits, setUserCredits] = useState<number>(getUserCredits);
+  const [creditHistory, setCreditHistory] = useState<CreditTransaction[]>(getCreditHistory);
 
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [toast, setToast] = useState("");
@@ -50,8 +56,17 @@ export default function UsagePage({
   };
 
   useEffect(() => {
-    localStorage.setItem("hanna_user_credits", String(userCredits));
-  }, [userCredits]);
+    const syncCredits = () => {
+      setUserCredits(getUserCredits());
+      setCreditHistory(getCreditHistory());
+    };
+    window.addEventListener("hanna_credits_updated", syncCredits);
+    window.addEventListener("storage", syncCredits);
+    return () => {
+      window.removeEventListener("hanna_credits_updated", syncCredits);
+      window.removeEventListener("storage", syncCredits);
+    };
+  }, []);
 
   useEffect(() => {
     void listUserConversations()
@@ -64,7 +79,10 @@ export default function UsagePage({
   const formatNumber = (n: number) => new Intl.NumberFormat().format(n);
 
   const handleAddCredits = (amount: number) => {
-    setUserCredits(prev => prev + amount);
+    const newBalance = saveUserCredits(userCredits + amount);
+    setUserCredits(newBalance);
+    const updatedLog = recordCreditTransaction("Credit Top-Up", `Top-up package +${amount}`, 0, newBalance);
+    setCreditHistory(updatedLog);
     setShowTopUpModal(false);
     showToast(`Successfully added +${amount} credits to your workspace!`);
   };
@@ -234,6 +252,77 @@ export default function UsagePage({
               + Add Credits
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Credit Usage Accountability & History */}
+      <div className="settings-card">
+        <div className="settings-card-header">
+          <div className="settings-card-icon">
+            <History size={20} />
+          </div>
+          <div>
+            <h3>Credit Usage &amp; Task Accountability Log</h3>
+            <span className="settings-card-subtitle">
+              Detailed tracking of consumed credits per task complexity (Huge tasks: ~20 credits, Standard: 5 credits, Simple: ~2 credits)
+            </span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: "16px", overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", color: "var(--text-primary)" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border)", textTransform: "uppercase", fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: ".05em" }}>
+                <th style={{ textAlign: "left", padding: "8px 12px" }}>Time</th>
+                <th style={{ textAlign: "left", padding: "8px 12px" }}>Task Complexity</th>
+                <th style={{ textAlign: "left", padding: "8px 12px" }}>Prompt Snippet</th>
+                <th style={{ textAlign: "right", padding: "8px 12px" }}>Deduction</th>
+                <th style={{ textAlign: "right", padding: "8px 12px" }}>Remaining Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {creditHistory.map(tx => (
+                <tr key={tx.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "10px 12px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                    {tx.timestamp}
+                  </td>
+                  <td style={{ padding: "10px 12px" }}>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        background:
+                          tx.taskType === "Huge / Complex Task"
+                            ? "rgba(234, 67, 53, 0.12)"
+                            : tx.taskType === "Credit Top-Up"
+                            ? "rgba(52, 168, 83, 0.12)"
+                            : "rgba(26, 115, 232, 0.12)",
+                        color:
+                          tx.taskType === "Huge / Complex Task"
+                            ? "#ea4335"
+                            : tx.taskType === "Credit Top-Up"
+                            ? "#34a853"
+                            : "var(--gemini-accent)",
+                      }}
+                    >
+                      {tx.taskType}
+                    </span>
+                  </td>
+                  <td style={{ padding: "10px 12px", color: "var(--text-secondary)" }}>
+                    {tx.promptSnippet}
+                  </td>
+                  <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 700, color: tx.creditsDeducted > 0 ? "#ea4335" : "#34a853" }}>
+                    {tx.creditsDeducted > 0 ? `-${tx.creditsDeducted}` : "+Top Up"}
+                  </td>
+                  <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600 }}>
+                    {tx.remainingCredits}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

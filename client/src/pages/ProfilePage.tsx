@@ -19,6 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getUserCredits } from "@/lib/credits";
 
 type ProfilePageProps = {
   onLogout: () => void;
@@ -36,9 +37,20 @@ export default function ProfilePage({
   onBack,
 }: ProfilePageProps) {
   const { user } = useAuth();
+  const [userCredits, setUserCredits] = useState<number>(getUserCredits);
   const [analytics, setAnalytics] = useState<ReturnType<
     typeof calculateConversationAnalytics
   > | null>(null);
+
+  useEffect(() => {
+    const syncCredits = () => setUserCredits(getUserCredits());
+    window.addEventListener("hanna_credits_updated", syncCredits);
+    window.addEventListener("storage", syncCredits);
+    return () => {
+      window.removeEventListener("hanna_credits_updated", syncCredits);
+      window.removeEventListener("storage", syncCredits);
+    };
+  }, []);
 
   useEffect(() => {
     void listUserConversations()
@@ -93,10 +105,10 @@ export default function ProfilePage({
         <div className="credits-header">
           <CreditCard size={18} />
           <span>Credits</span>
-          <span className="credits-amount">2.5k left</span>
+          <span className="credits-amount">{userCredits} left</span>
         </div>
         <div className="credits-bar">
-          <div className="credits-bar-fill" style={{ width: "100%" }} />
+          <div className="credits-bar-fill" style={{ width: `${Math.min(100, Math.max(5, (userCredits / 1000) * 100))}%` }} />
         </div>
         <div className="credits-actions">
           <Button variant="outline" className="credits-action-btn" onClick={onNavigateToUsage}>

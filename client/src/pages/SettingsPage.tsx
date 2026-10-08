@@ -15,24 +15,17 @@ import {
   Sun,
   Monitor,
   Check,
-  User,
-  Sparkles,
-  Save,
-  Volume2,
-  BarChart3,
   CreditCard,
-  Gift,
-  HelpCircle,
-  TrendingUp,
   Copy,
-  ExternalLink,
   Zap,
-  Download,
-  CheckCircle2,
-  Laptop,
+  Clock,
+  Users,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { getUserCredits } from "@/lib/credits";
+import { getAffiliateLink, getReferralRecords, type ReferralRecord } from "@/lib/affiliate";
 
 type SettingsPageProps = {
   theme: "light" | "dark" | "system";
@@ -46,13 +39,24 @@ export default function SettingsPage({
   onBack,
 }: SettingsPageProps) {
   const { user } = useAuth();
-  const { isInstalled: isPwaInstalled, installing: pwaInstalling, installApp: triggerPwaInstall } = usePwaInstall();
+  const [userCredits, setUserCredits] = useState<number>(getUserCredits);
+  const [referrals, setReferrals] = useState<ReferralRecord[]>(getReferralRecords);
   const [profile, setProfile] = useState({
     displayName: "",
     photoURL: "",
     bio: "",
     customInstructions: "",
   });
+
+  useEffect(() => {
+    const syncCredits = () => setUserCredits(getUserCredits());
+    window.addEventListener("hanna_credits_updated", syncCredits);
+    window.addEventListener("storage", syncCredits);
+    return () => {
+      window.removeEventListener("hanna_credits_updated", syncCredits);
+      window.removeEventListener("storage", syncCredits);
+    };
+  }, []);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copiedAffiliate, setCopiedAffiliate] = useState(false);
@@ -117,7 +121,7 @@ export default function SettingsPage({
     localStorage.setItem("hanna_user_bubble_color", id);
   };
 
-  const affiliateLink = `https://hanna.ai/ref/${(user?.email || "user").split("@")[0]}`;
+  const affiliateLink = getAffiliateLink(user?.email || user?.displayName || "user");
 
   return (
     <div className="page-container">
@@ -278,123 +282,6 @@ export default function SettingsPage({
         </div>
       </section>
 
-      {/* Desktop & Mobile App (PWA) */}
-      <section className="settings-card">
-        <div className="settings-card-header">
-          <div>
-            <h3>Desktop & Mobile Application (PWA)</h3>
-            <span className="settings-card-subtitle">
-              Install Hanna on your desktop dock or mobile home screen for instant access
-            </span>
-          </div>
-        </div>
-        <div style={{ marginTop: "16px", display: "grid", gap: "12px" }}>
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              padding: "16px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <img src="/hanna-icon-192.png" alt="Hanna AI App" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>Hanna Workspace App</strong>
-                  {isPwaInstalled ? (
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        padding: "2px 8px",
-                        borderRadius: "9999px",
-                        background: "rgba(34, 197, 94, 0.15)",
-                        color: "#22c55e",
-                        border: "1px solid rgba(34, 197, 94, 0.3)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <CheckCircle2 size={12} /> Installed
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        padding: "2px 8px",
-                        borderRadius: "9999px",
-                        background: "rgba(26, 115, 232, 0.15)",
-                        color: "var(--gemini-accent, #1a73e8)",
-                        border: "1px solid rgba(26, 115, 232, 0.3)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <Zap size={12} /> Installable
-                    </span>
-                  )}
-                </div>
-                <span style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>
-                  {isPwaInstalled
-                    ? "Running in standalone application mode. Access Hanna directly from your launcher, dock, or home screen."
-                    : "Install as a Progressive Web App for instant launch, native window controls, and zero browser tab clutter."}
-                </span>
-              </div>
-            </div>
-
-            {isPwaInstalled ? (
-              <Button variant="outline" size="sm" disabled style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <CheckCircle2 size={15} className="text-green-500" />
-                <span>App Installed</span>
-              </Button>
-            ) : (
-              <Button
-                onClick={() => void triggerPwaInstall()}
-                disabled={pwaInstalling}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: "var(--gemini-accent, #1a73e8)",
-                  color: "#ffffff",
-                  fontWeight: "600",
-                  fontSize: "13px",
-                  borderRadius: "10px",
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                }}
-              >
-                <Download size={15} />
-                <span>{pwaInstalling ? "Installing..." : "Install Hanna App"}</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* Usage, Tokens & Credit Quota */}
       <section className="settings-card">
@@ -402,7 +289,7 @@ export default function SettingsPage({
           <div>
             <h3>Usage, Tokens & Credits</h3>
             <span className="settings-card-subtitle">
-              Track your daily allowance, token quota, and workspace credits
+              Track your weekly credit allowance, token quota, and task accountability
             </span>
           </div>
         </div>
@@ -410,35 +297,56 @@ export default function SettingsPage({
           <div className="profile-credits-card" style={{ margin: 0 }}>
             <div className="credits-header">
               <CreditCard size={18} />
-              <span>Workspace Allowance</span>
-              <span className="credits-amount">2,500 credits left</span>
+              <span>Weekly Credit Allowance</span>
+              <span className="credits-amount">{userCredits} credits left</span>
             </div>
             <div className="credits-bar">
-              <div className="credits-bar-fill" style={{ width: "80%" }} />
+              <div className="credits-bar-fill" style={{ width: `${Math.min(100, Math.max(5, (userCredits / 1000) * 100))}%` }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-secondary)", marginTop: "8px" }}>
-              <span>Daily Token Quota: 300 tokens/day (Hanna Lite)</span>
-              <span>Refreshes daily at 00:00 UTC</span>
+              <span>Weekly Token Quota: 2,500 tokens/week (Hanna Lite)</span>
+              <span>Refreshes weekly at 00:00 UTC</span>
+            </div>
+          </div>
+
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "14px", borderRadius: "12px" }}>
+            <strong style={{ fontSize: "12px", color: "var(--text-primary)", display: "block", marginBottom: "8px" }}>
+              Task Consumption Accountability
+            </strong>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "8px", fontSize: "12px" }}>
+              <div style={{ background: "var(--surface-raised)", padding: "8px 10px", borderRadius: "8px" }}>
+                <span style={{ color: "var(--text-tertiary)", display: "block", fontSize: "11px" }}>Huge / Complex Tasks</span>
+                <strong style={{ color: "#ea4335" }}>20 credits</strong>
+              </div>
+              <div style={{ background: "var(--surface-raised)", padding: "8px 10px", borderRadius: "8px" }}>
+                <span style={{ color: "var(--text-tertiary)", display: "block", fontSize: "11px" }}>Standard Tasks</span>
+                <strong style={{ color: "var(--gemini-accent)" }}>5 credits</strong>
+              </div>
+              <div style={{ background: "var(--surface-raised)", padding: "8px 10px", borderRadius: "8px" }}>
+                <span style={{ color: "var(--text-tertiary)", display: "block", fontSize: "11px" }}>Simple Tasks</span>
+                <strong style={{ color: "#34a853" }}>2 credits</strong>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Affiliate Program & Commissions */}
+      {/* Affiliate Program & Referrals Accountability */}
       <section className="settings-card">
         <div className="settings-card-header">
           <div>
-            <h3>Affiliate Program</h3>
+            <h3>Affiliate Program &amp; Referral Accountability</h3>
             <span className="settings-card-subtitle">
-              Invite businesses or creators and earn 100% commission on referrals
+              App domain: hanna-agent.vercel.app • Share link and earn 100% commission on finalized user registrations
             </span>
           </div>
         </div>
-        <div style={{ display: "grid", gap: "12px", marginTop: "16px" }}>
+        <div style={{ display: "grid", gap: "16px", marginTop: "16px" }}>
+          {/* Functional Referral Link Banner */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "14px 16px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
             <div>
-              <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block" }}>Your Affiliate Referral Link</strong>
-              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{affiliateLink}</span>
+              <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block" }}>Your Functional Referral Link</strong>
+              <span style={{ fontSize: "12px", color: "var(--gemini-accent)", wordBreak: "break-all" }}>{affiliateLink}</span>
             </div>
             <Button
               variant="outline"
@@ -454,39 +362,76 @@ export default function SettingsPage({
               {copiedAffiliate ? "Copied" : "Copy Link"}
             </Button>
           </div>
+
+          {/* Referral Summary Metrics */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px" }}>
+            <div style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "12px", borderRadius: "10px" }}>
+              <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block" }}>Link Clicks &amp; Uses</span>
+              <strong style={{ fontSize: "18px", color: "var(--text-primary)" }}>{referrals.length}</strong>
+            </div>
+            <div style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "12px", borderRadius: "10px" }}>
+              <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block" }}>Finalized Registrations</span>
+              <strong style={{ fontSize: "18px", color: "#34a853" }}>{referrals.filter(r => r.status === "Finalized Registration").length}</strong>
+            </div>
+            <div style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "12px", borderRadius: "10px" }}>
+              <span style={{ fontSize: "11px", color: "var(--text-tertiary)", display: "block" }}>Estimated Commissions</span>
+              <strong style={{ fontSize: "18px", color: "var(--gemini-accent)" }}>${(referrals.length * 5.99).toFixed(2)} USD</strong>
+            </div>
+          </div>
+
+          {/* Referred Users Accountability Log Table */}
+          <div style={{ overflowX: "auto" }}>
+            <strong style={{ fontSize: "12px", color: "var(--text-primary)", display: "block", marginBottom: "8px" }}>
+              Referred Users Accountability Log
+            </strong>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", color: "var(--text-primary)" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)", textTransform: "uppercase", fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: ".05em" }}>
+                  <th style={{ textAlign: "left", padding: "8px 10px" }}>Referred User</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px" }}>Registration Time</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px" }}>Status</th>
+                  <th style={{ textAlign: "right", padding: "8px 10px" }}>Est. Commission</th>
+                </tr>
+              </thead>
+              <tbody>
+                {referrals.map(ref => (
+                  <tr key={ref.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "8px 10px" }}>
+                      <strong style={{ display: "block", fontSize: "12px" }}>@{ref.referredUser}</strong>
+                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>{ref.emailSnippet}</span>
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                      {ref.registeredAt}
+                    </td>
+                    <td style={{ padding: "8px 10px" }}>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          padding: "2px 8px",
+                          borderRadius: "9999px",
+                          background: "rgba(52, 168, 83, 0.15)",
+                          color: "#34a853",
+                          border: "1px solid rgba(52, 168, 83, 0.3)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Check size={11} /> {ref.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "var(--gemini-accent)" }}>
+                      {ref.estimatedCommission}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      {/* What's New & Help Section */}
-      <section className="settings-card">
-        <div className="settings-card-header">
-          <div>
-            <h3>What's New & Workspace Help</h3>
-            <span className="settings-card-subtitle">
-              Recent system updates and assistance guide
-            </span>
-          </div>
-        </div>
-        <div style={{ display: "grid", gap: "10px", marginTop: "16px" }}>
-          <div style={{ padding: "12px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-            <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block", marginBottom: "4px" }}>
-              ⚡ Intent Router & Dual-Track Execution (Route A / Route B)
-            </strong>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-              Fast streaming for Q&A (Route A) and multi-step ReAct agentic execution with MCP ecosystem tool calls (Route B).
-            </span>
-          </div>
-
-          <div style={{ padding: "12px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-            <strong style={{ fontSize: "13px", color: "var(--text-primary)", display: "block", marginBottom: "4px" }}>
-              ☁️ Cloudinary Preset (`hanna_agent`) Integration
-            </strong>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-              Full functional image & media uploads powered by Cloudinary preset `hanna_agent`.
-            </span>
-          </div>
-        </div>
-      </section>
 
 
       {/* Appearance & Prompt Accent Style */}
