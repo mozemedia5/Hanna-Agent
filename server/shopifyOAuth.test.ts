@@ -300,16 +300,15 @@ describe("Shopify OAuth Authorization Flow Unit & Integration Tests", () => {
       const userA = "user_A_1001";
       const userB = "user_B_2002";
 
+      // This test covers isolation only; refresh tokens would trigger live Shopify requests.
       await saveConnectorCredential(userA, "shopify", {
         storeDomain: "user-a.myshopify.com",
         accessToken: "token_A",
-        refreshToken: "refresh_A",
       });
 
       await saveConnectorCredential(userB, "shopify", {
         storeDomain: "user-b.myshopify.com",
         accessToken: "token_B",
-        refreshToken: "refresh_B",
       });
 
       const credA = await getConnectorCredential(userA, "shopify");
