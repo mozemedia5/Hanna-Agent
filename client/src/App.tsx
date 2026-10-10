@@ -2,6 +2,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import ManusPage from "./pages/ManusPage";
 import { DashboardLayoutSkeleton } from "./components/DashboardLayoutSkeleton";
 import { useAuth } from "./_core/hooks/useAuth";
 import { Route, Switch } from "wouter";
@@ -20,6 +21,9 @@ function App() {
         </Route>
         <Route path="/landing">
           <LandingPage />
+        </Route>
+        <Route path="/manus">
+          <ManusPage onBack={() => { window.location.href = "/"; }} />
         </Route>
         <Route path="/demo">
           <Home user={{ displayName: "Demo User", email: "demo@hanna.ai" } as any} />

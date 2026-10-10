@@ -1645,12 +1645,12 @@ var init_integrations = __esm({
         supportsMcp: true,
         capabilities: ["read_products", "write_products", "read_orders", "write_orders"],
         requiresApproval: true,
-        description: "Connect your Shopify store through server-side credentials or a verified Storefront MCP endpoint to automate product catalog, inventory, and order fulfillment.",
+        description: "Authorize Hanna through Shopify\u2019s official OAuth consent flow to access your store\u2019s catalog, inventory, and orders.",
         docUrl: "https://shopify.dev/docs/apps/build/storefront-mcp/servers/storefront",
         instructions: [
-          "Enter the provider credentials to instantly authorize Hanna with your Shopify store.",
-          "Alternatively, enter your Shopify store admin domain (e.g., myshop.myshopify.com).",
-          "Click Connect to activate store automation."
+          "Enter your Shopify store domain (e.g., myshop.myshopify.com).",
+          "Continue to Shopify and review the requested permissions.",
+          "Hanna reports the store connected only after Shopify returns with the configured scopes granted."
         ]
       },
       {
@@ -3984,8 +3984,21 @@ async function exchangeShopifyCode(shop, code, fetcher = fetch) {
 }
 function parseShopifyScopes(scopeString) {
   const grantedScopes = (scopeString || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const granted = new Set(grantedScopes);
   const missingScopes = SHOPIFY_OAUTH_SCOPES.filter(
-    (s) => !grantedScopes.includes(s)
+    (scope) => {
+      if (granted.has(scope)) return false;
+      if (scope.startsWith("read_")) {
+        return !granted.has(`write_${scope.slice("read_".length)}`);
+      }
+      if (scope.startsWith("customer_read_")) {
+        return !granted.has(`customer_write_${scope.slice("customer_read_".length)}`);
+      }
+      if (scope.startsWith("unauthenticated_read_")) {
+        return !granted.has(`unauthenticated_write_${scope.slice("unauthenticated_read_".length)}`);
+      }
+      return true;
+    }
   );
   return { grantedScopes, missingScopes };
 }
@@ -4089,6 +4102,13 @@ var init_shopifyOAuth = __esm({
 
 // server/connectorDb.ts
 import crypto4 from "node:crypto";
+function credentialIsConnected(connector, values) {
+  if (values.is_connected === "false") return false;
+  if (connector === "shopify") {
+    return Boolean((values.accessToken || values.access_token) && (values.storeDomain || values.shop));
+  }
+  return true;
+}
 async function saveConnectorCredentialInternal(canonicalUserId, connector, values) {
   if (!values || Object.keys(values).length === 0) {
     throw new Error(`${connector} requires at least one credential field`);
@@ -4142,7 +4162,7 @@ async function listConnectorCredentials(userId) {
                 credentialHint(values[field] ?? "")
               ])
             ),
-            is_connected: values.is_connected !== "false",
+            is_connected: credentialIsConnected(connector, values),
             updatedAt: row.updatedAt ? new Date(row.updatedAt.toDate ? row.updatedAt.toDate() : row.updatedAt) : /* @__PURE__ */ new Date()
           };
         });
@@ -4166,7 +4186,7 @@ async function listConnectorCredentials(userId) {
           credentialHint(values[field] ?? "")
         ])
       ),
-      is_connected: values.is_connected !== "false",
+      is_connected: credentialIsConnected(connector, values),
       updatedAt: new Date(row.updatedAt)
     };
   });
@@ -6896,6 +6916,14 @@ async function handleShopifyOAuthCallback(req, res) {
   try {
     const tokenData = await exchangeShopifyCode(normShop, code);
     const { grantedScopes, missingScopes } = parseShopifyScopes(tokenData.scope);
+    if (missingScopes.length > 0) {
+      res.setHeader("Set-Cookie", "hanna_shopify_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
+      const shownScopes = missingScopes.slice(0, 8).join(", ");
+      const suffix = missingScopes.length > 8 ? ` and ${missingScopes.length - 8} more` : "";
+      const message = `Shopify did not grant all configured scopes. Missing: ${shownScopes}${suffix}. Check the app's Shopify scope configuration and authorize again.`;
+      res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent(message)}`);
+      return;
+    }
     const now2 = Date.now();
     const expiresInSec = Number(tokenData.expires_in || 86400);
     const expiresAtMs = now2 + expiresInSec * 1e3;
