@@ -79,6 +79,7 @@ import ContributorsPage from "./ContributorsPage";
 import ProjectsPage, { type Project } from "./ProjectsPage";
 import ScheduleTaskPage from "./ScheduleTaskPage";
 import FilesPage, { addStoredFiles, getFileTypeBadgeLabel, type StoredFileItem } from "./FilesPage";
+import ManusPage from "./ManusPage";
 import { useChatWorkflow } from "@/hooks/useChatWorkflow";
 import {
   getUserCredits,
@@ -101,7 +102,8 @@ type Page =
   | "contributors"
   | "projects"
   | "schedule"
-  | "files";
+  | "files"
+  | "manus";
 
 type ToolKey =
   | "Web Search"
@@ -746,6 +748,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
+    { icon: Bot, label: "Manus AI Mode", page: "manus" as Page },
     { icon: FolderUp, label: "Files", page: "files" as Page },
     { icon: Calendar, label: "Schedule Task", page: "schedule" as Page },
     { icon: FolderKanban, label: "Projects", page: "projects" as Page },
@@ -1497,6 +1500,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       case "usage": content = <UsagePage onNavigateToUpgrade={() => navigate("upgrade")} onBack={handleBack} />; break;
       case "contributors": content = <ContributorsPage onBack={handleBack} />; break;
       case "files": content = <FilesPage onBack={handleBack} />; break;
+      case "manus": content = <ManusPage onBack={handleBack} />; break;
       case "projects":
         content = (
           <ProjectsPage

@@ -20,6 +20,7 @@ import {
   handleShopifyOAuthCallback,
 } from "./oauthRoutes";
 import { handleProductionHealthDiagnostics } from "./health";
+import { ManusExecutor, manusEventEmitter, ManusOperationalProfile } from "./manusEngine";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -52,6 +53,57 @@ app.get(["/api/config", "/config"], sendFirebaseConfig);
 
 // Dedicated Streaming & Intent Router Endpoint (/api/chat)
 app.post(["/api/chat", "/chat"], handleApiChatRoute);
+
+// Manus AI Autonomous Execution & Streaming Endpoints
+app.post(["/api/manus/execute", "/manus/execute"], async (req, res) => {
+  try {
+    const { prompt, profile, armChips, userId } = req.body || {};
+    if (!prompt) {
+      return res.status(400).json({ error: "Missing required 'prompt' field for Manus task assignment." });
+    }
+
+    const taskId = `manus_task_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const uid = userId || "anonymous_user";
+
+    const taskState = await ManusExecutor.executeTask(
+      taskId,
+      uid,
+      prompt,
+      (profile as ManusOperationalProfile) || "Pro",
+      armChips || []
+    );
+
+    return res.json({
+      taskId,
+      status: taskState.status,
+      steps: taskState.steps,
+      streamUrl: `/api/manus/stream/${taskId}`,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Manus task execution failed.";
+    return res.status(500).json({ error: msg });
+  }
+});
+
+app.get(["/api/manus/stream/:taskId", "/manus/stream/:taskId"], (req, res) => {
+  const { taskId } = req.params;
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const listener = (frame: any) => {
+    res.write(`data: ${JSON.stringify(frame)}\n\n`);
+    if (frame.isCompleted) {
+      res.end();
+    }
+  };
+
+  manusEventEmitter.on(`telemetry:${taskId}`, listener);
+
+  req.on("close", () => {
+    manusEventEmitter.off(`telemetry:${taskId}`, listener);
+  });
+});
 
 // Google OAuth Endpoints
 app.get(["/api/oauth/google/authorize", "/oauth/google/authorize"], handleGoogleOAuthAuthorize);
