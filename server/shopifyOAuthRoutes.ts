@@ -132,6 +132,15 @@ export async function handleShopifyOAuthCallback(req: ExpressRequest, res: Expre
     const tokenData = await exchangeShopifyCode(normShop, code);
     const { grantedScopes, missingScopes } = parseShopifyScopes(tokenData.scope);
 
+    if (missingScopes.length > 0) {
+      res.setHeader("Set-Cookie", "hanna_shopify_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
+      const shownScopes = missingScopes.slice(0, 8).join(", ");
+      const suffix = missingScopes.length > 8 ? ` and ${missingScopes.length - 8} more` : "";
+      const message = `Shopify did not grant all configured scopes. Missing: ${shownScopes}${suffix}. Check the app's Shopify scope configuration and authorize again.`;
+      res.redirect(`${appBaseUrl()}/integrations?connector_error=${encodeURIComponent(message)}`);
+      return;
+    }
+
     const now = Date.now();
     const expiresInSec = Number(tokenData.expires_in || 86400); // Shopify expiring token default
     const expiresAtMs = now + expiresInSec * 1000;

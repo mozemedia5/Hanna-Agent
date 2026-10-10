@@ -112,6 +112,12 @@ type IntegrationsPageProps = {
   onBack?: () => void;
 };
 
+function normalizeShopifyStoreDomain(value: string): string | null {
+  let domain = value.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0];
+  if (!domain.includes(".")) domain = `${domain}.myshopify.com`;
+  return /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(domain) ? domain : null;
+}
+
 export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [activeTab, setActiveTab] = useState<"all" | "connected">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -132,7 +138,11 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     try {
       const cached = localStorage.getItem(storageKey);
       if (cached) {
-        setConnected(JSON.parse(cached));
+        const cachedIds = JSON.parse(cached);
+        if (Array.isArray(cachedIds)) {
+          // The server is authoritative for Shopify OAuth; ignore legacy mock cache entries.
+          setConnected(cachedIds.filter((id: string) => id !== "shopify"));
+        }
       }
     } catch {
       // Ignore storage errors
@@ -149,7 +159,14 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         const payload = await response.json();
         const records = payload?.[0]?.result?.data?.json;
         if (Array.isArray(records)) {
-          const connectorIds = records.map((record: { connector: string }) => record.connector);
+          const connectorIds = records
+            .filter((record: { connector: string; fields?: Record<string, string>; is_connected?: boolean }) => {
+              if (record.is_connected === false) return false;
+              if (record.connector !== "shopify") return true;
+              const fields = record.fields ?? {};
+              return Boolean(fields.storeDomain && (fields.accessToken || fields.access_token));
+            })
+            .map((record: { connector: string }) => record.connector);
           setConnected(connectorIds);
           try {
             localStorage.setItem(storageKey, JSON.stringify(connectorIds));
@@ -163,6 +180,20 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
     };
     void loadConnected();
   }, [user]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const error = url.searchParams.get("connector_error");
+    const success = url.searchParams.get("connector_success");
+    if (!error && !success) return;
+
+    setToast(error ? `Shopify connection failed: ${error}` : success === "shopify" ? "Shopify store connected successfully." : `${success} connected successfully.`);
+    window.setTimeout(() => setToast(""), 6000);
+    url.searchParams.delete("connector_error");
+    url.searchParams.delete("connector_success");
+    url.searchParams.delete("shop");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   const syncConnectedStorage = (newConnected: string[]) => {
     setConnected(newConnected);
@@ -233,33 +264,38 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         window.location.href = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
         return;
       }
-      const token = await getFirebaseIdToken();
-      const response = await fetch("/api/trpc/integrations.saveCredential?batch=1", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          0: {
-            json: {
-              connector: activeModal.id,
-              values: {
-                connectionMode: "oauth",
-                oauth_authenticated: "true",
-                account: `${activeModal.id}_user@workspace.com`,
-              },
-            },
-          },
-        }),
-      });
-      if (!response.ok) throw new Error("OAuth handshake failed");
-      if (!connected.includes(activeModal.id)) {
-        syncConnectedStorage([...connected, activeModal.id]);
+      if (activeModal.id === "shopify") {
+        const shop = normalizeShopifyStoreDomain(formInputs.storeDomain || "");
+        if (!shop) {
+          setToast("Enter a valid Shopify store domain, such as your-store.myshopify.com");
+          setTimeout(() => setToast(""), 3200);
+          return;
+        }
+        const token = await getFirebaseIdToken();
+        if (!token) {
+          setToast("Sign in before connecting a Shopify store.");
+          setTimeout(() => setToast(""), 3200);
+          return;
+        }
+        const authorizeUrl = new URL("/api/oauth/shopify/authorize", window.location.origin);
+        authorizeUrl.searchParams.set("shop", shop);
+        authorizeUrl.searchParams.set("id_token", token);
+        window.location.href = authorizeUrl.toString();
+        return;
       }
-      setToast(`${activeModal.name} authenticated via OAuth`);
-      setActiveModal(null);
-      setTimeout(() => setToast(""), 2600);
+      if (activeModal.id === "github") {
+        const token = await getFirebaseIdToken();
+        if (!token) {
+          setToast("Sign in before connecting GitHub.");
+          setTimeout(() => setToast(""), 3200);
+          return;
+        }
+        window.location.href = `/api/oauth/github/authorize?id_token=${encodeURIComponent(token)}`;
+        return;
+      }
+      setToast(`OAuth is not configured for ${activeModal.name} yet. Use Manual Keys with real credentials.`);
+      setTimeout(() => setToast(""), 3200);
+      return;
     } catch {
       setToast("Failed to complete OAuth authentication");
       setTimeout(() => setToast(""), 2600);
@@ -293,9 +329,9 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
       });
       if (!response.ok) throw new Error("Credential save failed");
       if (!connected.includes(activeModal.id)) {
-        setConnected(prev => [...prev, activeModal.id]);
+        syncConnectedStorage([...connected, activeModal.id]);
       }
-      setToast(`${activeModal.name} connected`);
+      setToast(`${activeModal.name} credentials saved`);
       setActiveModal(null);
       setTimeout(() => setToast(""), 2600);
     } catch {
@@ -552,7 +588,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--surface-raised, rgba(255,255,255,0.04))", borderRadius: "10px", marginBottom: "16px", border: "1px solid var(--border)" }}>
                 <div>
                   <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)", display: "block" }}>Connected Account</span>
-                  <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>user@workspace.com</strong>
+                  <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>Credentials stored securely</strong>
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <Button variant="outline" size="sm" onClick={() => handleConnect(activeModal)}>
@@ -576,7 +612,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               >
                 <Zap size={13} style={{ marginRight: "6px" }} /> Connect via OAuth
               </Button>
-              {activeModal.supportsMcp && (
+              {activeModal.supportsMcp && activeModal.id !== "shopify" && (
                 <Button
                   variant={connectionMode === "mcp" ? "default" : "outline"}
                   size="sm"
@@ -585,13 +621,15 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                   <Zap size={13} style={{ marginRight: "6px" }} /> MCP Discovery
                 </Button>
               )}
-              <Button
-                variant={connectionMode === "key" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setConnectionMode("key")}
-              >
-                <Lock size={13} style={{ marginRight: "6px" }} /> Manual Keys
-              </Button>
+              {activeModal.id !== "shopify" && (
+                <Button
+                  variant={connectionMode === "key" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setConnectionMode("key")}
+                >
+                  <Lock size={13} style={{ marginRight: "6px" }} /> Manual Keys
+                </Button>
+              )}
             </div>
 
             {connectionMode === "oauth" && (
@@ -599,18 +637,36 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
                   {renderBrandIcon(activeModal.name, 28)}
                   <div>
-                    <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600 }}>1-Click OAuth Consent</h4>
-                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Securely authorize {activeModal.name} without manual keys or tokens.</span>
+                    <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600 }}>OAuth Authorization</h4>
+                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{activeModal.id === "shopify" ? "Enter your store domain, then continue to Shopify’s official consent screen." : "Continue to the provider’s official authorization page when OAuth is configured."}</span>
                   </div>
                 </div>
-                <Button
-                  onClick={handleOAuthConnect}
-                  disabled={saving}
-                  className="w-full"
-                  style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", fontWeight: 600 }}
-                >
-                  {saving ? "Authenticating via OAuth..." : `Connect ${activeModal.name} with OAuth`}
-                </Button>
+                {activeModal.id === "shopify" && (
+                  <label className="modal-field">
+                    <span className="modal-field-label">Shopify store domain</span>
+                    <input
+                      type="text"
+                      value={formInputs.storeDomain || ""}
+                      onChange={e => setFormInputs(prev => ({ ...prev, storeDomain: e.target.value }))}
+                      placeholder="your-store.myshopify.com"
+                      autoComplete="url"
+                    />
+                  </label>
+                )}
+                {(["shopify", "github", "gmail", "google-workspace", "google-drive", "google-docs", "google-sheets", "google-slides", "google-calendar"] as string[]).includes(activeModal.id) ? (
+                  <Button
+                    onClick={handleOAuthConnect}
+                    disabled={saving || (activeModal.id === "shopify" && !formInputs.storeDomain?.trim())}
+                    className="w-full"
+                    style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", fontWeight: 600 }}
+                  >
+                    {saving ? "Redirecting to authorize..." : activeModal.id === "shopify" ? "Continue to Shopify authorization" : `Connect ${activeModal.name} with OAuth`}
+                  </Button>
+                ) : (
+                  <p role="status" style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>
+                    A real OAuth flow is not configured for this provider yet. Use Manual Keys with valid credentials instead.
+                  </p>
+                )}
               </div>
             )}
 

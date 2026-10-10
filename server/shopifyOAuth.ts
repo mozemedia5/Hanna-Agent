@@ -264,9 +264,23 @@ export function parseShopifyScopes(scopeString: string): {
     .split(",")
     .map(s => s.trim())
     .filter(Boolean);
+  const granted = new Set(grantedScopes);
 
   const missingScopes = SHOPIFY_OAUTH_SCOPES.filter(
-    s => !grantedScopes.includes(s)
+    scope => {
+      if (granted.has(scope)) return false;
+      // Shopify documents that a write scope also grants access to read the same resource.
+      if (scope.startsWith("read_")) {
+        return !granted.has(`write_${scope.slice("read_".length)}`);
+      }
+      if (scope.startsWith("customer_read_")) {
+        return !granted.has(`customer_write_${scope.slice("customer_read_".length)}`);
+      }
+      if (scope.startsWith("unauthenticated_read_")) {
+        return !granted.has(`unauthenticated_write_${scope.slice("unauthenticated_read_".length)}`);
+      }
+      return true;
+    }
   );
 
   return { grantedScopes, missingScopes };

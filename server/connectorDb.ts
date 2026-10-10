@@ -114,6 +114,14 @@ const approvals = new Map<string, ApprovalRequest>();
 const keyFor = (userId: string | number, connector: ConnectorId) =>
   `${userId}:${connector}`;
 
+function credentialIsConnected(connector: ConnectorId, values: ConnectorValues): boolean {
+  if (values.is_connected === "false") return false;
+  if (connector === "shopify") {
+    return Boolean((values.accessToken || values.access_token) && (values.storeDomain || values.shop));
+  }
+  return true;
+}
+
 const GOOGLE_FAMILY: ConnectorId[] = [
   "google-workspace",
   "gmail",
@@ -205,7 +213,7 @@ export async function listConnectorCredentials(
                 credentialHint(values[field] ?? ""),
               ])
             ),
-            is_connected: values.is_connected !== "false",
+            is_connected: credentialIsConnected(connector, values),
             updatedAt: row.updatedAt
               ? new Date((row.updatedAt as any).toDate ? (row.updatedAt as any).toDate() : row.updatedAt)
               : new Date(),
@@ -235,7 +243,7 @@ export async function listConnectorCredentials(
             credentialHint(values[field] ?? ""),
           ])
         ),
-        is_connected: values.is_connected !== "false",
+        is_connected: credentialIsConnected(connector, values),
         updatedAt: new Date(row.updatedAt),
       };
     });

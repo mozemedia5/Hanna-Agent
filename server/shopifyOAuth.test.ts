@@ -182,6 +182,15 @@ describe("Shopify OAuth Authorization Flow Unit & Integration Tests", () => {
       expect(parsed.grantedScopes).toContain("read_orders");
       expect(parsed.missingScopes.length).toBeGreaterThan(0);
       expect(parsed.missingScopes).toContain("write_orders");
+      expect(parsed.missingScopes).not.toContain("read_products");
+    });
+
+    it("treats Shopify write scopes as granting the corresponding read scope", () => {
+      const parsed = parseShopifyScopes("write_products,write_orders");
+
+      expect(parsed.missingScopes).not.toContain("read_products");
+      expect(parsed.missingScopes).not.toContain("read_orders");
+      expect(parsed.grantedScopes).toEqual(["write_products", "write_orders"]);
     });
   });
 
@@ -211,6 +220,21 @@ describe("Shopify OAuth Authorization Flow Unit & Integration Tests", () => {
       // Confirm hint masks sensitive token values in summary
       expect(shopifySummary?.fields.accessToken).not.toBe("shpat_secret_access_token");
       expect(shopifySummary?.fields.accessToken).toContain("…");
+    });
+
+    it("does not report a legacy fake OAuth placeholder as a connected Shopify store", async () => {
+      const canonicalUserId = "user_shopify_fake_oauth_test";
+      await saveConnectorCredential(canonicalUserId, "shopify", {
+        connectionMode: "oauth",
+        oauth_authenticated: "true",
+        account: "shopify_user@workspace.com",
+        is_connected: "true",
+      });
+
+      const summary = (await listConnectorCredentials(canonicalUserId)).find(
+        connector => connector.connector === "shopify"
+      );
+      expect(summary?.is_connected).toBe(false);
     });
   });
 

@@ -115,12 +115,12 @@ export const integrations: IntegrationDefinition[] = [
     supportsMcp: true,
     capabilities: ["read_products", "write_products", "read_orders", "write_orders"],
     requiresApproval: true,
-    description: "Connect your Shopify store through server-side credentials or a verified Storefront MCP endpoint to automate product catalog, inventory, and order fulfillment.",
+    description: "Authorize Hanna through Shopify’s official OAuth consent flow to access your store’s catalog, inventory, and orders.",
     docUrl: "https://shopify.dev/docs/apps/build/storefront-mcp/servers/storefront",
     instructions: [
-      "Enter the provider credentials to instantly authorize Hanna with your Shopify store.",
-      "Alternatively, enter your Shopify store admin domain (e.g., myshop.myshopify.com).",
-      "Click Connect to activate store automation.",
+      "Enter your Shopify store domain (e.g., myshop.myshopify.com).",
+      "Continue to Shopify and review the requested permissions.",
+      "Hanna reports the store connected only after Shopify returns with the configured scopes granted.",
     ],
   },
   {
