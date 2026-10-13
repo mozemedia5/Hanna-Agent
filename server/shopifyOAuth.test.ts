@@ -9,6 +9,7 @@ import {
   parseShopifyScopes,
   ensureFreshShopifyToken,
   getCanonicalShopifyRedirectUri,
+  getShopifyAppInstallUrl,
 } from "./shopifyOAuth";
 import { saveConnectorCredential, getConnectorCredential, listConnectorCredentials } from "./connectorDb";
 
@@ -34,6 +35,18 @@ describe("Shopify OAuth Authorization Flow Unit & Integration Tests", () => {
   describe("1. Redirect URI generation", () => {
     it("generates production redirect URI", () => {
       expect(getCanonicalShopifyRedirectUri()).toBe("https://hanna-agent.vercel.app/api/oauth/shopify/callback");
+    });
+
+    it("accepts a Shopify-generated HTTPS install link on a trusted host", () => {
+      process.env.SHOPIFY_APP_INSTALL_URL = "https://admin.shopify.com/oauth/install?client_id=shopify-client";
+      expect(getShopifyAppInstallUrl()).toBe("https://admin.shopify.com/oauth/install?client_id=shopify-client");
+    });
+
+    it("rejects non-Shopify or insecure install URLs", () => {
+      process.env.SHOPIFY_APP_INSTALL_URL = "https://attacker.example/install";
+      expect(getShopifyAppInstallUrl()).toBeNull();
+      process.env.SHOPIFY_APP_INSTALL_URL = "http://admin.shopify.com/oauth/install";
+      expect(getShopifyAppInstallUrl()).toBeNull();
     });
   });
 
@@ -71,6 +84,21 @@ describe("Shopify OAuth Authorization Flow Unit & Integration Tests", () => {
       const state = generateShopifyOAuthState("user_101", "store-a.myshopify.com");
       const result = await verifyShopifyOAuthState(state, "store-b.myshopify.com");
 
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe("shop_mismatch");
+    });
+
+    it("allows a signed domainless state to bind to the shop returned by Shopify", async () => {
+      const state = generateShopifyOAuthState("user_domainless_install");
+      const result = await verifyShopifyOAuthState(state, "selected-store.myshopify.com");
+      expect(result.valid).toBe(true);
+      expect(result.uid).toBeTruthy();
+      expect(result.shop).toBe("*");
+    });
+
+    it("rejects a domainless state when the Shopify callback shop is invalid", async () => {
+      const state = generateShopifyOAuthState("user_domainless_invalid_shop");
+      const result = await verifyShopifyOAuthState(state, "not-a-shop.example");
       expect(result.valid).toBe(false);
       expect(result.reason).toBe("shop_mismatch");
     });

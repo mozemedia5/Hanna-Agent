@@ -33,6 +33,22 @@ export function getShopifyCredentials(): { clientId: string; clientSecret: strin
   return { clientId, clientSecret };
 }
 
+/** Returns only HTTPS Shopify-generated install links from trusted Shopify hosts. */
+export function getShopifyAppInstallUrl(): string | null {
+  const rawUrl = process.env.SHOPIFY_APP_INSTALL_URL?.trim();
+  if (!rawUrl) return null;
+  try {
+    const url = new URL(rawUrl);
+    const host = url.hostname.toLowerCase();
+    const trustedHost = host === "admin.shopify.com" || host === "apps.shopify.com" ||
+      host.endsWith(".myshopify.com");
+    if (url.protocol !== "https:" || !trustedHost || url.username || url.password) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Strictly normalizes and validates a merchant's Shopify store domain.
  * Must match a valid *.myshopify.com hostname.
@@ -87,11 +103,13 @@ async function consumeNonceDurable(canonicalUserId: string, nonce: string): Prom
   return true;
 }
 
-export function generateShopifyOAuthState(canonicalUserId: string, shop: string): string {
+export function generateShopifyOAuthState(canonicalUserId: string, shop?: string | null): string {
+  const stateShop = shop == null ? "*" : normalizeShopifyDomain(shop);
+  if (!stateShop) throw new Error("Invalid Shopify shop domain for OAuth state.");
   const nonce = crypto.randomBytes(16).toString("hex");
   const timestamp = Date.now();
   const provider = "shopify";
-  const payload = `${canonicalUserId}:${provider}:${shop}:${timestamp}:${nonce}`;
+  const payload = `${canonicalUserId}:${provider}:${stateShop}:${timestamp}:${nonce}`;
   const signature = crypto
     .createHmac("sha256", stateSecret())
     .update(payload)
@@ -148,8 +166,8 @@ export async function verifyShopifyOAuthState(
 
     if (expectedShop) {
       const normExpected = normalizeShopifyDomain(expectedShop);
-      const normStateShop = normalizeShopifyDomain(shop);
-      if (!normExpected || !normStateShop || normExpected !== normStateShop) {
+      const normStateShop = shop === "*" ? "*" : normalizeShopifyDomain(shop);
+      if (!normExpected || !normStateShop || (normStateShop !== "*" && normExpected !== normStateShop)) {
         return { uid: "", shop: "", valid: false, reason: "shop_mismatch" };
       }
     }

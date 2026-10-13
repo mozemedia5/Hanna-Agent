@@ -112,12 +112,6 @@ type IntegrationsPageProps = {
   onBack?: () => void;
 };
 
-function normalizeShopifyStoreDomain(value: string): string | null {
-  let domain = value.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0];
-  if (!domain.includes(".")) domain = `${domain}.myshopify.com`;
-  return /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(domain) ? domain : null;
-}
-
 export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [activeTab, setActiveTab] = useState<"all" | "connected">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -224,9 +218,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const openModal = (integration: IntegrationDefinition) => {
     setActiveModal(integration);
     setConnectionMode("oauth");
-    setFormInputs(integration.id === "shopify" && connectionAccounts[integration.id]
-      ? { storeDomain: connectionAccounts[integration.id] }
-      : {});
+    setFormInputs({});
   };
 
   const handleConnect = async (integration: IntegrationDefinition) => {
@@ -271,12 +263,6 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         return;
       }
       if (activeModal.id === "shopify") {
-        const shop = normalizeShopifyStoreDomain(formInputs.storeDomain || "");
-        if (!shop) {
-          setToast("Enter a valid Shopify store domain, such as your-store.myshopify.com");
-          setTimeout(() => setToast(""), 3200);
-          return;
-        }
         const token = await getFirebaseIdToken();
         if (!token) {
           setToast("Sign in before connecting a Shopify store.");
@@ -284,7 +270,6 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
           return;
         }
         const authorizeUrl = new URL("/api/oauth/shopify/authorize", window.location.origin);
-        authorizeUrl.searchParams.set("shop", shop);
         authorizeUrl.searchParams.set("id_token", token);
         window.location.href = authorizeUrl.toString();
         return;
@@ -678,25 +663,13 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                   {renderBrandIcon(activeModal.name, 28)}
                   <div>
                     <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600 }}>OAuth Authorization</h4>
-                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{activeModal.id === "shopify" ? "Enter your store domain, then continue to Shopify’s official consent screen." : "Continue to the provider’s official authorization page when OAuth is configured."}</span>
+                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{activeModal.id === "shopify" ? "Continue to Shopify to select your store and approve access. Hanna will not ask you to type a store domain or API key." : "Continue to the provider’s official authorization page when OAuth is configured."}</span>
                   </div>
                 </div>
-                {activeModal.id === "shopify" && (
-                  <label className="modal-field">
-                    <span className="modal-field-label">Shopify store domain</span>
-                    <input
-                      type="text"
-                      value={formInputs.storeDomain || ""}
-                      onChange={e => setFormInputs(prev => ({ ...prev, storeDomain: e.target.value }))}
-                      placeholder="your-store.myshopify.com"
-                      autoComplete="url"
-                    />
-                  </label>
-                )}
                 {(["shopify", "github", "gmail", "google-workspace", "google-drive", "google-docs", "google-sheets", "google-slides", "google-calendar"] as string[]).includes(activeModal.id) ? (
                   <Button
                     onClick={handleOAuthConnect}
-                    disabled={saving || (activeModal.id === "shopify" && !formInputs.storeDomain?.trim())}
+                    disabled={saving}
                     className="w-full"
                     style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", fontWeight: 600 }}
                   >
