@@ -1011,6 +1011,8 @@ function loadStore() {
             memoryStore = {
               providerCredentials: parsed.providerCredentials || {},
               connectorCredentials: parsed.connectorCredentials || {},
+              approvalGrants: parsed.approvalGrants || {},
+              approvalRequests: parsed.approvalRequests || {},
               updatedAt: parsed.updatedAt || (/* @__PURE__ */ new Date()).toISOString()
             };
             isLoaded = true;
@@ -1073,6 +1075,28 @@ function deleteStoredConnectorCredential(key) {
   delete store.connectorCredentials[key];
   saveStore();
 }
+function getStoredApprovalGrants() {
+  return loadStore().approvalGrants;
+}
+function saveStoredApprovalGrant(key) {
+  const store = loadStore();
+  store.approvalGrants[key] = { grantedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  saveStore();
+}
+function getStoredApprovalRequests() {
+  return loadStore().approvalRequests;
+}
+function saveStoredApprovalRequest(key, encryptedRequest) {
+  const store = loadStore();
+  store.approvalRequests[key] = encryptedRequest;
+  saveStore();
+}
+function updateStoredApprovalRequest(key, encryptedRequest) {
+  const store = loadStore();
+  if (!store.approvalRequests[key]) return;
+  store.approvalRequests[key] = encryptedRequest;
+  saveStore();
+}
 var STORE_PATH, TMP_STORE_PATH, memoryStore, isLoaded;
 var init_persistentStore = __esm({
   "server/persistentStore.ts"() {
@@ -1083,6 +1107,8 @@ var init_persistentStore = __esm({
     memoryStore = {
       providerCredentials: {},
       connectorCredentials: {},
+      approvalGrants: {},
+      approvalRequests: {},
       updatedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
     isLoaded = false;
@@ -4314,54 +4340,166 @@ function validateAction(action) {
   if (action.connector === "slack" && action.action === "send_message" && (!action.parameters.channel || !action.parameters.text))
     throw new Error("Slack channel and message are required.");
 }
-function createApprovalRequest(userId, action) {
+function approvalRequestKey(userId, id) {
+  return `${userId}:${id}`;
+}
+function encodeApprovalRequest(request) {
+  return encryptCredential(JSON.stringify(request));
+}
+function decodeApprovalRequest(encrypted) {
+  const request = JSON.parse(decryptCredential(encrypted));
+  return {
+    ...request,
+    createdAt: new Date(request.createdAt),
+    expiresAt: new Date(request.expiresAt)
+  };
+}
+async function loadApprovalRequest(canonicalUserId, id) {
+  const firestore = (await Promise.resolve().then(() => (init_firestore(), firestore_exports))).getAdminFirestore();
+  if (firestore) {
+    try {
+      const doc = await firestore.collection("users").doc(canonicalUserId).collection("approvalRequests").doc(id).get();
+      if (doc.exists) {
+        const stored = doc.data();
+        const request = decodeApprovalRequest(stored.encryptedRequest);
+        return { ...request, status: stored.status };
+      }
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore approval lookup failed:", err);
+    }
+  }
+  const key = approvalRequestKey(canonicalUserId, id);
+  const encrypted = getStoredApprovalRequests()[key];
+  if (!encrypted) return void 0;
+  try {
+    return decodeApprovalRequest(encrypted);
+  } catch {
+    return void 0;
+  }
+}
+async function createApprovalRequest(userId, action) {
   validateAction(action);
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const now2 = /* @__PURE__ */ new Date();
   const id = `approval_${crypto4.randomUUID()}`;
   const request = {
     id,
-    userId,
+    userId: canonicalUserId,
     action,
     status: "pending",
     createdAt: now2,
     expiresAt: new Date(now2.getTime() + 10 * 60 * 1e3)
   };
-  approvals.set(id, request);
+  const encryptedRequest = encodeApprovalRequest(request);
+  const firestore = (await Promise.resolve().then(() => (init_firestore(), firestore_exports))).getAdminFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection("users").doc(canonicalUserId).collection("approvalRequests").doc(id).set({
+        encryptedRequest,
+        status: request.status,
+        createdAt: request.createdAt,
+        expiresAt: request.expiresAt
+      });
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore approval save failed:", err);
+    }
+  }
+  saveStoredApprovalRequest(approvalRequestKey(canonicalUserId, id), encryptedRequest);
   return {
     id,
     connector: action.connector,
     action: action.action,
+    scope: `${action.connector}:${action.action}`,
+    parameters: action.parameters,
     status: request.status,
     expiresAt: request.expiresAt
   };
 }
-function getApprovalRequest(userId, id) {
-  const request = approvals.get(id);
-  if (!request || request.userId !== userId || request.expiresAt.getTime() < Date.now())
-    return void 0;
+async function getApprovalRequest(userId, id) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const request = await loadApprovalRequest(canonicalUserId, id);
+  if (!request || request.userId !== canonicalUserId || request.expiresAt.getTime() < Date.now()) return void 0;
   return request;
+}
+async function transitionApprovalRequest(userId, id, expected, next) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const firestore = (await Promise.resolve().then(() => (init_firestore(), firestore_exports))).getAdminFirestore();
+  if (firestore) {
+    try {
+      const ref = firestore.collection("users").doc(canonicalUserId).collection("approvalRequests").doc(id);
+      const updated2 = await firestore.runTransaction(async (transaction) => {
+        const doc = await transaction.get(ref);
+        if (!doc.exists) return void 0;
+        const stored = doc.data();
+        if (stored.status !== expected) return void 0;
+        const request2 = decodeApprovalRequest(stored.encryptedRequest);
+        if (request2.userId !== canonicalUserId || request2.expiresAt.getTime() < Date.now()) return void 0;
+        transaction.update(ref, { status: next });
+        return { ...request2, status: next };
+      });
+      if (updated2) {
+        updateStoredApprovalRequest(approvalRequestKey(canonicalUserId, id), encodeApprovalRequest(updated2));
+        return updated2;
+      }
+      const existing = await ref.get();
+      if (existing.exists) return void 0;
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore approval transition failed:", err);
+    }
+  }
+  const request = await loadApprovalRequest(canonicalUserId, id);
+  if (!request || request.status !== expected || request.expiresAt.getTime() < Date.now()) return void 0;
+  const updated = { ...request, status: next };
+  updateStoredApprovalRequest(approvalRequestKey(canonicalUserId, id), encodeApprovalRequest(updated));
+  return updated;
 }
 function approveRequest(userId, id) {
-  const request = getApprovalRequest(userId, id);
-  if (!request) return void 0;
-  if (request.status !== "pending") return request;
-  request.status = "approved";
-  return request;
+  return transitionApprovalRequest(userId, id, "pending", "approved");
 }
 function completeRequest(userId, id) {
-  const request = getApprovalRequest(userId, id);
-  if (!request || request.status !== "approved") return void 0;
-  request.status = "completed";
-  return request;
+  return transitionApprovalRequest(userId, id, "approved", "completed");
 }
-var approvals, keyFor2, GOOGLE_FAMILY;
+function denyRequest(userId, id) {
+  return transitionApprovalRequest(userId, id, "pending", "denied");
+}
+function approvalGrantKey(userId, connector, action) {
+  return `${userId}:${connector}:${action.toLowerCase()}`;
+}
+async function hasApprovalGrant(userId, connector, action) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const documentId = `${connector}_${action.toLowerCase()}`.replaceAll(/[^a-z0-9_-]/g, "_");
+  const firestore = (await Promise.resolve().then(() => (init_firestore(), firestore_exports))).getAdminFirestore();
+  if (firestore) {
+    try {
+      const doc = await firestore.collection("users").doc(canonicalUserId).collection("permissions").doc(documentId).get();
+      if (doc.exists) return true;
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore permission lookup failed:", err);
+    }
+  }
+  return Boolean(getStoredApprovalGrants()[approvalGrantKey(canonicalUserId, connector, action)]);
+}
+async function saveApprovalGrant(userId, connector, action) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const documentId = `${connector}_${action.toLowerCase()}`.replaceAll(/[^a-z0-9_-]/g, "_");
+  const firestore = (await Promise.resolve().then(() => (init_firestore(), firestore_exports))).getAdminFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection("users").doc(canonicalUserId).collection("permissions").doc(documentId).set({ connector, action: action.toLowerCase(), grantedAt: /* @__PURE__ */ new Date() });
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore permission save failed:", err);
+    }
+  }
+  saveStoredApprovalGrant(approvalGrantKey(canonicalUserId, connector, action));
+  return { connector, action: action.toLowerCase(), granted: true };
+}
+var keyFor2, GOOGLE_FAMILY;
 var init_connectorDb = __esm({
   "server/connectorDb.ts"() {
     "use strict";
     init_credentialCrypto();
     init_persistentStore();
     init_userResolver();
-    approvals = /* @__PURE__ */ new Map();
     keyFor2 = (userId, connector) => `${userId}:${connector}`;
     GOOGLE_FAMILY = [
       "google-workspace",
@@ -4824,6 +4962,17 @@ async function runAgentLoop(initialContext, decide, registry, options = {}) {
       };
     if (++toolCalls > maxToolCalls)
       return { status: "failed", toolResults: results, steps: step + 1 };
+    const requestedTool = registry.get(decision.toolId);
+    if (requestedTool?.requiresApproval && !decision.approved)
+      return {
+        status: "waiting_for_confirmation",
+        toolResults: results,
+        steps: step + 1,
+        pendingApproval: {
+          toolId: decision.toolId,
+          arguments: decision.arguments
+        }
+      };
     const result = await executor.execute(
       decision.toolId,
       decision.arguments,
@@ -5338,6 +5487,21 @@ var init_usage = __esm({
 });
 
 // api/chat/route.ts
+function resolveConnectorActionName(provider, scopes, args) {
+  const explicitAction = typeof args.action === "string" ? args.action.trim() : "";
+  if (explicitAction) return explicitAction;
+  const scopedAction = scopes?.find((scope) => scope.startsWith(`${provider}:`))?.slice(provider.length + 1);
+  if (scopedAction && scopedAction !== "execute") return scopedAction;
+  if (provider === "gmail") return "mail_search";
+  if (provider === "google-calendar") return "calendar_read";
+  if (provider.startsWith("google")) return "drive_search";
+  return "list_products";
+}
+function resolveConnectorActionParameters(args) {
+  if (args.parameters && typeof args.parameters === "object" && !Array.isArray(args.parameters))
+    return args.parameters;
+  return Object.fromEntries(Object.entries(args).filter(([key]) => key !== "action"));
+}
 function analyzePromptIntent(prompt, hasConnectedApps = false, agenticModeFlag = false) {
   if (agenticModeFlag) {
     return {
@@ -5632,16 +5796,17 @@ async function executeRouteBLoop(prompt, context, userId, model, sendSSE, studyM
         description: `Execute actions in ${summary.connector} with secure user OAuth token injection.`,
         category: "connector",
         provider: summary.connector,
-        requiresApproval: false,
+        requiresApproval: true,
         scopes: [`${summary.connector}:execute`],
         availability: "available",
         execute: async (args) => {
-          sendSSE("tool_start", { connector: summary.connector, action: args.action || "execute", args });
-          const actionName = String(args.action || (summary.connector.startsWith("google") ? "drive_search" : "list_products"));
+          const actionName = resolveConnectorActionName(summary.connector, [`${summary.connector}:execute`], args);
+          const parameters = resolveConnectorActionParameters(args);
+          sendSSE("tool_start", { connector: summary.connector, action: actionName, args: parameters });
           const result = await executeConnectorAction(cred, {
             connector: summary.connector,
             action: actionName,
-            parameters: args.parameters || args
+            parameters
           });
           sendSSE("tool_result", { connector: summary.connector, action: actionName, result });
           return result;
@@ -5656,15 +5821,16 @@ async function executeRouteBLoop(prompt, context, userId, model, sendSSE, studyM
           description: `Search and interact with ${summary.connector} for workspace queries.`,
           category: "connector",
           provider: summary.connector,
-          requiresApproval: false,
+          requiresApproval: true,
           scopes: [`${summary.connector}:${defaultAction}`],
           availability: "available",
           execute: async (args) => {
-            sendSSE("tool_start", { connector: summary.connector, action: defaultAction, args });
+            const parameters = resolveConnectorActionParameters(args);
+            sendSSE("tool_start", { connector: summary.connector, action: defaultAction, args: parameters });
             const result = await executeConnectorAction(cred, {
               connector: summary.connector,
               action: defaultAction,
-              parameters: args
+              parameters
             });
             sendSSE("tool_result", { connector: summary.connector, action: defaultAction, result });
             return result;
@@ -5739,10 +5905,22 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
         }
         if (turn?.functionCall) {
           sendSSE("trace", { stage: "execute", detail: `Calling tool: ${turn.functionCall.name}` });
+          const selectedTool = registry.get(turn.functionCall.name);
+          let approved = false;
+          if (selectedTool?.requiresApproval && selectedTool.provider && canonicalUserId) {
+            const args = turn.functionCall.args ?? {};
+            const actionName = resolveConnectorActionName(selectedTool.provider, selectedTool.scopes, args);
+            approved = await hasApprovalGrant(
+              canonicalUserId,
+              selectedTool.provider,
+              actionName
+            );
+          }
           return {
             type: "tool_call",
             toolId: turn.functionCall.name,
-            arguments: turn.functionCall.args
+            arguments: turn.functionCall.args,
+            approved
           };
         }
         return {
@@ -5754,7 +5932,7 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
       { maxSteps: 6, maxToolCalls: 6, timeoutMs: 45e3 }
     );
     sendSSE("trace", { stage: "synthesize", detail: "Synthesizing dynamic markdown component breakdown..." });
-    if (execution.status === "failed" || !execution.response) {
+    if (execution.status === "failed" || execution.status !== "waiting_for_confirmation" && !execution.response) {
       sendSSE("error", {
         success: false,
         provider: provider.provider || "gemini",
@@ -5764,7 +5942,52 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
       });
       return;
     }
-    const finalResponse = execution.response;
+    if (execution.status === "waiting_for_confirmation" && execution.pendingApproval) {
+      const selectedTool = registry.get(execution.pendingApproval.toolId);
+      if (selectedTool?.provider && canonicalUserId) {
+        const args = execution.pendingApproval.arguments;
+        const actionName = resolveConnectorActionName(selectedTool.provider, selectedTool.scopes, args);
+        const parameters = resolveConnectorActionParameters(args);
+        const action = {
+          connector: selectedTool.provider,
+          action: actionName,
+          parameters
+        };
+        const request = await createApprovalRequest(canonicalUserId, action);
+        sendSSE("approval_required", {
+          approvalId: request.id,
+          connector: request.connector,
+          action: request.action,
+          scope: request.scope,
+          parameters: request.parameters,
+          expiresAt: request.expiresAt
+        });
+        const finalResponse2 = `Hanna needs your permission to ${actionName.replaceAll("_", " ")} in ${selectedTool.provider}. No connector data has been read or changed yet. Review the exact request below.`;
+        for (let i = 0; i < finalResponse2.length; i += 16) {
+          sendSSE("token", { chunk: finalResponse2.slice(i, i + 16) });
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        sendSSE("final", {
+          success: true,
+          text: finalResponse2,
+          provider: "hanna-agent",
+          model: "Hanna Agent",
+          route: "route_b",
+          trace: buildAgentTrace({ ...basePlan, approvalRequired: true }),
+          plan: { ...basePlan, approvalRequired: true }
+        });
+        return;
+      }
+    }
+    if (execution.status === "waiting_for_confirmation") {
+      sendSSE("error", {
+        success: false,
+        errorCode: "APPROVAL_TARGET_UNAVAILABLE",
+        message: "Hanna paused the action because it requires approval, but no supported connector request was available to present."
+      });
+      return;
+    }
+    const finalResponse = execution.response || "";
     sendSSE("markdown_card", {
       type: "agent_breakdown",
       title: "Agentic Loop Execution Summary",
@@ -6390,8 +6613,8 @@ var init_routers = __esm({
         ).mutation(
           ({ ctx, input }) => createApprovalRequest(ctx.user.id, input)
         ),
-        approveAction: protectedProcedure.input(z.object({ approvalId: z.string().min(1) })).mutation(({ ctx, input }) => {
-          const request = approveRequest(ctx.user.id, input.approvalId);
+        approveAction: protectedProcedure.input(z.object({ approvalId: z.string().min(1) })).mutation(async ({ ctx, input }) => {
+          const request = await approveRequest(ctx.user.id, input.approvalId);
           if (!request)
             throw new Error(
               "Approval request is missing, expired, or belongs to another user."
@@ -6403,8 +6626,52 @@ var init_routers = __esm({
             action: request.action.action
           };
         }),
+        resolveApproval: protectedProcedure.input(
+          z.object({
+            approvalId: z.string().min(1),
+            decision: z.enum(["once", "always", "deny"])
+          })
+        ).mutation(async ({ ctx, input }) => {
+          const request = await getApprovalRequest(ctx.user.id, input.approvalId);
+          if (!request || request.status !== "pending")
+            throw new Error("This approval request is missing, expired, or already resolved.");
+          if (input.decision === "deny") {
+            const denied = await denyRequest(ctx.user.id, input.approvalId);
+            if (!denied) throw new Error("This approval request could not be denied.");
+            return { status: "denied", scope: `${request.action.connector}:${request.action.action}` };
+          }
+          const credential = await getConnectorCredential(ctx.user.id, request.action.connector);
+          if (!credential)
+            throw new Error(`Connect ${request.action.connector} in Settings before allowing this action.`);
+          if (input.decision === "always") {
+            await saveApprovalGrant(ctx.user.id, request.action.connector, request.action.action);
+          }
+          const approved = await approveRequest(ctx.user.id, input.approvalId);
+          if (!approved) throw new Error("This approval request could not be approved.");
+          let result;
+          try {
+            result = await executeConnectorAction(credential, request.action);
+          } catch {
+            await completeRequest(ctx.user.id, request.id);
+            return {
+              approvalId: request.id,
+              scope: `${request.action.connector}:${request.action.action}`,
+              decision: input.decision,
+              status: "failed",
+              error: "The connector could not confirm the action result. Check its activity before retrying."
+            };
+          }
+          await completeRequest(ctx.user.id, request.id);
+          return {
+            ...result,
+            approvalId: request.id,
+            scope: `${request.action.connector}:${request.action.action}`,
+            decision: input.decision,
+            status: "completed"
+          };
+        }),
         executeApproved: protectedProcedure.input(z.object({ approvalId: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-          const request = getApprovalRequest(ctx.user.id, input.approvalId);
+          const request = await getApprovalRequest(ctx.user.id, input.approvalId);
           if (!request || request.status !== "approved")
             throw new Error(
               "This action must be explicitly approved before execution."
@@ -6418,7 +6685,7 @@ var init_routers = __esm({
               `Connect ${request.action.connector} in Settings before executing this action.`
             );
           const result = await executeConnectorAction(credential, request.action);
-          completeRequest(ctx.user.id, request.id);
+          await completeRequest(ctx.user.id, request.id);
           return {
             ...result,
             approvalId: request.id,

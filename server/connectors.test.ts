@@ -4,6 +4,7 @@ import {
   approveRequest,
   createApprovalRequest,
   getConnectorCredential,
+  hasApprovalGrant,
   listConnectorCredentials,
   saveConnectorCredential,
 } from "./connectorDb";
@@ -20,8 +21,8 @@ describe("authenticated Shopify and Slack connectors", () => {
     expect(listed).toContain("…1234");
   });
 
-  it("does not allow execution before approval", () => {
-    const request = createApprovalRequest(8102, {
+  it("does not allow execution before approval", async () => {
+    const request = await createApprovalRequest(8102, {
       connector: "slack",
       action: "send_message",
       parameters: { channel: "C123", text: "hello" },
@@ -182,14 +183,90 @@ describe("authenticated Shopify and Slack connectors", () => {
     vi.unstubAllGlobals();
   });
 
-  it("marks an approval request approved only for its owner", () => {
-    const request = createApprovalRequest(8103, {
+  it("allows a real connector action once/always and persists only the granted scope", async () => {
+    const userId = 8110;
+    const caller = appRouter.createCaller({
+      user: {
+        id: userId,
+        openId: "connector-scope-owner",
+        name: "Owner",
+        email: null,
+        loginMethod: "firebase",
+        role: "user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: {} as any,
+      res: {} as any,
+    });
+    await caller.integrations.saveCredential({
+      connector: "shopify",
+      values: { storeDomain: "example.myshopify.com", accessToken: "shpat-scope-secret" },
+    });
+    const approval = await caller.integrations.previewAction({
+      connector: "shopify",
+      action: "list_orders",
+      parameters: { first: 1 },
+    });
+    const fetcher = vi.fn(async () => new Response(
+      JSON.stringify({ data: { orders: { nodes: [{ id: "gid://shopify/Order/42", name: "#1042" }] } } }),
+      { status: 200 }
+    ));
+    vi.stubGlobal("fetch", fetcher);
+
+    const result = await caller.integrations.resolveApproval({
+      approvalId: approval.id,
+      decision: "always",
+    });
+    expect(result.status).toBe("completed");
+    expect(result.data).toEqual([{ id: "gid://shopify/Order/42", name: "#1042" }]);
+    expect(await hasApprovalGrant(userId, "shopify", "list_orders")).toBe(true);
+    expect(await hasApprovalGrant(userId, "shopify", "list_products")).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it("denies a real connector request without executing its adapter", async () => {
+    const userId = 8111;
+    const caller = appRouter.createCaller({
+      user: {
+        id: userId,
+        openId: "connector-denial-owner",
+        name: "Owner",
+        email: null,
+        loginMethod: "firebase",
+        role: "user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: {} as any,
+      res: {} as any,
+    });
+    const approval = await caller.integrations.previewAction({
+      connector: "shopify",
+      action: "list_products",
+      parameters: { first: 1 },
+    });
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    const result = await caller.integrations.resolveApproval({
+      approvalId: approval.id,
+      decision: "deny",
+    });
+    expect(result.status).toBe("denied");
+    expect(fetcher).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("marks an approval request approved only for its owner", async () => {
+    const request = await createApprovalRequest(8103, {
       connector: "shopify",
       action: "list_products",
       parameters: {},
     });
-    expect(approveRequest(9999, request.id)).toBeUndefined();
-    expect(approveRequest(8103, request.id)?.status).toBe("approved");
+    expect(await approveRequest(9999, request.id)).toBeUndefined();
+    expect((await approveRequest(8103, request.id))?.status).toBe("approved");
   });
 
   it("rejects catalog-only connector actions instead of fabricating success", async () => {

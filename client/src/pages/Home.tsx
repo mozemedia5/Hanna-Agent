@@ -57,6 +57,7 @@ import {
 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
 import { ToolExecutionStatusBlock } from "@/components/ToolExecutionStatusBlock";
+import PermissionApprovalCard from "@/components/PermissionApprovalCard";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
@@ -1186,6 +1187,13 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                   </article>
                 );
               })}
+              {chatWorkflow.approvalRequest && (
+                <article className="message-row assistant permission-request-row">
+                  <div className="message-body">
+                    <PermissionApprovalCard request={chatWorkflow.approvalRequest} />
+                  </div>
+                </article>
+              )}
               {isThinking && !chatWorkflow.streamingText && (
                 <article className="message-row assistant thinking-row">
                   <div className="message-body">

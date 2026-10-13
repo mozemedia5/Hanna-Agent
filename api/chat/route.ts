@@ -7,7 +7,7 @@ import {
   createDefaultToolRegistry,
   runAgentLoop,
 } from "../../server/agentCore";
-import { getConnectorCredential, listConnectorCredentials, type ConnectorCredential, type ConnectorAction } from "../../server/connectorDb";
+import { createApprovalRequest, getConnectorCredential, hasApprovalGrant, listConnectorCredentials, type ConnectorCredential, type ConnectorAction, type ConnectorId } from "../../server/connectorDb";
 import { executeConnectorAction } from "../../server/connectorAdapters";
 import { listMcpTools } from "../../server/mcpServer";
 import { getProviderCredentialForRequest } from "../../server/providerDb";
@@ -18,6 +18,29 @@ import { consumeDailyTokens, type HannaTier } from "../../server/usage";
 import { resolveCanonicalUserId } from "../../server/userResolver";
 
 export type IntentRouteType = "route_a" | "route_b";
+
+function resolveConnectorActionName(
+  provider: string,
+  scopes: string[] | undefined,
+  args: Record<string, unknown>
+): string {
+  const explicitAction = typeof args.action === "string" ? args.action.trim() : "";
+  if (explicitAction) return explicitAction;
+  const scopedAction = scopes
+    ?.find(scope => scope.startsWith(`${provider}:`))
+    ?.slice(provider.length + 1);
+  if (scopedAction && scopedAction !== "execute") return scopedAction;
+  if (provider === "gmail") return "mail_search";
+  if (provider === "google-calendar") return "calendar_read";
+  if (provider.startsWith("google")) return "drive_search";
+  return "list_products";
+}
+
+function resolveConnectorActionParameters(args: Record<string, unknown>): Record<string, unknown> {
+  if (args.parameters && typeof args.parameters === "object" && !Array.isArray(args.parameters))
+    return args.parameters as Record<string, unknown>;
+  return Object.fromEntries(Object.entries(args).filter(([key]) => key !== "action"));
+}
 
 export type IntentAnalysisResult = {
   route: IntentRouteType;
@@ -319,16 +342,17 @@ export async function executeRouteBLoop(
         description: `Execute actions in ${summary.connector} with secure user OAuth token injection.`,
         category: "connector",
         provider: summary.connector,
-        requiresApproval: false,
+        requiresApproval: true,
         scopes: [`${summary.connector}:execute`],
         availability: "available",
         execute: async (args) => {
-          sendSSE("tool_start", { connector: summary.connector, action: args.action || "execute", args });
-          const actionName = String(args.action || (summary.connector.startsWith("google") ? "drive_search" : "list_products"));
+          const actionName = resolveConnectorActionName(summary.connector, [`${summary.connector}:execute`], args);
+          const parameters = resolveConnectorActionParameters(args);
+          sendSSE("tool_start", { connector: summary.connector, action: actionName, args: parameters });
           const result = await executeConnectorAction(cred, {
             connector: summary.connector,
             action: actionName,
-            parameters: (args.parameters as Record<string, unknown>) || args,
+            parameters,
           });
           sendSSE("tool_result", { connector: summary.connector, action: actionName, result });
           return result;
@@ -345,15 +369,16 @@ export async function executeRouteBLoop(
           description: `Search and interact with ${summary.connector} for workspace queries.`,
           category: "connector",
           provider: summary.connector,
-          requiresApproval: false,
+          requiresApproval: true,
           scopes: [`${summary.connector}:${defaultAction}`],
           availability: "available",
           execute: async (args) => {
-            sendSSE("tool_start", { connector: summary.connector, action: defaultAction, args });
+            const parameters = resolveConnectorActionParameters(args);
+            sendSSE("tool_start", { connector: summary.connector, action: defaultAction, args: parameters });
             const result = await executeConnectorAction(cred, {
               connector: summary.connector,
               action: defaultAction,
-              parameters: args,
+              parameters,
             } as ConnectorAction);
             sendSSE("tool_result", { connector: summary.connector, action: defaultAction, result });
             return result;
@@ -437,10 +462,22 @@ export async function executeRouteBLoop(
 
         if (turn?.functionCall) {
           sendSSE("trace", { stage: "execute", detail: `Calling tool: ${turn.functionCall.name}` });
+          const selectedTool = registry.get(turn.functionCall.name);
+          let approved = false;
+          if (selectedTool?.requiresApproval && selectedTool.provider && canonicalUserId) {
+            const args = turn.functionCall.args ?? {};
+            const actionName = resolveConnectorActionName(selectedTool.provider, selectedTool.scopes, args);
+            approved = await hasApprovalGrant(
+              canonicalUserId,
+              selectedTool.provider as ConnectorId,
+              actionName
+            );
+          }
           return {
             type: "tool_call" as const,
             toolId: turn.functionCall.name,
             arguments: turn.functionCall.args,
+            approved,
           };
         }
 
@@ -455,7 +492,10 @@ export async function executeRouteBLoop(
 
     sendSSE("trace", { stage: "synthesize", detail: "Synthesizing dynamic markdown component breakdown..." });
 
-    if (execution.status === "failed" || !execution.response) {
+    if (
+      execution.status === "failed" ||
+      (execution.status !== "waiting_for_confirmation" && !execution.response)
+    ) {
       sendSSE("error", {
         success: false,
         provider: provider.provider || "gemini",
@@ -466,7 +506,54 @@ export async function executeRouteBLoop(
       return;
     }
 
-    const finalResponse = execution.response;
+    if (execution.status === "waiting_for_confirmation" && execution.pendingApproval) {
+      const selectedTool = registry.get(execution.pendingApproval.toolId);
+      if (selectedTool?.provider && canonicalUserId) {
+        const args = execution.pendingApproval.arguments;
+        const actionName = resolveConnectorActionName(selectedTool.provider, selectedTool.scopes, args);
+        const parameters = resolveConnectorActionParameters(args);
+        const action = {
+          connector: selectedTool.provider as ConnectorId,
+          action: actionName,
+          parameters,
+        } as ConnectorAction;
+        const request = await createApprovalRequest(canonicalUserId, action);
+        sendSSE("approval_required", {
+          approvalId: request.id,
+          connector: request.connector,
+          action: request.action,
+          scope: request.scope,
+          parameters: request.parameters,
+          expiresAt: request.expiresAt,
+        });
+        const finalResponse = `Hanna needs your permission to ${actionName.replaceAll("_", " ")} in ${selectedTool.provider}. No connector data has been read or changed yet. Review the exact request below.`;
+        for (let i = 0; i < finalResponse.length; i += 16) {
+          sendSSE("token", { chunk: finalResponse.slice(i, i + 16) });
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        sendSSE("final", {
+          success: true,
+          text: finalResponse,
+          provider: "hanna-agent",
+          model: "Hanna Agent",
+          route: "route_b",
+          trace: buildAgentTrace({ ...basePlan, approvalRequired: true }),
+          plan: { ...basePlan, approvalRequired: true },
+        });
+        return;
+      }
+    }
+
+    if (execution.status === "waiting_for_confirmation") {
+      sendSSE("error", {
+        success: false,
+        errorCode: "APPROVAL_TARGET_UNAVAILABLE",
+        message: "Hanna paused the action because it requires approval, but no supported connector request was available to present.",
+      });
+      return;
+    }
+
+    const finalResponse = execution.response || "";
 
     // Emit dynamic markdown component breakdown card
     sendSSE("markdown_card", {
