@@ -122,6 +122,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const [activeTab, setActiveTab] = useState<"all" | "connected">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [connected, setConnected] = useState<string[]>([]);
+  const [connectionAccounts, setConnectionAccounts] = useState<Record<string, string>>({});
   const [activeModal, setActiveModal] = useState<IntegrationDefinition | null>(
     null
   );
@@ -159,6 +160,11 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         const payload = await response.json();
         const records = payload?.[0]?.result?.data?.json;
         if (Array.isArray(records)) {
+          setConnectionAccounts(Object.fromEntries(
+            records
+              .filter((record: { accountDisplay?: string }) => Boolean(record.accountDisplay))
+              .map((record: { connector: string; accountDisplay: string }) => [record.connector, record.accountDisplay])
+          ));
           const connectorIds = records
             .filter((record: { connector: string; fields?: Record<string, string>; is_connected?: boolean }) => {
               if (record.is_connected === false) return false;
@@ -218,14 +224,14 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
   const openModal = (integration: IntegrationDefinition) => {
     setActiveModal(integration);
     setConnectionMode("oauth");
-    setFormInputs({});
+    setFormInputs(integration.id === "shopify" && connectionAccounts[integration.id]
+      ? { storeDomain: connectionAccounts[integration.id] }
+      : {});
   };
 
   const handleConnect = async (integration: IntegrationDefinition) => {
     if (integration.id === "gmail" || integration.id.startsWith("google")) {
-      const token = await getFirebaseIdToken();
-      const authUrl = `/api/oauth/google/authorize${token ? `?id_token=${encodeURIComponent(token)}` : ""}`;
-      window.location.href = authUrl;
+      openModal(integration);
       return;
     }
     openModal(integration);
@@ -562,7 +568,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
       {/* Setup Modal */}
       {activeModal && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className={`modal-content connector-detail-modal ${(["shopify", "gmail"].includes(activeModal.id) || activeModal.id.startsWith("google")) ? "connector-detail-managed" : ""}`} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-left">
                 <div className="connector-icon-renderer" style={{ width: 42, height: 42 }}>
@@ -578,13 +584,47 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               <button
                 className="modal-close"
                 onClick={() => setActiveModal(null)}
+                aria-label="Back to connectors"
               >
-                <X size={18} />
+                <ArrowLeft size={20} />
               </button>
             </div>
 
+            <div className="connector-detail-hero">
+              <div className="connector-detail-large-icon">{renderBrandIcon(activeModal.name, 44)}</div>
+              <h2>{activeModal.name}</h2>
+              <p>{activeModal.description}</p>
+            </div>
+
+            <section className="connector-detail-section" aria-labelledby="connector-accounts-title">
+              <h4 id="connector-accounts-title">Accounts</h4>
+              {connected.includes(activeModal.id) ? (
+                <div className="connector-detail-account">
+                  <span className="connector-detail-account-logo">{renderBrandIcon(activeModal.name, 18)}</span>
+                  <span className="connector-detail-account-name">{connectionAccounts[activeModal.id] || "Connected account"}</span>
+                  <span className="connector-detail-connected">Connected</span>
+                  <button type="button" aria-label={`Disconnect ${activeModal.name}`} onClick={() => handleDisconnect(activeModal.id, activeModal.name)}>•••</button>
+                </div>
+              ) : (
+                <div className="connector-detail-empty-account">No account connected yet</div>
+              )}
+              {connected.includes(activeModal.id) && (activeModal.id === "shopify" || activeModal.id === "gmail" || activeModal.id.startsWith("google")) && (
+                <button type="button" className="connector-detail-add-account" onClick={handleOAuthConnect} disabled={saving}>
+                  <span aria-hidden="true">＋</span> {connected.includes(activeModal.id) ? "Connect another account" : `Connect ${activeModal.name}`}
+                </button>
+              )}
+            </section>
+
+            <section className="connector-detail-section connector-detail-facts" aria-labelledby="connector-details-title">
+              <h4 id="connector-details-title">Details</h4>
+              <div className="connector-detail-fact"><span>Connector Type</span><strong>App</strong></div>
+              <div className="connector-detail-fact"><span>Author</span><strong>Hanna</strong></div>
+              <a className="connector-detail-fact" href={activeModal.id === "shopify" ? "https://www.shopify.com/" : "https://workspace.google.com/"} target="_blank" rel="noopener noreferrer"><span>Website</span><ExternalLink size={16} /></a>
+              <a className="connector-detail-fact" href={activeModal.id === "shopify" ? "https://www.shopify.com/legal/privacy" : "https://policies.google.com/privacy"} target="_blank" rel="noopener noreferrer"><span>Privacy Policy</span><ExternalLink size={16} /></a>
+            </section>
+
             {/* Account Info Bar if Connected */}
-            {connected.includes(activeModal.id) && (
+            {connected.includes(activeModal.id) && !["shopify", "gmail"].includes(activeModal.id) && !activeModal.id.startsWith("google") && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--surface-raised, rgba(255,255,255,0.04))", borderRadius: "10px", marginBottom: "16px", border: "1px solid var(--border)" }}>
                 <div>
                   <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)", display: "block" }}>Connected Account</span>
@@ -601,10 +641,10 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               </div>
             )}
 
-            <p className="modal-description">{activeModal.description}</p>
+            <p className="modal-description connector-detail-original-description">{activeModal.description}</p>
 
             {/* Connection Mode Selector */}
-            <div className="modal-connection-toggle" style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            {!(["shopify", "gmail"].includes(activeModal.id) || activeModal.id.startsWith("google")) && <div className="modal-connection-toggle" style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
               <Button
                 variant={connectionMode === "oauth" ? "default" : "outline"}
                 size="sm"
@@ -630,7 +670,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                   <Lock size={13} style={{ marginRight: "6px" }} /> Manual Keys
                 </Button>
               )}
-            </div>
+            </div>}
 
             {connectionMode === "oauth" && (
               <div style={{ marginBottom: "16px", background: "var(--surface-variant, rgba(255,255,255,0.03))", padding: "16px", borderRadius: "12px", border: "1px solid var(--border-color, rgba(255,255,255,0.08))" }}>
@@ -660,7 +700,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                     className="w-full"
                     style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", fontWeight: 600 }}
                   >
-                    {saving ? "Redirecting to authorize..." : activeModal.id === "shopify" ? "Continue to Shopify authorization" : `Connect ${activeModal.name} with OAuth`}
+                    {saving ? "Redirecting to authorize..." : ["shopify", "gmail"].includes(activeModal.id) || activeModal.id.startsWith("google") ? "Try it out" : `Connect ${activeModal.name} with OAuth`}
                   </Button>
                 ) : (
                   <p role="status" style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>

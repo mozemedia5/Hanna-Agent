@@ -5311,3 +5311,51 @@ body:has(.auth-loading) {
     margin-top: 4px;
   }
 }
+
+
+/* Provider details sheet inspired by the supplied Gmail connection reference. */
+.connector-detail-modal {
+  background: #1d1d1d;
+  color: #f4f4f4;
+  border-color: #343434;
+  border-radius: 24px;
+  padding: 22px 24px 18px;
+  max-width: 560px;
+  scrollbar-color: #555 #1d1d1d;
+}
+.connector-detail-modal .modal-header { justify-content: flex-start; margin-bottom: 8px; }
+.connector-detail-modal .modal-header-left { display: none; }
+.connector-detail-modal .modal-close { color: #dedede; display: inline-flex; align-items: center; justify-content: center; padding: 4px; }
+.connector-detail-hero { text-align: center; padding: 10px 6px 24px; }
+.connector-detail-large-icon { width: 82px; height: 82px; margin: 0 auto 18px; border: 1px solid #444; border-radius: 17px; background: #242424; display: grid; place-items: center; }
+.connector-detail-large-icon img { width: 48px; height: 48px; object-fit: contain; }
+.connector-detail-hero h2 { margin: 0 0 8px; color: #f3f3f3; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+.connector-detail-hero p { max-width: 460px; margin: 0 auto; color: #aaa; font-size: 14px; line-height: 1.55; }
+.connector-detail-section { margin: 0 0 24px; }
+.connector-detail-section h4 { margin: 0 0 10px; padding-left: 16px; color: #b6b6b6; font-size: 14px; font-weight: 500; }
+.connector-detail-account, .connector-detail-empty-account { min-height: 58px; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #303030; border-radius: 18px; background: #292929; color: #eee; }
+.connector-detail-account-logo { display: inline-flex; align-items: center; flex: 0 0 auto; }
+.connector-detail-account-logo img { width: 22px; height: 22px; object-fit: contain; }
+.connector-detail-account-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.connector-detail-connected { color: #a9d8b0; font-size: 11px; }
+.connector-detail-account > button { border: 0; color: #aaa; background: transparent; font-size: 19px; letter-spacing: 2px; cursor: pointer; }
+.connector-detail-empty-account { color: #999; font-size: 13px; }
+.connector-detail-add-account { width: 100%; margin-top: 1px; min-height: 54px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; border: 0; border-top: 1px solid #3a3a3a; border-radius: 0 0 18px 18px; color: #f1f1f1; background: #292929; text-align: left; font: inherit; cursor: pointer; }
+.connector-detail-add-account span { font-size: 24px; line-height: 1; }
+.connector-detail-facts { padding: 14px 16px 0; border: 1px solid #303030; border-radius: 18px; background: #292929; }
+.connector-detail-facts h4 { padding: 0; margin: 0; }
+.connector-detail-fact { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #3b3b3b; color: #aaa; font-size: 13px; text-decoration: none; }
+.connector-detail-fact:last-child { border-bottom: 0; }
+.connector-detail-fact strong { color: #f0f0f0; font-size: 13px; font-weight: 500; }
+.connector-detail-fact svg { color: #aaa; }
+.connector-detail-original-description { display: none; }
+.connector-detail-modal .modal-connection-toggle { flex-wrap: wrap; }
+.connector-detail-managed > div[style*="surface-variant"] { position: sticky; bottom: -18px; z-index: 2; margin: 0 -4px -4px !important; padding: 10px 4px 4px !important; border: 0 !important; background: #1d1d1d !important; }
+.connector-detail-managed > div[style*="surface-variant"] > div:first-child { display: none !important; }
+.connector-detail-managed > div[style*="surface-variant"] .modal-field { margin: 0 0 12px; }
+.connector-detail-managed > div[style*="surface-variant"] .w-full { min-height: 52px; border-radius: 16px; background: #fff !important; color: #1d1d1d !important; font-size: 15px; font-weight: 600; }
+@media (max-width: 600px) {
+  .connector-detail-modal { position: fixed; inset: auto 0 0; width: 100%; max-width: none; max-height: 91dvh; border-radius: 24px 24px 0 0; padding: 18px 20px max(18px, env(safe-area-inset-bottom)); }
+  .connector-detail-hero { padding-top: 4px; }
+  .connector-detail-hero p { font-size: 13px; }
+}
