@@ -7,8 +7,13 @@ import {
 } from "./credentialCrypto";
 import {
   deleteStoredConnectorCredential,
+  getStoredApprovalGrants,
+  getStoredApprovalRequests,
   getStoredConnectorCredentials,
+  saveStoredApprovalGrant,
+  saveStoredApprovalRequest,
   saveStoredConnectorCredential,
+  updateStoredApprovalRequest,
 } from "./persistentStore";
 import { resolveCanonicalUserId } from "./userResolver";
 
@@ -103,14 +108,13 @@ export type ConnectorAction =
 type StoredCredential = { encryptedValues: string; updatedAt: Date };
 type ApprovalRequest = {
   id: string;
-  userId: number;
+  userId: string;
   action: ConnectorAction;
-  status: "pending" | "approved" | "completed";
+  status: "pending" | "approved" | "completed" | "denied";
   createdAt: Date;
   expiresAt: Date;
 };
 
-const approvals = new Map<string, ApprovalRequest>();
 const keyFor = (userId: string | number, connector: ConnectorId) =>
   `${userId}:${connector}`;
 
@@ -424,50 +428,207 @@ function validateAction(action: ConnectorAction) {
     throw new Error("Slack channel and message are required.");
 }
 
-export function createApprovalRequest(userId: number, action: ConnectorAction) {
+function approvalRequestKey(userId: string, id: string) {
+  return `${userId}:${id}`;
+}
+
+function encodeApprovalRequest(request: ApprovalRequest) {
+  return encryptCredential(JSON.stringify(request));
+}
+
+function decodeApprovalRequest(encrypted: string): ApprovalRequest {
+  const request = JSON.parse(decryptCredential(encrypted)) as ApprovalRequest;
+  return {
+    ...request,
+    createdAt: new Date(request.createdAt),
+    expiresAt: new Date(request.expiresAt),
+  };
+}
+
+async function loadApprovalRequest(canonicalUserId: string, id: string) {
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      const doc = await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("approvalRequests")
+        .doc(id)
+        .get();
+      if (doc.exists) {
+        const stored = doc.data() as { encryptedRequest: string; status: ApprovalRequest["status"] };
+        const request = decodeApprovalRequest(stored.encryptedRequest);
+        return { ...request, status: stored.status };
+      }
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore approval lookup failed:", err);
+    }
+  }
+
+  const key = approvalRequestKey(canonicalUserId, id);
+  const encrypted = getStoredApprovalRequests()[key];
+  if (!encrypted) return undefined;
+  try {
+    return decodeApprovalRequest(encrypted);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function createApprovalRequest(userId: string | number, action: ConnectorAction) {
   validateAction(action);
+  const canonicalUserId = await resolveCanonicalUserId(userId);
   const now = new Date();
   const id = `approval_${crypto.randomUUID()}`;
   const request: ApprovalRequest = {
     id,
-    userId,
+    userId: canonicalUserId,
     action,
     status: "pending",
     createdAt: now,
     expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
   };
-  approvals.set(id, request);
+  const encryptedRequest = encodeApprovalRequest(request);
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("approvalRequests")
+        .doc(id)
+        .set({
+          encryptedRequest,
+          status: request.status,
+          createdAt: request.createdAt,
+          expiresAt: request.expiresAt,
+        });
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore approval save failed:", err);
+    }
+  }
+  saveStoredApprovalRequest(approvalRequestKey(canonicalUserId, id), encryptedRequest);
   return {
     id,
     connector: action.connector,
     action: action.action,
+    scope: `${action.connector}:${action.action}`,
+    parameters: action.parameters,
     status: request.status,
     expiresAt: request.expiresAt,
   };
 }
 
-export function getApprovalRequest(userId: number, id: string) {
-  const request = approvals.get(id);
-  if (
-    !request ||
-    request.userId !== userId ||
-    request.expiresAt.getTime() < Date.now()
-  )
-    return undefined;
+export async function getApprovalRequest(userId: string | number, id: string) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const request = await loadApprovalRequest(canonicalUserId, id);
+  if (!request || request.userId !== canonicalUserId || request.expiresAt.getTime() < Date.now()) return undefined;
   return request;
 }
 
-export function approveRequest(userId: number, id: string) {
-  const request = getApprovalRequest(userId, id);
-  if (!request) return undefined;
-  if (request.status !== "pending") return request;
-  request.status = "approved";
-  return request;
+async function transitionApprovalRequest(
+  userId: string | number,
+  id: string,
+  expected: ApprovalRequest["status"],
+  next: ApprovalRequest["status"]
+) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      const ref = firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("approvalRequests")
+        .doc(id);
+      const updated = await firestore.runTransaction(async (transaction: any) => {
+        const doc = await transaction.get(ref);
+        if (!doc.exists) return undefined;
+        const stored = doc.data() as { encryptedRequest: string; status: ApprovalRequest["status"] };
+        if (stored.status !== expected) return undefined;
+        const request = decodeApprovalRequest(stored.encryptedRequest);
+        if (request.userId !== canonicalUserId || request.expiresAt.getTime() < Date.now()) return undefined;
+        transaction.update(ref, { status: next });
+        return { ...request, status: next };
+      });
+      if (updated) {
+        updateStoredApprovalRequest(approvalRequestKey(canonicalUserId, id), encodeApprovalRequest(updated));
+        return updated;
+      }
+      const existing = await ref.get();
+      if (existing.exists) return undefined;
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore approval transition failed:", err);
+    }
+  }
+
+  const request = await loadApprovalRequest(canonicalUserId, id);
+  if (!request || request.status !== expected || request.expiresAt.getTime() < Date.now()) return undefined;
+  const updated = { ...request, status: next };
+  updateStoredApprovalRequest(approvalRequestKey(canonicalUserId, id), encodeApprovalRequest(updated));
+  return updated;
 }
 
-export function completeRequest(userId: number, id: string) {
-  const request = getApprovalRequest(userId, id);
-  if (!request || request.status !== "approved") return undefined;
-  request.status = "completed";
-  return request;
+export function approveRequest(userId: string | number, id: string) {
+  return transitionApprovalRequest(userId, id, "pending", "approved");
+}
+
+export function completeRequest(userId: string | number, id: string) {
+  return transitionApprovalRequest(userId, id, "approved", "completed");
+}
+
+export function denyRequest(userId: string | number, id: string) {
+  return transitionApprovalRequest(userId, id, "pending", "denied");
+}
+
+function approvalGrantKey(userId: string, connector: ConnectorId, action: string) {
+  return `${userId}:${connector}:${action.toLowerCase()}`;
+}
+
+export async function hasApprovalGrant(
+  userId: string | number,
+  connector: ConnectorId,
+  action: string
+): Promise<boolean> {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const documentId = `${connector}_${action.toLowerCase()}`.replaceAll(/[^a-z0-9_-]/g, "_");
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      const doc = await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("permissions")
+        .doc(documentId)
+        .get();
+      if (doc.exists) return true;
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore permission lookup failed:", err);
+    }
+  }
+  return Boolean(getStoredApprovalGrants()[approvalGrantKey(canonicalUserId, connector, action)]);
+}
+
+export async function saveApprovalGrant(
+  userId: string | number,
+  connector: ConnectorId,
+  action: string
+) {
+  const canonicalUserId = await resolveCanonicalUserId(userId);
+  const documentId = `${connector}_${action.toLowerCase()}`.replaceAll(/[^a-z0-9_-]/g, "_");
+  const firestore = (await import("./firestore")).getAdminFirestore();
+  if (firestore) {
+    try {
+      await firestore
+        .collection("users")
+        .doc(canonicalUserId)
+        .collection("permissions")
+        .doc(documentId)
+        .set({ connector, action: action.toLowerCase(), grantedAt: new Date() });
+    } catch (err) {
+      console.warn("[ConnectorDb] Firestore permission save failed:", err);
+    }
+  }
+  saveStoredApprovalGrant(approvalGrantKey(canonicalUserId, connector, action));
+  return { connector, action: action.toLowerCase(), granted: true } as const;
 }

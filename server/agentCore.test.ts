@@ -77,6 +77,40 @@ describe("Hanna Agent Core", () => {
     );
   });
 
+  it("returns the exact pending scope without executing a protected adapter", async () => {
+    const registry = createDefaultToolRegistry();
+    let executed = false;
+    registry.register({
+      id: "shopify.list_orders",
+      label: "List orders",
+      description: "Read orders from the connected Shopify store.",
+      provider: "shopify",
+      requiresApproval: true,
+      scopes: ["shopify:list_orders"],
+      execute: async () => {
+        executed = true;
+        return [{ id: "real-order" }];
+      },
+    });
+
+    const result = await runAgentLoop(
+      { userMessage: "List my orders", requestId: "approval-request" },
+      async () => ({
+        type: "tool_call",
+        toolId: "shopify.list_orders",
+        arguments: { first: 5 },
+      }),
+      registry
+    );
+
+    expect(result.status).toBe("waiting_for_confirmation");
+    expect(result.pendingApproval).toEqual({
+      toolId: "shopify.list_orders",
+      arguments: { first: 5 },
+    });
+    expect(executed).toBe(false);
+  });
+
   it("discovers and executes tools added after registry creation", async () => {
     const registry = createDefaultToolRegistry();
     registry.register({
