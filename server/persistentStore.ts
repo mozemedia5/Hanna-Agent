@@ -22,12 +22,16 @@ function getTargetFilePath(): string {
 type StoreData = {
   providerCredentials: Record<string, any>;
   connectorCredentials: Record<string, any>;
+  approvalGrants: Record<string, { grantedAt: string }>;
+  approvalRequests: Record<string, string>;
   updatedAt: string;
 };
 
 let memoryStore: StoreData = {
   providerCredentials: {},
   connectorCredentials: {},
+  approvalGrants: {},
+  approvalRequests: {},
   updatedAt: new Date().toISOString(),
 };
 
@@ -48,6 +52,8 @@ function loadStore(): StoreData {
             memoryStore = {
               providerCredentials: parsed.providerCredentials || {},
               connectorCredentials: parsed.connectorCredentials || {},
+              approvalGrants: parsed.approvalGrants || {},
+              approvalRequests: parsed.approvalRequests || {},
               updatedAt: parsed.updatedAt || new Date().toISOString(),
             };
             isLoaded = true;
@@ -125,11 +131,40 @@ export function deleteStoredConnectorCredential(key: string): void {
   saveStore();
 }
 
+export function getStoredApprovalGrants(): Record<string, { grantedAt: string }> {
+  return loadStore().approvalGrants;
+}
+
+export function saveStoredApprovalGrant(key: string): void {
+  const store = loadStore();
+  store.approvalGrants[key] = { grantedAt: new Date().toISOString() };
+  saveStore();
+}
+
+export function getStoredApprovalRequests(): Record<string, string> {
+  return loadStore().approvalRequests;
+}
+
+export function saveStoredApprovalRequest(key: string, encryptedRequest: string): void {
+  const store = loadStore();
+  store.approvalRequests[key] = encryptedRequest;
+  saveStore();
+}
+
+export function updateStoredApprovalRequest(key: string, encryptedRequest: string): void {
+  const store = loadStore();
+  if (!store.approvalRequests[key]) return;
+  store.approvalRequests[key] = encryptedRequest;
+  saveStore();
+}
+
 export function forceReloadStoreForTest(): void {
   isLoaded = false;
   memoryStore = {
     providerCredentials: {},
     connectorCredentials: {},
+    approvalGrants: {},
+    approvalRequests: {},
     updatedAt: new Date().toISOString(),
   };
 }

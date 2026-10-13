@@ -53,6 +53,15 @@ export type ToolLogItem = {
   status?: "running" | "completed" | "error";
 };
 
+export type ApprovalRequest = {
+  approvalId: string;
+  connector: string;
+  action: string;
+  scope: string;
+  parameters: Record<string, unknown>;
+  expiresAt: string;
+};
+
 export type MarkdownCardPayload = {
   type: string;
   title: string;
@@ -71,6 +80,7 @@ export type ChatWorkflowState = {
   streamingText: string;
   error: string | null;
   model: string | null;
+  approvalRequest: ApprovalRequest | null;
 };
 
 export function useChatWorkflow() {
@@ -84,6 +94,7 @@ export function useChatWorkflow() {
     streamingText: "",
     error: null,
     model: null,
+    approvalRequest: null,
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -103,6 +114,7 @@ export function useChatWorkflow() {
       streamingText: "",
       error: null,
       model: null,
+      approvalRequest: null,
     });
   }, []);
 
@@ -134,6 +146,7 @@ export function useChatWorkflow() {
         streamingText: "",
         error: null,
         model: null,
+        approvalRequest: null,
       });
 
       let accumulatedText = "";
@@ -275,6 +288,13 @@ export function useChatWorkflow() {
                 }));
                 break;
 
+              case "approval_required":
+                setState(prev => ({
+                  ...prev,
+                  approvalRequest: data as ApprovalRequest,
+                }));
+                break;
+
               case "token":
                 accumulatedText += data.chunk || "";
                 setState(prev => ({
@@ -347,6 +367,7 @@ export function useChatWorkflow() {
     ...state,
     submitPrompt,
     resetWorkflow,
+    clearApprovalRequest: () => setState(prev => ({ ...prev, approvalRequest: null })),
     isProcessing: state.status === "intent_routing" || state.status === "streaming_route_a" || state.status === "executing_route_b" || state.status === "pivoted_to_route_b",
   };
 }

@@ -5359,3 +5359,121 @@ body:has(.auth-loading) {
   .connector-detail-hero { padding-top: 4px; }
   .connector-detail-hero p { font-size: 13px; }
 }
+
+/* Actionable permission approval sheet (backed by a real connector request). */
+.permission-approval-card {
+  width: min(100%, 560px);
+  margin: 18px 0 24px 42px;
+  padding: 24px 20px 18px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface-raised, var(--surface));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.11);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.permission-approval-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.07);
+}
+.permission-approval-icon img,
+.permission-approval-icon svg { object-fit: contain; }
+.permission-approval-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+.permission-approval-title strong { font-size: 20px; color: var(--text-primary); font-weight: 700; }
+.permission-approval-title b { color: var(--text-primary); }
+.permission-approval-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 8px;
+}
+.permission-approval-details-toggle svg { transition: transform 160ms ease; }
+.permission-approval-details-toggle svg.is-open { transform: rotate(180deg); }
+.permission-approval-details {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  font-size: 12px;
+}
+.permission-approval-details > div { display: grid; gap: 5px; margin-bottom: 12px; }
+.permission-approval-details > div > span,
+.permission-approval-details p { color: var(--text-secondary); }
+.permission-approval-details code,
+.permission-approval-scope-note code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; overflow-wrap: anywhere; }
+.permission-approval-details pre,
+.permission-approval-live-data pre {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.permission-approval-details p { margin: 0; font-size: 11px; line-height: 1.5; }
+.permission-approval-actions { display: flex; width: 100%; flex-direction: column; gap: 10px; }
+.permission-approval-button {
+  min-height: 48px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.permission-approval-button:hover:not(:disabled) { background: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.permission-approval-button:disabled { opacity: 0.6; cursor: wait; }
+.permission-approval-button.is-primary { background: #111; border-color: #111; color: #fff; }
+.permission-approval-button.is-primary:hover:not(:disabled) { background: #292929; }
+.permission-approval-scope-note { margin: -2px 0 0; text-align: center; font-size: 11px; color: var(--text-secondary); }
+.permission-approval-scope-note code { color: var(--text-primary); }
+.permission-approval-progress,
+.permission-approval-outcome { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; color: var(--text-secondary); }
+.permission-approval-outcome { font-size: 13px; font-weight: 650; }
+.permission-approval-outcome.is-allowed { color: #16794b; }
+.permission-approval-outcome.is-denied { color: var(--text-secondary); padding: 12px 0 4px; }
+.permission-approval-error { width: 100%; margin: 0; color: #b42318; font-size: 12px; text-align: center; }
+.permission-approval-result { width: 100%; display: grid; gap: 9px; }
+.permission-approval-summary,
+.permission-approval-verification { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.permission-approval-live-data { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+.permission-approval-live-data summary { cursor: pointer; font-weight: 600; }
+.permission-approval-live-data pre { margin: 10px 0 0; }
+@media (max-width: 600px) {
+  .permission-approval-card { width: 100%; margin: 14px 0 20px; padding: 22px 16px 16px; border-radius: 22px; }
+  .permission-approval-button { min-height: 50px; font-size: 15px; }
+}

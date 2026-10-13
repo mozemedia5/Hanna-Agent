@@ -543,6 +543,7 @@ export async function runAgentLoop(
   response?: string;
   toolResults: NormalizedToolResult[];
   steps: number;
+  pendingApproval?: { toolId: string; arguments: Record<string, unknown> };
 }> {
   const maxSteps = options.maxSteps ?? 16;
   const maxToolCalls = options.maxToolCalls ?? 16;
@@ -574,6 +575,18 @@ export async function runAgentLoop(
       };
     if (++toolCalls > maxToolCalls)
       return { status: "failed", toolResults: results, steps: step + 1 };
+
+    const requestedTool = registry.get(decision.toolId);
+    if (requestedTool?.requiresApproval && !decision.approved)
+      return {
+        status: "waiting_for_confirmation",
+        toolResults: results,
+        steps: step + 1,
+        pendingApproval: {
+          toolId: decision.toolId,
+          arguments: decision.arguments,
+        },
+      };
 
     const result = await executor.execute(
       decision.toolId,

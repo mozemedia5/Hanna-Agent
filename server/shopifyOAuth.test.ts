@@ -349,8 +349,8 @@ describe("Shopify OAuth Authorization Flow Unit & Integration Tests", () => {
 
   describe("9. User Isolation", () => {
     it("ensures User A cannot access User B's Shopify credentials", async () => {
-      const userA = "user_A_1001";
-      const userB = "user_B_2002";
+      const userA = 1011001;
+      const userB = 1022002;
 
       await saveConnectorCredential(userA, "shopify", {
         storeDomain: "user-a.myshopify.com",

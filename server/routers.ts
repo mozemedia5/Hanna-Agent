@@ -30,10 +30,12 @@ import {
   approveRequest,
   completeRequest,
   createApprovalRequest,
+  denyRequest,
   deleteConnectorCredential,
   getApprovalRequest,
   getConnectorCredential,
   listConnectorCredentials,
+  saveApprovalGrant,
   saveConnectorCredential,
   type ConnectorAction,
   type ConnectorCredential,
@@ -465,8 +467,8 @@ export const appRouter = router({
       ),
     approveAction: protectedProcedure
       .input(z.object({ approvalId: z.string().min(1) }))
-      .mutation(({ ctx, input }) => {
-        const request = approveRequest(ctx.user.id, input.approvalId);
+      .mutation(async ({ ctx, input }) => {
+        const request = await approveRequest(ctx.user.id, input.approvalId);
         if (!request)
           throw new Error(
             "Approval request is missing, expired, or belongs to another user."
@@ -478,10 +480,59 @@ export const appRouter = router({
           action: request.action.action,
         };
       }),
+    resolveApproval: protectedProcedure
+      .input(
+        z.object({
+          approvalId: z.string().min(1),
+          decision: z.enum(["once", "always", "deny"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const request = await getApprovalRequest(ctx.user.id, input.approvalId);
+        if (!request || request.status !== "pending")
+          throw new Error("This approval request is missing, expired, or already resolved.");
+
+        if (input.decision === "deny") {
+          const denied = await denyRequest(ctx.user.id, input.approvalId);
+          if (!denied) throw new Error("This approval request could not be denied.");
+          return { status: "denied" as const, scope: `${request.action.connector}:${request.action.action}` };
+        }
+
+        const credential = await getConnectorCredential(ctx.user.id, request.action.connector);
+        if (!credential)
+          throw new Error(`Connect ${request.action.connector} in Settings before allowing this action.`);
+
+        if (input.decision === "always") {
+          await saveApprovalGrant(ctx.user.id, request.action.connector, request.action.action);
+        }
+        const approved = await approveRequest(ctx.user.id, input.approvalId);
+        if (!approved) throw new Error("This approval request could not be approved.");
+        let result;
+        try {
+          result = await executeConnectorAction(credential, request.action);
+        } catch {
+          await completeRequest(ctx.user.id, request.id);
+          return {
+            approvalId: request.id,
+            scope: `${request.action.connector}:${request.action.action}`,
+            decision: input.decision,
+            status: "failed" as const,
+            error: "The connector could not confirm the action result. Check its activity before retrying.",
+          };
+        }
+        await completeRequest(ctx.user.id, request.id);
+        return {
+          ...result,
+          approvalId: request.id,
+          scope: `${request.action.connector}:${request.action.action}`,
+          decision: input.decision,
+          status: "completed" as const,
+        };
+      }),
     executeApproved: protectedProcedure
       .input(z.object({ approvalId: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
-        const request = getApprovalRequest(ctx.user.id, input.approvalId);
+        const request = await getApprovalRequest(ctx.user.id, input.approvalId);
         if (!request || request.status !== "approved")
           throw new Error(
             "This action must be explicitly approved before execution."
@@ -495,7 +546,7 @@ export const appRouter = router({
             `Connect ${request.action.connector} in Settings before executing this action.`
           );
         const result = await executeConnectorAction(credential, request.action);
-        completeRequest(ctx.user.id, request.id);
+        await completeRequest(ctx.user.id, request.id);
         return {
           ...result,
           approvalId: request.id,
