@@ -8,9 +8,6 @@ import {
   siGithub,
   siGoogle,
   siGoogleads,
-  siGmail,
-  siGoogledrive,
-  siGooglecalendar,
   siGooglemaps,
   siInstagram,
   siMeta,
@@ -109,7 +106,7 @@ function ConnectorAssetIcon({ src, size = 20, className = "" }: IconProps & { sr
 }
 
 const CANONICAL_ASSET_MATCHES = [
-  { match: (name: string) => name.includes("shopify"), src: "shopify.jpg" },
+  { match: (name: string) => name.includes("shopify"), src: "shopify.svg" },
   { match: (name: string) => name.includes("slack"), src: "slack.jpg" },
   { match: (name: string) => name.includes("instagram"), src: "instagram.jpg" },
   { match: (name: string) => name.includes("tiktok"), src: "tiktok.jpg" },
@@ -170,15 +167,11 @@ export function SlackIcon({ size = 20, className = "" }: IconProps) {
 }
 
 export function GmailIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
-    </svg>
-  );
+  return <ConnectorAssetIcon src="gmail_2020q4_48dp.png" size={size} className={className} />;
 }
 
 export function GoogleCalendarIcon({ size = 20, className = "" }: IconProps) {
-  return <SimpleBrandIcon icon={siGooglecalendar} size={size} className={className} />;
+  return <ConnectorAssetIcon src="calendar_2020q4_48dp.png" size={size} className={className} />;
 }
 
 export function GoogleMapsIcon({ size = 20, className = "" }: IconProps) {
@@ -370,54 +363,23 @@ export function GoogleAdsIcon({ size = 20, className = "" }: IconProps) {
 }
 
 export function GoogleDriveIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#34A853" d="M12 13.5L7.5 21.3h9L21 13.5H12z" />
-      <path fill="#4285F4" d="M12 13.5L16.5 5.7H7.5L3 13.5l4.5 7.8 4.5-7.8z" />
-      <path fill="#FBBC04" d="M16.5 5.7L12 13.5h9L21 5.7h-4.5z" />
-    </svg>
-  );
+  return <ConnectorAssetIcon src="drive_2020q4_48dp.png" size={size} className={className} />;
 }
 
 export function GoogleDocsIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#4285F4" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <path fill="#A0C2F9" d="M14 2v6h6L14 2z" />
-      <path fill="#FFFFFF" d="M8 11h8v1.5H8V11zm0 3h8v1.5H8V14zm0 3h5v1.5H8V17z" />
-    </svg>
-  );
+  return <ConnectorAssetIcon src="docs_2020q4_48dp.png" size={size} className={className} />;
 }
 
 export function GoogleSheetsIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#0F9D58" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <path fill="#87CEAC" d="M14 2v6h6L14 2z" />
-      <path fill="#FFFFFF" d="M7.5 11h9v7.5h-9V11zm1.5 1.5v1.5h2v-1.5H9zm3.5 0v1.5h2.5v-1.5h-2.5zm-3.5 3v1.5h2v-1.5H9zm3.5 0v1.5h2.5v-1.5h-2.5z" />
-    </svg>
-  );
+  return <ConnectorAssetIcon src="sheets_2020q4_48dp.png" size={size} className={className} />;
 }
 
 export function GoogleSlidesIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#F4B400" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <path fill="#FDE293" d="M14 2v6h6L14 2z" />
-      <path fill="#FFFFFF" d="M7 11h10v6.5H7V11zm1.5 1.5v3.5h7v-3.5h-7z" />
-    </svg>
-  );
+  return <ConnectorAssetIcon src="slides_2020q4_48dp.png" size={size} className={className} />;
 }
 
 export function GoogleWorkspaceIcon({ size = 20, className = "" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path fill="#EA4335" d="M12 5a7 7 0 0 0-7 7c0 1.6.5 3 1.4 4.2l2.5-2.5A3.5 3.5 0 0 1 8.5 12a3.5 3.5 0 0 1 3.5-3.5c.9 0 1.7.3 2.3.9l2.5-2.5A6.9 6.9 0 0 0 12 5z" />
-      <path fill="#4285F4" d="M19 12a6.9 6.9 0 0 0-1.4-4.2l-2.5 2.5c.3.5.4 1.1.4 1.7a3.5 3.5 0 0 1-3.5 3.5c-.9 0-1.7-.3-2.3-.9l-2.5 2.5c1.2.9 2.6 1.4 4.2 1.4a7 7 0 0 0 7.6-6.5z" />
-      <path fill="#FBBC04" d="M5 12c0-1.6.5-3 1.4-4.2L8.9 10.3A3.5 3.5 0 0 0 8.5 12c0 .6.1 1.2.4 1.7L6.4 16.2A6.9 6.9 0 0 1 5 12z" />
-      <path fill="#34A853" d="M19 12c0 1.6-.5 3-1.4 4.2l-2.5-2.5c.3-.5.4-1.1.4-1.7 0-.6-.1-1.2-.4-1.7l2.5-2.5c.9 1.2 1.4 2.6 1.4 4.2z" />
-    </svg>
-  );
+  return <GoogleIcon size={size} className={className} />;
 }
 
 export function YouTubeIcon({ size = 20, className = "" }: IconProps) {

@@ -5,6 +5,7 @@ import { SHOPIFY_OAUTH_SCOPES_STRING } from "./shopifyConfig";
 import {
   exchangeShopifyCode,
   generateShopifyOAuthState,
+  getShopifyAppInstallUrl,
   getCanonicalShopifyRedirectUri,
   getShopifyCredentials,
   normalizeShopifyDomain,
@@ -46,7 +47,7 @@ export async function handleShopifyOAuthAuthorize(req: ExpressRequest, res: Expr
   const rawShop = (req.query.shop as string) || (req.query.store as string) || (req.query.storeDomain as string);
   const normShop = normalizeShopifyDomain(rawShop);
 
-  if (!normShop) {
+  if (rawShop && !normShop) {
     res.status(400).json({ error: "Invalid or missing Shopify store domain. Must be a valid '*.myshopify.com' hostname." });
     return;
   }
@@ -57,20 +58,37 @@ export async function handleShopifyOAuthAuthorize(req: ExpressRequest, res: Expr
     return;
   }
 
+  const appInstallUrl = normShop ? null : getShopifyAppInstallUrl();
+  if (!normShop && !appInstallUrl) {
+    const message = "Shopify's install link is not configured. Set SHOPIFY_APP_INSTALL_URL to the link generated for this app in Shopify's Dev Dashboard.";
+    res.redirect(`${appBaseUrl()}/integrations?connector_error=${encodeURIComponent(message)}`);
+    return;
+  }
+
   const canonicalUserId = await resolveCanonicalUserId(rawUid);
   const redirectUri = getCanonicalShopifyRedirectUri();
   const state = generateShopifyOAuthState(canonicalUserId, normShop);
+  const secureCookie = appBaseUrl().startsWith("https://") ? "; Secure" : "";
+
+  res.setHeader(
+    "Set-Cookie",
+    `hanna_shopify_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900${secureCookie}`
+  );
+
+  if (appInstallUrl) {
+    res.redirect(appInstallUrl);
+    return;
+  }
+  if (!normShop) {
+    res.status(500).json({ error: "Shopify store context is missing." });
+    return;
+  }
 
   const authUrl = new URL(`https://${normShop}/admin/oauth/authorize`);
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("scope", SHOPIFY_OAUTH_SCOPES_STRING);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("state", state);
-
-  res.setHeader(
-    "Set-Cookie",
-    `hanna_shopify_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900`
-  );
 
   res.redirect(authUrl.toString());
 }

@@ -21,6 +21,24 @@ describe("authenticated Shopify and Slack connectors", () => {
     expect(listed).toContain("…1234");
   });
 
+  it("exposes only safe account labels for linked Google and Shopify accounts", async () => {
+    await saveConnectorCredential(8103, "gmail", {
+      account: "owner@example.com",
+      access_token: "google-secret-token",
+      is_connected: "true",
+    });
+    await saveConnectorCredential(8103, "shopify", {
+      storeDomain: "owner-shop.myshopify.com",
+      accessToken: "shopify-secret-token",
+      is_connected: "true",
+    });
+    const listed = await listConnectorCredentials(8103);
+    expect(listed.find(item => item.connector === "gmail")?.accountDisplay).toBe("owner@example.com");
+    expect(listed.find(item => item.connector === "shopify")?.accountDisplay).toBe("owner-shop.myshopify.com");
+    expect(JSON.stringify(listed)).not.toContain("google-secret-token");
+    expect(JSON.stringify(listed)).not.toContain("shopify-secret-token");
+  });
+
   it("does not allow execution before approval", async () => {
     const request = await createApprovalRequest(8102, {
       connector: "slack",

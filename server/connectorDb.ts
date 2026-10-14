@@ -27,6 +27,7 @@ export type ConnectorCredential = {
 export type ConnectorSummary = {
   connector: ConnectorId;
   fields: Record<string, string>;
+  accountDisplay?: string;
   is_connected?: boolean;
   updatedAt: Date;
 };
@@ -211,6 +212,11 @@ export async function listConnectorCredentials(
           ) as ConnectorValues;
           return {
             connector,
+            accountDisplay: connector === "shopify"
+              ? values.storeDomain || undefined
+              : connector.startsWith("google") || connector === "gmail"
+                ? values.account || undefined
+                : undefined,
             fields: Object.fromEntries(
               Object.keys(values).map(field => [
                 field,
@@ -241,6 +247,11 @@ export async function listConnectorCredentials(
       ) as ConnectorValues;
       return {
         connector,
+        accountDisplay: connector === "shopify"
+          ? values.storeDomain || undefined
+          : connector.startsWith("google") || connector === "gmail"
+            ? values.account || undefined
+            : undefined,
         fields: Object.fromEntries(
           Object.keys(values).map(field => [
             field,
