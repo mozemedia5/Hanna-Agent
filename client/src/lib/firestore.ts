@@ -2,8 +2,10 @@ import {
   collection,
   doc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
+  runTransaction,
   setDoc,
 } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseFirestore } from "./firebase";
@@ -44,14 +46,52 @@ export async function listUserConversations() {
   );
   return snapshot.docs.map(item => item.data() as ClientConversation);
 }
+
+export function subscribeToUserConversations(
+  onConversations: (conversations: ClientConversation[]) => void,
+  onError?: (error: Error) => void
+) {
+  const { db, uid } = requireStore();
+  const conversations = query(
+    collection(db, "users", uid, "conversations"),
+    orderBy("updatedAt", "desc")
+  );
+  return onSnapshot(
+    conversations,
+    snapshot =>
+      onConversations(
+        snapshot.docs.map(item => item.data() as ClientConversation)
+      ),
+    error => onError?.(error)
+  );
+}
+
 export async function saveUserConversation(conversation: ClientConversation) {
   const { db, uid } = requireStore();
   const ref = doc(db, "users", uid, "conversations", conversation.id);
-  await setDoc(
-    ref,
-    { ...conversation, updatedAt: new Date().toISOString() },
-    { merge: true }
-  );
+  await runTransaction(db, async transaction => {
+    const snapshot = await transaction.get(ref);
+    const existing = snapshot.data() as Partial<ClientConversation> | undefined;
+    const messagesById = new Map(
+      (existing?.messages || []).map(message => [message.id, message])
+    );
+    for (const message of conversation.messages)
+      messagesById.set(message.id, message);
+    transaction.set(
+      ref,
+      {
+        ...existing,
+        ...conversation,
+        messages: Array.from(messagesById.values()),
+        createdAt:
+          existing?.createdAt ||
+          conversation.createdAt ||
+          new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  });
 }
 
 export type ClientProjectFile = {

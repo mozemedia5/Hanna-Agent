@@ -25,6 +25,8 @@ import {
 import React, { useEffect, useState } from "react";
 import {
   getUserCredits,
+  getActiveCreditUserId,
+  addWeeklyAccountCredits,
   saveUserCredits,
   getCreditHistory,
   recordCreditTransaction,
@@ -78,13 +80,21 @@ export default function UsagePage({
 
   const formatNumber = (n: number) => new Intl.NumberFormat().format(n);
 
-  const handleAddCredits = (amount: number) => {
-    const newBalance = saveUserCredits(userCredits + amount);
-    setUserCredits(newBalance);
-    const updatedLog = recordCreditTransaction("Credit Top-Up", `Top-up package +${amount}`, 0, newBalance);
-    setCreditHistory(updatedLog);
-    setShowTopUpModal(false);
-    showToast(`Successfully added +${amount} credits to your workspace!`);
+  const handleAddCredits = async (amount: number) => {
+    try {
+      const uid = getActiveCreditUserId();
+      const newBalance = uid
+        ? await addWeeklyAccountCredits(uid, amount)
+        : saveUserCredits(userCredits + amount, null);
+      setUserCredits(newBalance);
+      const updatedLog = recordCreditTransaction("Credit Top-Up", `Top-up package +${amount}`, 0, newBalance, uid);
+      setCreditHistory(updatedLog);
+      setShowTopUpModal(false);
+      showToast(`Successfully added +${amount} credits to your workspace!`);
+    } catch (error) {
+      console.error("Could not update account credits:", error);
+      showToast("Could not update your cloud credit balance. Please try again.");
+    }
   };
 
   return (

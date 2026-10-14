@@ -61,9 +61,8 @@ import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
 import type { User } from "firebase/auth";
 import {
   deleteUserConversation,
-  listUserConversations,
+  subscribeToUserConversations,
   saveUserConversation,
-  type ClientConversation,
   listUserProjects,
   saveUserProject,
 } from "@/lib/firestore";
@@ -82,6 +81,14 @@ import ManusPage from "./ManusPage";
 import { useChatWorkflow, type AgentTraceItem } from "@/hooks/useChatWorkflow";
 import {
   getUserCredits,
+  setCreditAccountUser,
+  getWeeklyAccountCredits,
+  subscribeToWeeklyAccountCredits,
+  reserveWeeklyAccountCredits,
+  refundWeeklyAccountCredits,
+  addWeeklyAccountCredits,
+  millisecondsUntilNextUtcWeek,
+  WEEKLY_CREDIT_GRANT,
   saveUserCredits,
   calculateTaskCredits,
   recordCreditTransaction,
@@ -226,19 +233,58 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [lightboxImageUrl, setLightboxModalImageUrl] = useState<string | null>(null);
 
   // Workspace Live Credits & Top-Up Modal State
-  const [userCredits, setUserCredits] = useState<number>(getUserCredits);
+  const [userCredits, setUserCredits] = useState<number>(WEEKLY_CREDIT_GRANT);
+  const [creditsReady, setCreditsReady] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    const syncCredits = () => setUserCredits(getUserCredits());
-    window.addEventListener("hanna_credits_updated", syncCredits);
-    window.addEventListener("storage", syncCredits);
-    return () => {
-      window.removeEventListener("hanna_credits_updated", syncCredits);
-      window.removeEventListener("storage", syncCredits);
+    const uid = user?.uid || null;
+    setCreditAccountUser(uid);
+    setUserCredits(getUserCredits(uid));
+    setCreditsReady(!uid);
+    if (!uid) return;
+
+    let active = true;
+    const refresh = () => {
+      void getWeeklyAccountCredits(uid).then(balance => {
+        if (active) {
+          setUserCredits(balance);
+          setCreditsReady(true);
+        }
+      }).catch(error => {
+        console.error("Could not refresh account credits:", error);
+        if (active) setCreditsReady(true);
+      });
     };
-  }, []);
+    refresh();
+    let unsubscribe: (() => void) | undefined;
+    try {
+      unsubscribe = subscribeToWeeklyAccountCredits(uid, balance => {
+        if (active) {
+          setUserCredits(balance);
+          setCreditsReady(true);
+        }
+      }, error => console.error("Account credit sync failed:", error));
+    } catch (error) {
+      console.error("Could not subscribe to account credits:", error);
+    }
+    let timer = 0;
+    const scheduleNextUtcReset = () => {
+      timer = window.setTimeout(() => {
+        refresh();
+        if (active) scheduleNextUtcReset();
+      }, millisecondsUntilNextUtcWeek() + 50);
+    };
+    scheduleNextUtcReset();
+    window.addEventListener("focus", refresh);
+    return () => {
+      active = false;
+      unsubscribe?.();
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [user?.uid]);
 
   // Handle OAuth Redirect URL Parameters (?connector_success=... or ?connector_error=...)
   useEffect(() => {
@@ -295,6 +341,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId) ?? chats[0], [activeChatId, chats]);
+  const activeChatIdRef = useRef(activeChatId);
+  activeChatIdRef.current = activeChatId;
   const hasMessages = activeChat.messages.length > 0;
 
   const chatWorkflow = useChatWorkflow();
@@ -340,44 +388,50 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       });
   }, []);
 
-  // Load saved conversations on mount from localStorage and Firestore
+  // Signed-in conversations use Firebase UID-scoped cloud state as the source of truth.
   useEffect(() => {
-    let localChats: Chat[] = [];
-    try {
-      const raw = localStorage.getItem("hanna_saved_chats");
-      if (raw) localChats = JSON.parse(raw);
-    } catch {
-      // Ignore
-    }
-
-    void listUserConversations().then(stored => {
-      const formatted = stored.map(chat => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() }));
-      const mergedMap = new Map<number | string, Chat>();
-      localChats.forEach(c => mergedMap.set(c.id, c));
-      formatted.forEach(c => mergedMap.set(c.id, c));
-      const combined = Array.from(mergedMap.values());
-      if (combined.length > 0) {
-        setChats(combined);
-        setActiveChatId(combined[0].id);
-      }
-    }).catch(() => {
-      if (localChats.length > 0) {
-        setChats(localChats);
-        setActiveChatId(localChats[0].id);
-      }
-    });
-  }, []);
-
-  // Persist conversations to localStorage whenever chats change
-  useEffect(() => {
-    if (chats.length > 0) {
+    const uid = user?.uid;
+    if (uid) {
+      let active = true;
       try {
-        localStorage.setItem("hanna_saved_chats", JSON.stringify(chats));
-      } catch {
-        // Ignore quota error
+        const unsubscribe = subscribeToUserConversations(stored => {
+          if (!active) return;
+          const formatted = stored.map(chat => ({ ...chat, id: Number(chat.id) || Date.now() + Math.random() })) as Chat[];
+          setChats(previous => {
+            const serverIds = new Set(formatted.map(chat => chat.id));
+            const unsavedLocal = previous.filter(chat => !serverIds.has(chat.id) && (chat.title === "Untitled conversation" || chat.messages.some(message => !message.content && message.role === "assistant")));
+            const next = [...unsavedLocal, ...formatted];
+            const currentStillExists = next.some(chat => chat.id === activeChatIdRef.current);
+            if (!currentStillExists && next.length) setActiveChatId(next[0].id);
+            return next.length ? next : seedChats;
+          });
+        }, error => console.error("Could not sync conversations from Firestore:", error));
+        return () => { active = false; unsubscribe(); };
+      } catch (error) {
+        console.error("Could not subscribe to Firestore conversations:", error);
+        return () => { active = false; };
       }
     }
-  }, [chats]);
+
+    try {
+      const raw = localStorage.getItem("hanna_saved_chats_guest");
+      if (raw) {
+        const guestChats = JSON.parse(raw) as Chat[];
+        if (guestChats.length) {
+          setChats(guestChats);
+          setActiveChatId(guestChats[0].id);
+        } else setChats(seedChats);
+      } else setChats(seedChats);
+    } catch {
+      setChats(seedChats);
+    }
+  }, [user?.uid]);
+
+  // Keep only unauthenticated/demo chats in the guest cache; never let a global cache override cloud data.
+  useEffect(() => {
+    if (user?.uid || !chats.length) return;
+    try { localStorage.setItem("hanna_saved_chats_guest", JSON.stringify(chats)); } catch { /* ignore quota error */ }
+  }, [chats, user?.uid]);
 
   useEffect(() => {
     const saved = localStorage.getItem("hanna-theme") as "light" | "dark" | "system" | null;
@@ -586,6 +640,10 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const submitMessage = async () => {
     const text = composer.trim();
     if ((!text && attachments.length === 0) || isThinking) return;
+    if (!creditsReady) {
+      showToast("Your account credits are still syncing. Please try again in a moment.");
+      return;
+    }
 
     const taskEval = calculateTaskCredits(text, {
       agenticMode,
@@ -594,10 +652,28 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       hasMultipleTools: selectedTools.length > 1,
     });
 
-    if (userCredits < taskEval.credits) {
+    if (!user?.uid && userCredits < taskEval.credits) {
       showToast(`This ${taskEval.taskType.toLowerCase()} requires ${taskEval.credits} credits. Current balance: ${userCredits}.`);
       setShowTopUpModal(true);
       return;
+    }
+
+    let reservedBalance: number | null = null;
+    if (user?.uid) {
+      try {
+        const reservation = await reserveWeeklyAccountCredits(user.uid, taskEval.credits);
+        setUserCredits(reservation.balance);
+        if (!reservation.allowed) {
+          showToast(`This ${taskEval.taskType.toLowerCase()} requires ${taskEval.credits} credits. Current balance: ${reservation.balance}.`);
+          setShowTopUpModal(true);
+          return;
+        }
+        reservedBalance = reservation.balance;
+      } catch (error) {
+        console.error("Could not reserve shared account credits:", error);
+        showToast("Could not verify your cloud credit balance. Check your connection and try again.");
+        return;
+      }
     }
 
     const chatId = activeChatId;
@@ -611,7 +687,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     const updatedTitle = isNewChat ? capitalizedTitle : currentChat.title;
 
     const userMessage: Message = {
-      id: `${chatId}-${Date.now()}`,
+      id: `${chatId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       role: "user",
       content: text,
       attachments: sentAttachments.length > 0 ? sentAttachments : undefined,
@@ -648,7 +724,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         : undefined;
 
       // Placeholder assistant message for streaming response
-      const assistantMessageId = `${chatId}-assistant-${Date.now()}`;
+      const assistantMessageId = `${chatId}-assistant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const placeholderAssistantMsg: Message = {
         id: assistantMessageId,
         role: "assistant",
@@ -702,12 +778,20 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         title: finalTitle,
         messages: [...chatWithUser.messages.filter(m => m.id !== assistantMessageId), assistantMessage],
       };
-      const newCredits = saveUserCredits(userCredits - taskEval.credits);
+      const newCredits = reservedBalance ?? saveUserCredits(userCredits - taskEval.credits, null);
       setUserCredits(newCredits);
       recordCreditTransaction(taskEval.taskType, text || "Workspace execution", taskEval.credits, newCredits);
       setChats(current => current.map(c => c.id === chatId ? completedChat : c));
       void saveUserConversation({ ...completedChat, id: String(completedChat.id) }).catch(() => undefined);
     } catch (reason) {
+      if (reservedBalance !== null && user?.uid) {
+        try {
+          const restored = await refundWeeklyAccountCredits(user.uid, taskEval.credits);
+          setUserCredits(restored);
+        } catch (refundError) {
+          console.error("Could not refund reserved account credits:", refundError);
+        }
+      }
       const errorContent = reason instanceof Error ? reason.message : "Hanna API unavailable.";
       showToast(`Submission failed: ${errorContent}`);
     } finally { setIsThinking(false); }
@@ -1687,7 +1771,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
               <Button variant="outline" onClick={() => setShowRenameModal(false)}>Cancel</Button>
               <Button onClick={() => {
                 if (renameTitle.trim()) {
-                  setChats(curr => curr.map(c => c.id === activeChatId ? { ...c, title: renameTitle.trim() } : c));
+                  const renamedChat = { ...activeChat, title: renameTitle.trim() };
+                  setChats(curr => curr.map(c => c.id === activeChatId ? renamedChat : c));
+                  if (user?.uid) void saveUserConversation({ ...renamedChat, id: String(renamedChat.id) }).catch(error => console.error("Could not sync renamed conversation:", error));
                   showToast("Chat renamed");
                 }
                 setShowRenameModal(false);
@@ -2054,12 +2140,19 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 <button
                   key={pack.amount}
                   type="button"
-                  onClick={() => {
-                    const newBalance = saveUserCredits(userCredits + pack.amount);
-                    setUserCredits(newBalance);
-                    recordCreditTransaction("Credit Top-Up", `Top-up package +${pack.amount}`, 0, newBalance);
-                    setShowTopUpModal(false);
-                    showToast(`+${pack.amount} Credits added to your workspace!`);
+                  onClick={async () => {
+                    try {
+                      const newBalance = user?.uid
+                        ? await addWeeklyAccountCredits(user.uid, pack.amount)
+                        : saveUserCredits(userCredits + pack.amount, null);
+                      setUserCredits(newBalance);
+                      recordCreditTransaction("Credit Top-Up", `Top-up package +${pack.amount}`, 0, newBalance);
+                      setShowTopUpModal(false);
+                      showToast(`+${pack.amount} Credits added to your workspace!`);
+                    } catch (error) {
+                      console.error("Could not update account credits:", error);
+                      showToast("Could not update your cloud credit balance. Please try again.");
+                    }
                   }}
                   style={{
                     background: "var(--surface-raised)",
