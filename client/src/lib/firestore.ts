@@ -27,6 +27,9 @@ export type ClientProfile = {
   photoURL: string;
   bio: string;
   customInstructions?: string;
+  responseStyle?: "concise" | "standard" | "detailed";
+  tone?: "professional" | "friendly" | "technical" | "casual";
+  preferredLanguage?: string;
 };
 const requireStore = () => {
   const db = getFirebaseFirestore();
@@ -144,6 +147,9 @@ export async function getUserProfile() {
     photoURL: profile?.photoURL || authUser?.photoURL || "",
     bio: profile?.bio || "",
     customInstructions: profile?.customInstructions || "",
+    responseStyle: profile?.responseStyle || "standard",
+    tone: profile?.tone || "professional",
+    preferredLanguage: profile?.preferredLanguage || "",
   };
 }
 export async function saveUserProfile(profile: ClientProfile) {

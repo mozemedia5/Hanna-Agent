@@ -37,6 +37,18 @@ describe("invokeUserProvider", () => {
     expect(prompt).toContain("Socratic educator");
   });
 
+  it("includes continuity and structured task handoff directives in Hanna's core prompt", () => {
+    const prompt = getEffectiveSystemPrompt({
+      provider: "openai",
+      apiKey: "sk-test",
+      model: "gpt-4o",
+      prompt: "Continue my repository task",
+    });
+    expect(prompt).toContain("REPOSITORY HISTORY");
+    expect(prompt).toContain("CONTEXT HANDOFF");
+    expect(prompt).toContain("Never invent remembered facts");
+  });
+
   it("surfaces provider failures for the safe Hanna fallback", async () => {
     vi.stubGlobal(
       "fetch",

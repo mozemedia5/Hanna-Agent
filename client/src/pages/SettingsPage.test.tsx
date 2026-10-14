@@ -28,6 +28,16 @@ vi.mock("@/lib/firestore", () => ({
   saveUserProfile: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/trpc", () => ({
+  trpc: {
+    memories: {
+      list: { useQuery: () => ({ data: [], isLoading: false, error: null, refetch: vi.fn() }) },
+      save: { useMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }) },
+      remove: { useMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }) },
+    },
+  },
+}));
+
 afterEach(() => {
   cleanup();
 });
@@ -38,6 +48,8 @@ describe("SettingsPage Component", () => {
 
     expect(screen.getByText(/Profile & Account/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Workspace Identity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /How Hanna responds/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Memory & context handoff/i })).toBeInTheDocument();
     expect(screen.getAllByText(/Weekly Credit Allowance/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Affiliate Program & Referral Accountability/i)).toBeInTheDocument();
     expect(screen.getByText(/https:\/\/hanna-agent\.vercel\.app\/\?ref=demo/i)).toBeInTheDocument();
