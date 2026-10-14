@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 export type ConversationMessage = {
   id: string;
   role: "user" | "assistant";
@@ -18,6 +20,9 @@ export type ProfileRecord = {
   photoURL: string;
   bio: string;
   customInstructions?: string;
+  responseStyle?: "concise" | "standard" | "detailed";
+  tone?: "professional" | "friendly" | "technical" | "casual";
+  preferredLanguage?: string;
   updatedAt?: string;
 };
 import { getApps, initializeApp, cert } from "firebase-admin/app";
@@ -149,6 +154,15 @@ export async function getAnalytics(uid: string) {
   };
 }
 export async function getProfile(uid: string): Promise<ProfileRecord> {
+  const db = getAdminFirestore();
+  if (db) {
+    try {
+      const snapshot = await db.collection("users").doc(uid).collection("private").doc("profile").get();
+      if (snapshot.exists) return snapshot.data() as ProfileRecord;
+    } catch (err) {
+      console.warn("[Profile] Firestore read failed; using local fallback:", err instanceof Error ? err.message : err);
+    }
+  }
   return (
     profiles.get(uid) ?? {
       displayName: "",
@@ -160,6 +174,79 @@ export async function getProfile(uid: string): Promise<ProfileRecord> {
 }
 export async function saveProfile(uid: string, profile: ProfileRecord) {
   const saved = { ...profile, updatedAt: now() };
+  const db = getAdminFirestore();
+  if (db) {
+    try {
+      await db.collection("users").doc(uid).collection("private").doc("profile").set(saved, { merge: true });
+    } catch (err) {
+      console.warn("[Profile] Firestore write failed; using local fallback:", err instanceof Error ? err.message : err);
+    }
+  }
   profiles.set(uid, saved);
   return saved;
+}
+
+export type UserMemory = {
+  id: string;
+  content: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const userMemories = new Map<string, Map<string, UserMemory>>();
+
+export async function listUserMemories(uid: string, limit = 100): Promise<UserMemory[]> {
+  const db = getAdminFirestore();
+  if (db) {
+    try {
+      const snapshot = await db.collection("users").doc(uid).collection("memories").orderBy("updatedAt", "desc").limit(limit).get();
+      return snapshot.docs.map(item => item.data() as UserMemory);
+    } catch (err) {
+      console.warn("[Memory] Firestore read failed; using local fallback:", err instanceof Error ? err.message : err);
+    }
+  }
+  return Array.from(userMemories.get(uid)?.values() ?? []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, limit);
+}
+
+export async function saveUserMemory(uid: string, content: string, category = "general", id?: string): Promise<UserMemory> {
+  const existing = id ? (await listUserMemories(uid, 200)).find(item => item.id === id) : undefined;
+  const timestamp = now();
+  const memory: UserMemory = { id: id || `mem_${crypto.randomUUID()}`, content, category, createdAt: existing?.createdAt || timestamp, updatedAt: timestamp };
+  const db = getAdminFirestore();
+  if (db) {
+    try {
+      await db.collection("users").doc(uid).collection("memories").doc(memory.id).set(memory, { merge: true });
+    } catch (err) {
+      console.warn("[Memory] Firestore write failed; using local fallback:", err instanceof Error ? err.message : err);
+    }
+  }
+  const bucket = userMemories.get(uid) ?? new Map<string, UserMemory>();
+  bucket.set(memory.id, memory);
+  userMemories.set(uid, bucket);
+  return memory;
+}
+
+export async function deleteUserMemory(uid: string, id: string): Promise<boolean> {
+  const db = getAdminFirestore();
+  if (db) {
+    try {
+      await db.collection("users").doc(uid).collection("memories").doc(id).delete();
+    } catch (err) {
+      console.warn("[Memory] Firestore delete failed; using local fallback:", err instanceof Error ? err.message : err);
+    }
+  }
+  userMemories.get(uid)?.delete(id);
+  return true;
+}
+
+export async function getRelevantUserMemories(uid: string, prompt: string, limit = 5): Promise<UserMemory[]> {
+  const all = await listUserMemories(uid, 100);
+  const terms = Array.from(new Set(prompt.toLowerCase().match(/[a-z0-9_-]{3,}/g) || []));
+  if (!terms.length) return all.slice(0, limit);
+  return all.map((memory, index) => {
+    const text = `${memory.content} ${memory.category}`.toLowerCase();
+    const score = terms.reduce((total, term) => total + (text.includes(term) ? 1 : 0), 0);
+    return { memory, score, index };
+  }).filter(item => item.score > 0).sort((a, b) => b.score - a.score || a.index - b.index).slice(0, limit).map(item => item.memory);
 }

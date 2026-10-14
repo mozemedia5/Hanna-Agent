@@ -22,8 +22,12 @@ import {
   Users,
   DollarSign,
   TrendingUp,
+  Brain,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { getUserCredits } from "@/lib/credits";
 import { getAffiliateLink, getReferralRecords, type ReferralRecord } from "@/lib/affiliate";
 
@@ -46,7 +50,15 @@ export default function SettingsPage({
     photoURL: "",
     bio: "",
     customInstructions: "",
+    responseStyle: "standard" as "concise" | "standard" | "detailed",
+    tone: "professional" as "professional" | "friendly" | "technical" | "casual",
+    preferredLanguage: "",
   });
+  const [memoryDraft, setMemoryDraft] = useState("");
+  const [memoryCategory, setMemoryCategory] = useState("preference");
+  const memoriesQuery = trpc.memories.list.useQuery(undefined, { enabled: Boolean(user) });
+  const memorySave = trpc.memories.save.useMutation({ onSuccess: () => { setMemoryDraft(""); void memoriesQuery.refetch(); } });
+  const memoryRemove = trpc.memories.remove.useMutation({ onSuccess: () => void memoriesQuery.refetch() });
 
   useEffect(() => {
     const syncCredits = () => setUserCredits(getUserCredits());
@@ -69,12 +81,15 @@ export default function SettingsPage({
           photoURL: res.photoURL,
           bio: res.bio,
           customInstructions: res.customInstructions || "",
+          responseStyle: res.responseStyle || "standard",
+          tone: res.tone || "professional",
+          preferredLanguage: res.preferredLanguage || "",
         })
       )
       .catch(() => undefined);
   }, []);
 
-  const updateField = (field: keyof typeof profile, value: string) =>
+  const updateField = <K extends keyof typeof profile>(field: K, value: (typeof profile)[K]) =>
     setProfile(current => ({ ...current, [field]: value }));
 
   const handleSave = async () => {
@@ -85,6 +100,9 @@ export default function SettingsPage({
         photoURL: profile.photoURL,
         bio: profile.bio,
         customInstructions: profile.customInstructions,
+        responseStyle: profile.responseStyle,
+        tone: profile.tone,
+        preferredLanguage: profile.preferredLanguage,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -204,6 +222,30 @@ export default function SettingsPage({
               {profile.bio.length}/500 characters
             </span>
           </label>
+        </div>
+      </section>
+
+      <section className="settings-card">
+        <div className="settings-card-header"><div><h3>How Hanna responds</h3><span className="settings-card-subtitle">Preferences are saved to your account and used in future chats.</span></div></div>
+        <div className="settings-form" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
+          <label className="settings-field"><span className="settings-field-label">Response detail</span><select value={profile.responseStyle} onChange={e => updateField("responseStyle", e.target.value as typeof profile.responseStyle)}><option value="concise">Concise</option><option value="standard">Standard</option><option value="detailed">Detailed</option></select></label>
+          <label className="settings-field"><span className="settings-field-label">Tone</span><select value={profile.tone} onChange={e => updateField("tone", e.target.value as typeof profile.tone)}><option value="professional">Professional</option><option value="friendly">Friendly</option><option value="technical">Technical</option><option value="casual">Casual</option></select></label>
+          <label className="settings-field"><span className="settings-field-label">Preferred language</span><input value={profile.preferredLanguage} onChange={e => updateField("preferredLanguage", e.target.value)} placeholder="Use the language I write in" maxLength={40} /></label>
+        </div>
+      </section>
+
+      <section className="settings-card">
+        <div className="settings-card-header"><div><h3><Brain size={17} style={{ verticalAlign: "-3px", marginRight: 7 }} />Memory &amp; context handoff</h3><span className="settings-card-subtitle">Save preferences, project facts, decisions, and handoff notes. Hanna uses relevant notes in future chats. You control what is saved and can delete it anytime.</span></div></div>
+        <div className="settings-form" style={{ display: "grid", gap: 12 }}>
+          <label className="settings-field"><span className="settings-field-label">Note type</span><select value={memoryCategory} onChange={e => setMemoryCategory(e.target.value)}><option value="preference">Preference</option><option value="project">Project context</option><option value="decision">Decision</option><option value="learning">Learning / resolution</option><option value="handoff">Context handoff</option><option value="general">General</option></select></label>
+          <label className="settings-field"><span className="settings-field-label">Save a note for future conversations</span><textarea value={memoryDraft} onChange={e => setMemoryDraft(e.target.value)} placeholder="Example: For Hanna-Agent, the Shopify flow uses OAuth and must not ask for a store domain." maxLength={1000} rows={3} /></label>
+          <div><Button disabled={!memoryDraft.trim() || memorySave.isPending} onClick={() => memorySave.mutate({ content: memoryDraft.trim(), category: memoryCategory })}><Plus size={15} />{memorySave.isPending ? "Saving…" : "Save memory"}</Button>{memorySave.error && <p role="alert" className="settings-field-hint">{memorySave.error.message}</p>}</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {(memoriesQuery.data || []).map(memory => <div key={memory.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: 12, border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)" }}><div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", fontSize: 11, color: "var(--text-secondary)", textTransform: "capitalize", marginBottom: 4 }}>{memory.category}</strong><span style={{ fontSize: 13, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{memory.content}</span></div><button type="button" aria-label={`Delete ${memory.category} memory`} onClick={() => memoryRemove.mutate({ id: memory.id })} disabled={memoryRemove.isPending} style={{ border: 0, background: "transparent", color: "var(--text-secondary)", cursor: "pointer", padding: 5 }}><Trash2 size={16} /></button></div>)}
+            {memoriesQuery.isLoading && <span className="settings-field-hint">Loading saved memories…</span>}
+            {!memoriesQuery.isLoading && (memoriesQuery.data || []).length === 0 && <span className="settings-field-hint">No saved memories yet.</span>}
+            {memoriesQuery.error && <span role="alert" className="settings-field-hint">Could not load memories: {memoriesQuery.error.message}</span>}
+          </div>
         </div>
       </section>
 
