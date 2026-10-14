@@ -42,8 +42,6 @@ import {
   Sparkles,
   Square,
   Store,
-  ThumbsDown,
-  ThumbsUp,
   Trash2,
   Volume2,
   VolumeX,
@@ -56,7 +54,7 @@ import {
   Bot,
 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
-import { ToolExecutionStatusBlock } from "@/components/ToolExecutionStatusBlock";
+import { ExecutionTimeline } from "@/components/ExecutionTimeline";
 import PermissionApprovalCard from "@/components/PermissionApprovalCard";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getFirebaseIdToken } from "@/_core/hooks/useAuth";
@@ -81,7 +79,7 @@ import ProjectsPage, { type Project } from "./ProjectsPage";
 import ScheduleTaskPage from "./ScheduleTaskPage";
 import FilesPage, { addStoredFiles, getFileTypeBadgeLabel, type StoredFileItem } from "./FilesPage";
 import ManusPage from "./ManusPage";
-import { useChatWorkflow } from "@/hooks/useChatWorkflow";
+import { useChatWorkflow, type AgentTraceItem } from "@/hooks/useChatWorkflow";
 import {
   getUserCredits,
   saveUserCredits,
@@ -123,6 +121,8 @@ type Message = {
   attachments?: UploadedFile[];
   workedForSeconds?: number;
   toolLogs?: any[];
+  planSteps?: string[];
+  executionTrace?: AgentTraceItem[];
 };
 
 const estimateTokens = (c: string) => Math.max(1, Math.ceil(c.length / 4));
@@ -298,6 +298,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const hasMessages = activeChat.messages.length > 0;
 
   const chatWorkflow = useChatWorkflow();
+  const chatWorkflowRef = useRef(chatWorkflow);
+  chatWorkflowRef.current = chatWorkflow;
   const taskStartTimeRef = useRef<number>(Date.now());
 
   // Dynamic ~5-word status messages when AI is working
@@ -679,7 +681,9 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         tokenCount: estimateTokens(finalReplyContent),
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         workedForSeconds: elapsedSec,
-        toolLogs: chatWorkflow.toolLogs,
+        toolLogs: chatWorkflowRef.current.toolLogs,
+        planSteps: chatWorkflowRef.current.plan?.steps,
+        executionTrace: chatWorkflowRef.current.trace,
       };
 
       let finalTitle = chatWithUser.title;
@@ -707,6 +711,48 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       const errorContent = reason instanceof Error ? reason.message : "Hanna API unavailable.";
       showToast(`Submission failed: ${errorContent}`);
     } finally { setIsThinking(false); }
+  };
+
+  const regenerateMessage = async (assistantMessageId: string) => {
+    if (isThinking) return;
+    const chatId = activeChatId;
+    const messages = chats.find(chat => chat.id === chatId)?.messages ?? [];
+    const assistantIndex = messages.findIndex(message => message.id === assistantMessageId);
+    const userMessage = [...messages.slice(0, assistantIndex)].reverse().find(message => message.role === "user");
+    if (!userMessage) return;
+
+    setIsThinking(true);
+    taskStartTimeRef.current = Date.now();
+    try {
+      const reply = await chatWorkflow.submitPrompt(userMessage.content, {
+        model: model === "Custom" ? "custom" : model,
+        agenticMode,
+        studyMode: selectedTools.includes("Study") || studyMode,
+      });
+      if (!reply.trim()) throw new Error(chatWorkflow.error || "Hanna returned an empty response.");
+      const elapsed = Math.max(0.2, Number(((Date.now() - taskStartTimeRef.current) / 1000).toFixed(1)));
+      setChats(current => current.map(chat => {
+        if (chat.id !== chatId) return chat;
+        const updated = {
+          ...chat,
+          messages: chat.messages.map(message => message.id === assistantMessageId ? {
+            ...message,
+            content: reply,
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            workedForSeconds: elapsed,
+            toolLogs: chatWorkflowRef.current.toolLogs,
+            planSteps: chatWorkflowRef.current.plan?.steps,
+            executionTrace: chatWorkflowRef.current.trace,
+          } : message),
+        };
+        void saveUserConversation({ ...updated, id: String(updated.id) }).catch(() => undefined);
+        return updated;
+      }));
+    } catch (reason) {
+      showToast(`Regeneration failed: ${reason instanceof Error ? reason.message : "Hanna API unavailable."}`);
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1052,31 +1098,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         </div>
                       )}
 
-                      {message.role === "assistant" && (isStreamingThisMsg || isThinking) && (
-                        <ToolExecutionStatusBlock
-                          toolInfo={
-                            chatWorkflow.toolLogs.length > 0
-                              ? chatWorkflow.toolLogs[chatWorkflow.toolLogs.length - 1]
-                              : {
-                                  connector: selectedTools.includes("Web Search") || webSearchMode ? "Web Search" : "Tool Execution",
-                                  action: "execute",
-                                  status: "running",
-                                  startTime: taskStartTimeRef.current,
-                                }
-                          }
-                          isStreaming={true}
-                        />
-                      )}
-
-                      {message.role === "assistant" && !isStreamingThisMsg && !isThinking && message.workedForSeconds !== undefined && (
-                        <ToolExecutionStatusBlock
-                          toolInfo={{
-                            connector: message.toolLogs?.[0]?.connector || (selectedTools.includes("Web Search") ? "Web Search" : "Tool Task"),
-                            action: message.toolLogs?.[0]?.action || "execute",
-                            durationSeconds: message.workedForSeconds,
-                            status: "completed",
-                          }}
-                          isStreaming={false}
+                      {message.role === "assistant" && (isStreamingThisMsg || message.workedForSeconds !== undefined) && (
+                        <ExecutionTimeline
+                          statusText={isStreamingThisMsg ? thinkingAction : "Work completed"}
+                          isWorking={Boolean(isStreamingThisMsg)}
+                          steps={isStreamingThisMsg ? chatWorkflow.plan?.steps : message.planSteps}
+                          trace={isStreamingThisMsg ? chatWorkflow.trace : message.executionTrace}
+                          toolLogs={isStreamingThisMsg ? chatWorkflow.toolLogs : message.toolLogs}
+                          durationSeconds={message.workedForSeconds}
                         />
                       )}
 
@@ -1126,61 +1155,30 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         </div>
                       )}
 
-                      {message.role === "assistant" && (
+                      {message.role === "assistant" && !isStreamingThisMsg && (
                         <div className="message-actions" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", opacity: 0.85, fontSize: "12px", color: "var(--text-secondary)" }}>
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(message.content);
+                              void navigator.clipboard.writeText(message.content);
                               showToast("Response copied");
                             }}
                             style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
                             title="Copy response"
                             aria-label="Copy response"
                           >
-                            <Copy size={13} />
+                            <Copy size={15} />
                           </button>
-
                           <button
                             type="button"
-                            onClick={() => showToast("Response feedback recorded (Good)")}
-                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
-                            title="Good response"
-                            aria-label="Good response"
-                          >
-                            <ThumbsUp size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => showToast("Response feedback recorded (Bad)")}
-                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
-                            title="Bad response"
-                            aria-label="Bad response"
-                          >
-                            <ThumbsDown size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const lastUserMsg = activeChat.messages.filter(m => m.role === "user").pop();
-                              if (lastUserMsg) {
-                                chatWorkflow.submitPrompt(lastUserMsg.content);
-                              } else {
-                                showToast("Regenerating response...");
-                              }
-                            }}
-                            style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                            onClick={() => { void regenerateMessage(message.id); }}
+                            disabled={isThinking}
+                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: isThinking ? "wait" : "pointer", padding: "2px 4px", opacity: isThinking ? 0.5 : 1 }}
                             title="Regenerate response"
                             aria-label="Regenerate response"
                           >
-                            <RotateCcw size={13} />
+                            <RotateCcw size={15} />
                           </button>
-
-                          <span style={{ fontSize: "11px", opacity: 0.7, padding: "0 2px" }}>1/1</span>
-
-                          <span style={{ fontSize: "11px", opacity: 0.6, paddingLeft: "4px" }}>{message.time}</span>
                         </div>
                       )}
                     </div>
