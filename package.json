@@ -16,7 +16,7 @@
     "start": "NODE_ENV=production node dist/server/index.js",
     "check": "tsc --noEmit && pnpm run vercel-build",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run && node --test functions/test/*.test.js",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"
   },
   "dependencies": {
