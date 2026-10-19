@@ -348,19 +348,20 @@ describe("authenticated Shopify and Slack connectors", () => {
   });
 
   it("verifies Google OAuth state and isolates each Google service credential", async () => {
-    const state = generateOAuthState("user123", "google");
+    const testUserId = `user123-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const state = generateOAuthState(testUserId, "google");
     const verified = verifyOAuthState(state, "google");
     expect(verified.valid).toBe(true);
-    expect(verified.uid).toBe("user123");
+    expect(verified.uid).toBe(testUserId);
 
-    await saveConnectorCredential("user123", "google-workspace", {
+    await saveConnectorCredential(testUserId, "google-workspace", {
       access_token: "test_access_token_123",
       is_connected: "true",
     });
 
-    expect(await getConnectorCredential("user123", "gmail")).toBeUndefined();
-    await saveConnectorCredential("user123", "gmail", { access_token: "gmail_token_456", is_connected: "true" });
-    const gmailCred = await getConnectorCredential("user123", "gmail");
+    expect(await getConnectorCredential(testUserId, "gmail")).toBeUndefined();
+    await saveConnectorCredential(testUserId, "gmail", { access_token: "gmail_token_456", is_connected: "true" });
+    const gmailCred = await getConnectorCredential(testUserId, "gmail");
     expect(gmailCred?.values.access_token).toBe("gmail_token_456");
   });
 });

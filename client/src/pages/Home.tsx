@@ -15,7 +15,6 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Code2,
   Copy,
   Edit3,
   ExternalLink,
@@ -28,7 +27,6 @@ import {
   ImageIcon,
   Layers3,
   LogOut,
-  Megaphone,
   Menu,
   Mic,
   MoreVertical,
@@ -41,7 +39,6 @@ import {
   Settings,
   Sparkles,
   Square,
-  Store,
   Trash2,
   Volume2,
   VolumeX,
@@ -185,6 +182,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const [chats, setChats] = useState<Chat[]>(seedChats);
   const [activeChatId, setActiveChatId] = useState(0);
   const [composer, setComposer] = useState("");
+  const [showSuggestedPrompts, setShowSuggestedPrompts] = useState(true);
   const [agenticMode, setAgenticMode] = useState(false);
   const [selectedTools, setSelectedTools] = useState<ToolKey[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -484,7 +482,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     setActiveChatId(newChat.id);
     setCurrentPage("chat");
     setComposer("");
-    showToast("New conversation ready");
+    setShowSuggestedPrompts(true);
     if (window.innerWidth < 860) setSidebarOpen(false);
     window.setTimeout(() => composerRef.current?.focus(), 0);
   };
@@ -853,28 +851,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     if (window.innerWidth < 860) setSidebarOpen(false);
   };
 
-  const suggestionsCategorized = [
-    { category: "Shopify", icon: Store, items: [
-      { label: "Find profitable products", prompt: "Find profitable trending products for my Shopify store" },
-      { label: "Analyze my store", prompt: "Analyze my Shopify store performance and conversion bottlenecks" },
-      { label: "Improve product SEO", prompt: "Improve product title and SEO description for my top items" },
-      { label: "Create a product campaign", prompt: "Draft a high-converting product launch campaign" },
-    ]},
-    { category: "Marketing", icon: Megaphone, items: [
-      { label: "Create a social campaign", prompt: "Create a multi-channel social campaign for my products" },
-      { label: "Generate product content", prompt: "Generate engaging social captions and product benefit bullet points" },
-      { label: "Build an ad concept", prompt: "Design high-ROAS Facebook & Google ad concept scripts" },
-    ]},
-    { category: "Automation", icon: Zap, items: [
-      { label: "Automate a recurring workflow", prompt: "Set up an automated daily store inventory sync workflow" },
-      { label: "Connect a service", prompt: "Connect my store to Slack notifications and marketing tools" },
-      { label: "Create a multi-step workflow", prompt: "Draft an automated post-purchase email follow-up sequence" },
-    ]},
-    { category: "Developer", icon: Code2, items: [
-      { label: "Analyze a GitHub repo", prompt: "Analyze my GitHub repository structure and open pull requests" },
-      { label: "Debug an application", prompt: "Debug my store theme liquid template and React frontend" },
-      { label: "Deploy a project", prompt: "Verify build configuration and deploy my application to Vercel" },
-    ]},
+  const suggestedPrompts: Array<{ label: string; prompt: string; providers: string[] }> = [
+    { label: "Create promotional posts with your logo and offer", prompt: "Create promotional social posts for my best-selling Shopify products. Ask me for a logo or offer details if you need them.", providers: ["Shopify", "Instagram"] },
+    { label: "Turn your product photos into branded posts", prompt: "Turn my product photos into branded social post ideas and captions for my business.", providers: ["Shopify", "Instagram"] },
+    { label: "Make a short ad video for your Shopify store", prompt: "Make a short ad-video concept for my Shopify store and include a concise voice-over script.", providers: ["Shopify", "Gemini"] },
+    { label: "Find best sellers and plan your next promotion", prompt: "Review my Shopify best sellers and suggest which products to promote next, with reasons.", providers: ["Shopify", "Gemini"] },
+    { label: "Check low-stock products and make a restock list", prompt: "Check my Shopify inventory for low-stock products and make a prioritized restock list.", providers: ["Shopify"] },
+    { label: "Improve product titles and SEO descriptions", prompt: "Audit my Shopify product listings for weak titles and descriptions, then suggest SEO improvements.", providers: ["Shopify", "Google Sheets"] },
+    { label: "Draft an abandoned-cart email (don't send it)", prompt: "Draft a helpful abandoned-cart email sequence for my Shopify customers. Do not send it.", providers: ["Shopify", "Gmail"] },
+    { label: "Analyze orders and identify sales trends", prompt: "Summarize recent Shopify orders and identify useful trends or follow-up opportunities.", providers: ["Shopify", "Google Sheets"] },
   ];
 
   const sidebarNav = [
@@ -1079,63 +1064,36 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
       <div className="workspace-body custom-scroll">
         <div className={`conversation-stage ${hasMessages ? "has-messages" : "is-empty"}`}>
           {!hasMessages ? (
-            <div className="welcome-layout">
-              <section className="welcome-copy">
-                <div className="eyebrow">Clean Command Interface</div>
-                <h1>What needs to be done?</h1>
-                <p>Use Hanna to automate store growth, research, coding, and creative work — powered by first-party multimodal AI intelligence.</p>
-                <div className="command-suggestions-matrix" style={{ display: "grid", gap: "16px", marginTop: "20px" }}>
-                  {suggestionsCategorized.map(cat => (
-                    <div key={cat.category} style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "12px", padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--gemini-accent)", marginBottom: "10px" }}>
-                        <cat.icon size={15} /><span>{cat.category}</span>
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
-                        {cat.items.map(item => (
-                          <button key={item.label} type="button" onClick={() => useSuggestion(item.prompt)}
-                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 12px", fontSize: "12px", color: "var(--text-primary)", textAlign: "left", cursor: "pointer", transition: "all 0.15s ease" }}>
-                            <span>{item.label}</span>
-                            <ArrowUp size={13} style={{ color: "var(--text-tertiary)", marginLeft: "6px" }} />
-                          </button>
+            showSuggestedPrompts && (
+              <section className="suggested-for-you" aria-label="Suggested prompts">
+                <header className="suggested-for-you-header">
+                  <h2>Suggested for you</h2>
+                  <button type="button" onClick={() => setShowSuggestedPrompts(false)} aria-label="Hide suggested prompts" title="Hide suggestions">
+                    <X size={20} />
+                  </button>
+                </header>
+                <div className="suggested-for-you-list">
+                  {suggestedPrompts.map((item, index) => (
+                    <button
+                      type="button"
+                      className="suggested-for-you-row"
+                      key={item.label}
+                      onClick={() => useSuggestion(item.prompt)}
+                      aria-label={`Use suggested prompt: ${item.label}`}
+                    >
+                      <span className="suggested-for-you-copy">{item.label}</span>
+                      <span className="suggested-for-you-badges" aria-hidden="true">
+                        {item.providers.map(provider => (
+                          <span className="suggested-provider-icon" key={`${index}-${provider}`} title={provider}>
+                            {renderBrandIcon(provider, 18)}
+                          </span>
                         ))}
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   ))}
                 </div>
               </section>
-              <aside className="welcome-art">
-                <div className="welcome-art-frame" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", padding: "20px", borderRadius: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-                    <span className="hanna-brand-icon" style={{ width: "32px", height: "32px", display: "inline-flex", borderRadius: "8px" }}>
-                      <img src="/hanna-icon-192.png" alt="Hanna" />
-                    </span>
-                    <div>
-                      <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)" }}>Hanna Commerce Operator</strong>
-                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>Multimodal commerce intelligence</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gap: "8px" }}>
-                    {[
-                      { icon: BookOpen, label: "Multimodal analysis", desc: "Images, PDFs, documents, and visual content" },
-                      { icon: ImageIcon, label: "Image generation", desc: "Create product visuals and marketing assets" },
-                      { icon: Code2, label: "Code analysis & debug", desc: "Review, debug, and explain any codebase" },
-                      { icon: Globe2, label: "Deep research", desc: "Web search, market analysis, and sourced briefs" },
-                    ].map(f => (
-                      <div key={f.label} style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "10px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                        <f.icon size={16} style={{ color: "var(--gemini-accent)", marginTop: "2px" }} />
-                        <div>
-                          <strong style={{ display: "block", fontSize: "12px", color: "var(--text-primary)" }}>{f.label}</strong>
-                          <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{f.desc}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="welcome-art-caption" style={{ marginTop: "14px" }}>
-                    <span>H / 002</span><span>Connected & ready</span>
-                  </div>
-                </div>
-              </aside>
-            </div>
+            )
           ) : (
             <div className="message-stack">
               {activeChat.messages.map((message, idx) => {
