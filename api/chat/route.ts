@@ -171,7 +171,7 @@ export async function executeRouteAStream(
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured.",
       });
@@ -184,7 +184,7 @@ export async function executeRouteAStream(
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "RATE_LIMIT_EXCEEDED",
         message: `Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`,
       });
@@ -273,7 +273,7 @@ export async function executeRouteAStream(
         sendSSE("error", {
           success: false,
           provider: provider.provider || "gemini",
-          model: provider.model || "gemini-3.5-flash",
+          model: provider.model || "gemini-3.6-flash",
           errorCode: "AI_ERROR",
           message,
         });
@@ -284,7 +284,7 @@ export async function executeRouteAStream(
     sendSSE("error", {
       success: false,
       provider: "gemini",
-      model: "gemini-3.5-flash",
+      model: "gemini-3.6-flash",
       errorCode: "AI_ERROR",
       message,
     });
@@ -314,7 +314,7 @@ export async function executeRouteBLoop(
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured.",
       });
@@ -499,7 +499,7 @@ export async function executeRouteBLoop(
       sendSSE("error", {
         success: false,
         provider: provider.provider || "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "AGENT_EXECUTION_FAILED",
         message: "Agentic execution loop could not complete.",
       });
@@ -588,7 +588,7 @@ export async function executeRouteBLoop(
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         errorCode: "AI_ERROR",
         message,
       });

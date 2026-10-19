@@ -1,12 +1,12 @@
 export const DEFAULT_AI_PROVIDER = "gemini";
-export const DEFAULT_AI_MODEL = "gemini-3.5-flash";
+export const DEFAULT_AI_MODEL = "gemini-3.6-flash";
 
-export const HANNA_LITE_MODEL = "gemini-3.5-flash";
-export const HANNA_PRO_MODEL = "gemini-3.5-flash";
+export const HANNA_LITE_MODEL = "gemini-3.6-flash";
+export const HANNA_PRO_MODEL = "gemini-3.6-flash";
 export const HANNA_DEFAULT_MODEL = HANNA_LITE_MODEL;
 
 export const GEMINI_FALLBACK_MODELS = [
-  "gemini-3.5-flash",
+  "gemini-3.6-flash",
 ] as const;
 
 export type AiHealthStatus =
@@ -34,7 +34,9 @@ export function resolveProviderAndModel(
   requestedModelOrProvider?: string
 ): ResolvedAiPair {
   const envModel = (process.env.GEMINI_MODEL || "").trim();
-  const effectiveDefaultModel = envModel || DEFAULT_AI_MODEL;
+  const effectiveDefaultModel = envModel && envModel.toLowerCase() !== "gemini-3.5-flash"
+    ? envModel
+    : DEFAULT_AI_MODEL;
 
   if (!requestedModelOrProvider || !requestedModelOrProvider.trim()) {
     return {
@@ -102,7 +104,7 @@ export function resolveProviderAndModel(
   if (lower.includes("gemini")) {
     let modelName = effectiveDefaultModel;
     if (input.startsWith("gemini-")) {
-      modelName = input;
+      modelName = input.toLowerCase() === "gemini-3.5-flash" ? DEFAULT_AI_MODEL : input;
     } else {
       modelName = DEFAULT_AI_MODEL;
     }

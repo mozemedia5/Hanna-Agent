@@ -9,11 +9,21 @@ import {
 } from "./geminiService";
 
 describe("Gemini Service Canonical Provider Unit Tests", () => {
-  it("resolves model safely defaulting to gemini-3.5-flash", () => {
-    expect(getEffectiveGeminiModel()).toBe("gemini-3.5-flash");
-    expect(getEffectiveGeminiModel("Hanna Lite")).toBe("gemini-3.5-flash");
-    expect(getEffectiveGeminiModel("Hanna Pro")).toBe("gemini-3.5-flash");
-    expect(getEffectiveGeminiModel("gemini-3.5-flash")).toBe("gemini-3.5-flash");
+  it("resolves model safely defaulting to gemini-3.6-flash", () => {
+    expect(getEffectiveGeminiModel()).toBe("gemini-3.6-flash");
+    expect(getEffectiveGeminiModel("Hanna Lite")).toBe("gemini-3.6-flash");
+    expect(getEffectiveGeminiModel("Hanna Pro")).toBe("gemini-3.6-flash");
+    expect(getEffectiveGeminiModel("gemini-3.6-flash")).toBe("gemini-3.6-flash");
+    expect(getEffectiveGeminiModel("gemini-3.5-flash")).toBe("gemini-3.6-flash");
+
+    const previousModel = process.env.GEMINI_MODEL;
+    try {
+      process.env.GEMINI_MODEL = "gemini-3.5-flash";
+      expect(getEffectiveGeminiModel()).toBe("gemini-3.6-flash");
+    } finally {
+      if (previousModel === undefined) delete process.env.GEMINI_MODEL;
+      else process.env.GEMINI_MODEL = previousModel;
+    }
   });
 
   it("sanitizes raw API keys in error outputs", () => {
@@ -47,7 +57,7 @@ describe("Gemini Service Canonical Provider Unit Tests", () => {
 
       expect(result.text).toBe("Canonical Gemini Response");
       expect(result.provider).toBe("gemini");
-      expect(result.model).toBe("gemini-3.5-flash");
+      expect(result.model).toBe("gemini-3.6-flash");
       expect(result.latencyMs).toBeGreaterThanOrEqual(0);
     } finally {
       vi.unstubAllGlobals();
@@ -72,6 +82,31 @@ describe("Gemini Service Canonical Provider Unit Tests", () => {
       ).rejects.toThrow(GeminiProviderError);
 
       expect(fetchMock).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not retry a Gemini 403 and returns safe actionable diagnostics", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: "API key restricted: key=AIzaSySecretKey" } }), {
+        status: 403,
+        headers: { "content-type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const error = await generateGeminiContent({
+        apiKey: "AIzaSyMockKeyForTest",
+        prompt: "Test 403",
+      }).catch(value => value as GeminiProviderError);
+
+      expect(error).toBeInstanceOf(GeminiProviderError);
+      expect(error.errorCode).toBe("GEMINI_403");
+      expect(error.message).toContain("Check that it is active");
+      expect(error.toJSON().details).not.toContain("AIzaSySecretKey");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -172,6 +207,6 @@ describe.runIf(isRealApiKeyPresent)("Opt-In Live Production Gemini Integration S
     expect(res.text).toBeDefined();
     expect(res.text.length).toBeGreaterThan(0);
     expect(res.provider).toBe("gemini");
-    expect(res.model).toBe("gemini-3.5-flash");
+    expect(res.model).toBe("gemini-3.6-flash");
   });
 });

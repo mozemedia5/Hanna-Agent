@@ -346,162 +346,145 @@ export async function executeConnectorAction(
     };
   }
 
-  // Google Slides Connector Specific Handling
-  if (action.connector === "google-slides") {
+  if (action.connector === "github" && action.action === "github_overview") {
+    const token = credential.values.access_token || credential.values.oauthToken || "";
+    if (!token) throw new Error("GitHub is not connected. Reconnect GitHub and authorize repository access.");
+    const apiGet = async (url: string) => {
+      const response = await fetcher(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "Hanna-Agent",
+        },
+      });
+      if (!response.ok) throw new Error(safeError(response.status, "GitHub"));
+      return response.json() as Promise<any>;
+    };
     const parameters = action.parameters as Record<string, unknown>;
-    const title = String(parameters.title || parameters.query || "Presentation Deck");
-    const presentationId = `presentation_${Date.now()}`;
-    const slidesUrl = `https://docs.google.com/presentation/d/${presentationId}/edit`;
-
+    const limit = Math.min(Math.max(Number(parameters.repositoryCount ?? 5), 1), 5);
+    const repositories = await apiGet(`https://api.github.com/user/repos?sort=updated&per_page=${limit}&type=owner`);
+    const overview = await Promise.all((repositories as any[]).map(async repo => {
+      const repoPath = String(repo.full_name).split("/").map(encodeURIComponent).join("/");
+      const [issues, pullRequests] = await Promise.all([
+        apiGet(`https://api.github.com/repos/${repoPath}/issues?state=open&per_page=10`),
+        apiGet(`https://api.github.com/repos/${repoPath}/pulls?state=open&per_page=10`),
+      ]);
+      return {
+        name: repo.full_name,
+        description: repo.description,
+        url: repo.html_url,
+        updatedAt: repo.updated_at,
+        openIssues: (issues as any[]).filter(issue => !issue.pull_request).map(issue => ({ number: issue.number, title: issue.title, url: issue.html_url, createdAt: issue.created_at, labels: issue.labels?.map((label: any) => label.name) ?? [] })),
+        openPullRequests: (pullRequests as any[]).map(pr => ({ number: pr.number, title: pr.title, url: pr.html_url, updatedAt: pr.updated_at, draft: pr.draft })),
+      };
+    }));
     return {
-      connector: "google-slides",
+      connector: "github",
       action: action.action,
-      summary: `Successfully created Google Slides presentation: "${title}".`,
-      verification: {
-        status: "verified",
-        detail: "Google Slides API / MCP adapter generated functional presentation deck.",
-      },
-      data: {
-        presentationId,
-        title,
-        slidesUrl,
-        slidesCount: 5,
-        slides: [
-          {
-            slideNumber: 1,
-            title,
-            layout: "TITLE",
-            bullets: [
-              "Executive Overview & Strategic Brief",
-              "Prepared by Hanna AI Agent Workspace",
-              "Confidential & Workspace Synchronized",
-            ],
-            speakerNotes: "Welcome stakeholders and outline meeting objectives.",
-          },
-          {
-            slideNumber: 2,
-            title: "Market Background & Opportunity",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Current industry trends & customer demand drivers",
-              "Key pain points addressed by product strategy",
-              "Target addressable market & competitive differentiation",
-            ],
-            speakerNotes: "Highlight market growth and user demand validation.",
-          },
-          {
-            slideNumber: 3,
-            title: "Core Architecture & Workflow Strategy",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Automated store operations & inventory synchronization",
-              "Multi-channel marketing campaign orchestration",
-              "Sub-100ms reasoning loop with Gemini Flash",
-            ],
-            speakerNotes: "Explain execution architecture and cross-functional tooling.",
-          },
-          {
-            slideNumber: 4,
-            title: "Key Performance Indicators & Financial ROAS",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Projected conversion lift: +24% YoY",
-              "Customer acquisition cost optimization",
-              "Automated retention and cart recovery benchmarks",
-            ],
-            speakerNotes: "Emphasize high ROI and financial milestones.",
-          },
-          {
-            slideNumber: 5,
-            title: "Immediate Action Items & Roadmap",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Step 1: Connect workspace extensions & store credentials",
-              "Step 2: Deploy initial automated campaign workflows",
-              "Step 3: Schedule weekly analytics and performance reviews",
-            ],
-            speakerNotes: "Conclude with next steps and assign team deliverables.",
-          },
-        ],
-      },
+      summary: `Reviewed ${overview.length} GitHub repositories with live issue and pull-request data.`,
+      verification: { status: "verified", detail: "GitHub API returned the account's repositories, issues, and pull requests." },
+      data: { repositories: overview, total: overview.length },
     };
   }
 
-  // Google Workspace Ecosystem (Drive / Docs / Sheets / Ads)
-  if (
-    action.connector === "google-workspace" ||
-    action.connector === "google-drive" ||
-    action.connector === "google-docs" ||
-    action.connector === "google-sheets" ||
-    action.connector === "google-ads"
-  ) {
+  // Google Slides: locate a real presentation in Drive, then read it through Slides API.
+  if (action.connector === "google-slides") {
+    const accessToken = credential.values.access_token;
+    if (!accessToken) throw new Error("Google Slides is not connected. Reconnect Google and grant presentation read access.");
     const parameters = action.parameters as Record<string, unknown>;
-    const query = String(parameters.query ?? parameters.q ?? parameters.title ?? "");
+    const query = String(parameters.query ?? parameters.title ?? "").trim();
+    const driveUrl = new URL("https://www.googleapis.com/drive/v3/files");
+    driveUrl.searchParams.set("pageSize", "10");
+    driveUrl.searchParams.set("orderBy", "modifiedTime desc");
+    driveUrl.searchParams.set("fields", "files(id,name,mimeType,webViewLink,modifiedTime)");
+    const clauses = ["mimeType = 'application/vnd.google-apps.presentation'", "trashed = false"];
+    if (query) clauses.push(`name contains '${query.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`);
+    driveUrl.searchParams.set("q", clauses.join(" and "));
+    const driveResponse = await fetcher(driveUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!driveResponse.ok) throw new Error(safeError(driveResponse.status, "Google Drive"));
+    const driveData = await driveResponse.json() as { files?: Array<{ id: string; name: string; webViewLink?: string }> };
+    const file = driveData.files?.[0];
+    if (!file) {
+      return { connector: "google-slides", action: action.action, summary: "No matching Google Slides presentations were found.", verification: { status: "verified", detail: "Google Drive returned no matching presentation files." }, data: { presentations: [] } };
+    }
+    const slidesResponse = await fetcher(`https://slides.googleapis.com/v1/presentations/${encodeURIComponent(file.id)}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!slidesResponse.ok) throw new Error(safeError(slidesResponse.status, "Google Slides"));
+    const presentation = await slidesResponse.json() as any;
+    const slides = (presentation.slides ?? []).map((slide: any, index: number) => ({
+      slideNumber: index + 1,
+      text: (slide.pageElements ?? []).flatMap((element: any) => element.shape?.text?.textElements ?? []).map((element: any) => element.textRun?.content ?? "").join("").trim(),
+    }));
+    return { connector: "google-slides", action: action.action, summary: `Retrieved ${slides.length} slide(s) from “${presentation.title || file.name}”.`, verification: { status: "verified", detail: "Google Slides API returned the presentation content." }, data: { presentationId: presentation.presentationId || file.id, title: presentation.title || file.name, url: file.webViewLink, slides } };
+  }
 
-    if (credential.values.access_token) {
-      try {
-        const driveUrl = new URL("https://www.googleapis.com/drive/v3/files");
-        driveUrl.searchParams.set("pageSize", "10");
-        driveUrl.searchParams.set("fields", "files(id, name, mimeType, webViewLink, modifiedTime, size)");
-        if (query) {
-          driveUrl.searchParams.set("q", `name contains '${query.replace(/'/g, "\\'")}' or fullText contains '${query.replace(/'/g, "\\'")}'`);
-        }
+  // Google Drive, Docs, and Sheets: every success is backed by a live API response.
+  if (["google-workspace", "google-drive", "google-docs", "google-sheets"].includes(action.connector)) {
+    const accessToken = credential.values.access_token;
+    if (!accessToken) throw new Error(`${action.connector} is not connected. Connect the matching Google service first.`);
+    const parameters = action.parameters as Record<string, unknown>;
+    const query = String(parameters.query ?? parameters.q ?? parameters.title ?? "").trim();
+    const driveUrl = new URL("https://www.googleapis.com/drive/v3/files");
+    driveUrl.searchParams.set("pageSize", "10");
+    driveUrl.searchParams.set("orderBy", "modifiedTime desc");
+    driveUrl.searchParams.set("fields", "files(id,name,mimeType,webViewLink,modifiedTime,size)");
+    const mimeType = action.connector === "google-docs" ? "application/vnd.google-apps.document" : action.connector === "google-sheets" ? "application/vnd.google-apps.spreadsheet" : "";
+    const clauses = ["trashed = false"];
+    if (mimeType) clauses.push(`mimeType = '${mimeType}'`);
+    if (query) clauses.push(`name contains '${query.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`);
+    driveUrl.searchParams.set("q", clauses.join(" and "));
+    const driveResponse = await fetcher(driveUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!driveResponse.ok) throw new Error(safeError(driveResponse.status, "Google Drive"));
+    const driveData = await driveResponse.json() as { files?: Array<{ id: string; name: string; mimeType: string; webViewLink?: string; modifiedTime?: string; size?: string }> };
+    const files = driveData.files ?? [];
 
-        const res = await fetcher(driveUrl.toString(), {
-          headers: { Authorization: `Bearer ${credential.values.access_token}` },
-        });
+    if (action.connector === "google-docs" && action.action === "docs_read" && files[0]) {
+      const docResponse = await fetcher(`https://docs.googleapis.com/v1/documents/${encodeURIComponent(files[0].id)}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!docResponse.ok) throw new Error(safeError(docResponse.status, "Google Docs"));
+      const doc = await docResponse.json() as { title?: string; body?: { content?: unknown[] } };
+      const textParts: string[] = [];
+      const collectText = (value: unknown) => {
+        if (!value || typeof value !== "object") return;
+        if (Array.isArray(value)) { value.forEach(collectText); return; }
+        const item = value as Record<string, unknown>;
+        const textRun = item.textRun as { content?: unknown } | undefined;
+        if (typeof textRun?.content === "string") textParts.push(textRun.content);
+        Object.entries(item).filter(([key]) => key !== "textRun").forEach(([, child]) => collectText(child));
+      };
+      collectText(doc.body?.content ?? []);
+      return { connector: action.connector, action: action.action, summary: `Read Google Doc “${doc.title || files[0].name}”.`, verification: { status: "verified", detail: "Google Docs API returned the document body." }, data: { id: files[0].id, title: doc.title || files[0].name, url: files[0].webViewLink, text: textParts.join("") } };
+    }
 
-        if (res.ok) {
-          const json = (await res.json()) as any;
-          const files = json.files || [];
-          return {
-            connector: action.connector,
-            action: action.action,
-            summary: `Retrieved ${files.length} ${action.connector} item(s)${query ? ` matching '${query}'` : ""}.`,
-            verification: {
-              status: "verified",
-              detail: `${action.connector} REST API returned ${files.length} verified item(s).`,
-            },
-            data: { files, total: files.length },
-          };
-        }
-        if (res.status === 401 || res.status === 403) {
-          throw new Error(safeError(res.status, "Google Workspace"));
-        }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("rejected")) throw err;
-      }
+    if (action.connector === "google-sheets" && action.action === "sheets_analyze" && files[0]) {
+      const sheetResponse = await fetcher(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(files[0].id)}?fields=properties(title),sheets(properties(title))`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!sheetResponse.ok) throw new Error(safeError(sheetResponse.status, "Google Sheets"));
+      const sheet = await sheetResponse.json() as { properties?: { title?: string }; sheets?: Array<{ properties?: { title?: string } }> };
+      const tab = sheet.sheets?.[0]?.properties?.title || "Sheet1";
+      const range = encodeURIComponent(`${tab}!A1:Z50`);
+      const valuesResponse = await fetcher(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(files[0].id)}/values/${range}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!valuesResponse.ok) throw new Error(safeError(valuesResponse.status, "Google Sheets"));
+      const values = await valuesResponse.json() as { values?: unknown[][]; range?: string };
+      return { connector: action.connector, action: action.action, summary: `Retrieved ${values.values?.length ?? 0} row(s) from “${sheet.properties?.title || files[0].name}”.`, verification: { status: "verified", detail: "Google Sheets API returned the spreadsheet values." }, data: { id: files[0].id, title: sheet.properties?.title || files[0].name, url: files[0].webViewLink, range: values.range, values: values.values ?? [] } };
     }
 
     return {
       connector: action.connector,
       action: action.action,
-      summary: `${action.connector} action '${action.action}' executed successfully.`,
-      verification: {
-        status: "verified",
-        detail: `${action.connector} API returned active workspace context.`,
-      },
-      data: {
-        items: [
-          {
-            id: `${action.connector}_101`,
-            name: `${query ? query.charAt(0).toUpperCase() + query.slice(1) : "Workspace"} - Active Item`,
-            type: action.connector,
-            content: `Real-time context retrieved for ${action.connector}${query ? ` matching '${query}'` : ""}.`,
-            modifiedTime: new Date().toISOString(),
-          },
-        ],
-      },
+      summary: `Retrieved ${files.length} ${action.connector} item(s)${query ? ` matching “${query}”` : ""}.`,
+      verification: { status: "verified", detail: "Google Drive API returned live file metadata." },
+      data: { files, total: files.length },
     };
   }
 
   // Gmail
   if (action.connector === "gmail") {
     const parameters = action.parameters as Record<string, unknown>;
+    if (!credential.values.access_token) throw new Error("Gmail is not connected. Connect Gmail with the required access first.");
     if (action.action === "mail_send" || action.action === "mail:send") {
-      const recipient = String(parameters.to ?? parameters.recipient ?? "team@company.com");
-      const subject = String(parameters.subject ?? "Update from Hanna Agent");
-      const bodyText = String(parameters.body ?? parameters.text ?? "Hanna notification message");
+      const recipient = String(parameters.to ?? parameters.recipient ?? "").trim();
+      const subject = String(parameters.subject ?? "").trim();
+      const bodyText = String(parameters.body ?? parameters.text ?? "").trim();
+      if (!recipient || !subject || !bodyText) throw new Error("Gmail send requires a recipient, subject, and message body.");
 
       if (credential.values.access_token) {
         try {
@@ -531,24 +514,13 @@ export async function executeConnectorAction(
               data: { messageId: json.id, recipient, subject, status: "sent" },
             };
           }
-          if (sendRes.status === 401 || sendRes.status === 403) {
-            throw new Error(safeError(sendRes.status, "Gmail"));
-          }
+          throw new Error(safeError(sendRes.status, "Gmail"));
         } catch (err) {
-          if (err instanceof Error && err.message.includes("rejected")) throw err;
+          throw err;
         }
       }
 
-      return {
-        connector: "gmail",
-        action: action.action,
-        summary: `Drafted and sent email to ${recipient} with subject '${subject}'.`,
-        verification: {
-          status: "verified",
-          detail: "Gmail API endpoint confirmed message delivery.",
-        },
-        data: { messageId: `msg_${Date.now()}`, recipient, subject, status: "sent" },
-      };
+      throw new Error("Gmail did not return a verified send result.");
     }
 
     const query = String(parameters.query ?? parameters.q ?? "all");
@@ -565,7 +537,34 @@ export async function executeConnectorAction(
 
         if (listRes.ok) {
           const json = (await listRes.json()) as any;
-          const messages = json.messages || [];
+          const messageIds = (json.messages || []).slice(0, 10);
+          const messages = await Promise.all(messageIds.map(async (message: { id: string; threadId?: string }) => {
+            const detailRes = await fetcher(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(message.id)}?format=full`, {
+              headers: { Authorization: `Bearer ${credential.values.access_token}` },
+            });
+            if (!detailRes.ok) throw new Error(safeError(detailRes.status, "Gmail"));
+            const detail = await detailRes.json() as any;
+            const headers = detail.payload?.headers ?? [];
+            const header = (name: string) => headers.find((item: { name?: string }) => item.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
+            const textParts: string[] = [];
+            const collectPlainText = (part: any) => {
+              if (part?.mimeType === "text/plain" && part.body?.data) {
+                textParts.push(Buffer.from(String(part.body.data).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+              }
+              (part?.parts ?? []).forEach(collectPlainText);
+            };
+            collectPlainText(detail.payload);
+            return {
+              id: detail.id ?? message.id,
+              threadId: detail.threadId ?? message.threadId,
+              from: header("From"),
+              to: header("To"),
+              subject: header("Subject"),
+              date: header("Date"),
+              snippet: detail.snippet ?? "",
+              body: textParts.join("\n").slice(0, 12000),
+            };
+          }));
           return {
             connector: "gmail",
             action: action.action,
@@ -577,52 +576,26 @@ export async function executeConnectorAction(
             data: { messages, total: messages.length },
           };
         }
-        if (listRes.status === 401 || listRes.status === 403) {
-          throw new Error(safeError(listRes.status, "Gmail"));
-        }
+        throw new Error(safeError(listRes.status, "Gmail"));
       } catch (err) {
-        if (err instanceof Error && err.message.includes("rejected")) throw err;
+        throw err;
       }
     }
 
-    return {
-      connector: "gmail",
-      action: action.action,
-      summary: `Searched and retrieved Gmail messages matching '${query}'.`,
-      verification: {
-        status: "verified",
-        detail: "Gmail API endpoint returned active email threads.",
-      },
-      data: {
-        messages: [
-          {
-            id: `msg_101`,
-            threadId: `thread_101`,
-            from: "sarah@company.com",
-            subject: "Weekly Operations Review",
-            snippet: "Here is the summary of project milestones and pending deliverables.",
-            date: new Date().toISOString(),
-          },
-          {
-            id: `msg_102`,
-            threadId: `thread_102`,
-            from: "support@shopify.com",
-            subject: "Store Analytics Report",
-            snippet: "Your store sales increased by 18% over the past 7 days.",
-            date: new Date().toISOString(),
-          },
-        ],
-      },
-    };
+    throw new Error("Gmail did not return a verified search result.");
   }
 
   // Google Calendar
   if (action.connector === "google-calendar") {
     const parameters = action.parameters as Record<string, unknown>;
+    if (!credential.values.access_token) throw new Error("Google Calendar is not connected. Connect Calendar with the required access first.");
     if (action.action === "calendar_write" || action.action === "events_manage" || action.action === "calendar:write") {
-      const summary = String(parameters.summary ?? parameters.title ?? "Team Sync");
-      const startTime = String(parameters.startTime ?? new Date().toISOString());
-      const endTime = String(parameters.endTime ?? new Date(Date.now() + 3600000).toISOString());
+      const summary = String(parameters.summary ?? parameters.title ?? "").trim();
+      const startTime = String(parameters.startTime ?? "").trim();
+      const endTime = String(parameters.endTime ?? "").trim();
+      if (!summary || !startTime || !endTime || !Number.isFinite(Date.parse(startTime)) || !Number.isFinite(Date.parse(endTime)) || Date.parse(endTime) <= Date.parse(startTime)) {
+        throw new Error("Calendar event creation requires a title, valid start time, and end time after the start.");
+      }
 
       if (credential.values.access_token) {
         try {
@@ -652,24 +625,13 @@ export async function executeConnectorAction(
               data: { eventId: json.id, summary, startTime, status: "confirmed", htmlLink: json.htmlLink },
             };
           }
-          if (createRes.status === 401 || createRes.status === 403) {
-            throw new Error(safeError(createRes.status, "Google Calendar"));
-          }
+          throw new Error(safeError(createRes.status, "Google Calendar"));
         } catch (err) {
-          if (err instanceof Error && err.message.includes("rejected")) throw err;
+          throw err;
         }
       }
 
-      return {
-        connector: "google-calendar",
-        action: action.action,
-        summary: `Scheduled Google Calendar event '${summary}' for ${startTime}.`,
-        verification: {
-          status: "verified",
-          detail: "Google Calendar API endpoint created calendar event.",
-        },
-        data: { eventId: `evt_${Date.now()}`, summary, startTime, status: "confirmed" },
-      };
+      throw new Error("Google Calendar did not return a verified event-creation result.");
     }
 
     if (credential.values.access_token) {
@@ -698,70 +660,13 @@ export async function executeConnectorAction(
             data: { events, total: events.length },
           };
         }
-        if (calRes.status === 401 || calRes.status === 403) {
-          throw new Error(safeError(calRes.status, "Google Calendar"));
-        }
+        throw new Error(safeError(calRes.status, "Google Calendar"));
       } catch (err) {
-        if (err instanceof Error && err.message.includes("rejected")) throw err;
+        throw err;
       }
     }
 
-    return {
-      connector: "google-calendar",
-      action: action.action,
-      summary: "Checked Google Calendar schedule and availability.",
-      verification: {
-        status: "verified",
-        detail: "Google Calendar API endpoint returned upcoming events.",
-      },
-      data: {
-        events: [
-          {
-            id: "evt_301",
-            summary: "Product Demo & Sync",
-            start: new Date(Date.now() + 3600000).toISOString(),
-            end: new Date(Date.now() + 7200000).toISOString(),
-            status: "confirmed",
-          },
-          {
-            id: "evt_302",
-            summary: "E-Commerce Strategy Call",
-            start: new Date(Date.now() + 86400000).toISOString(),
-            end: new Date(Date.now() + 90000000).toISOString(),
-            status: "confirmed",
-          },
-        ],
-      },
-    };
-  }
-
-  // Vercel, GitHub, HeyGen, Synthesia, Creatify, TikTok, Instagram, Meta Ads, Outlook, Facebook, Telegram
-  if (
-    [
-      "vercel", "github", "heygen", "synthesia", "creatify",
-      "tiktok", "instagram", "meta-ads", "facebook", "outlook", "telegram", "autods", "takeapp"
-    ].includes(action.connector)
-  ) {
-    const token = credential.values.accessToken || credential.values.apiKey || credential.values.botToken || credential.values.oauthToken || "oauth_authenticated";
-    const parameters = action.parameters as Record<string, unknown>;
-    const summaryMsg = `${action.connector} connector executed action '${action.action}' with token dynamic injection.`;
-
-    return {
-      connector: action.connector,
-      action: action.action,
-      summary: summaryMsg,
-      verification: {
-        status: "verified",
-        detail: `${action.connector} API executed successfully using user OAuth credential token [${token.slice(0, 4)}...].`,
-      },
-      data: {
-        executedAt: new Date().toISOString(),
-        connector: action.connector,
-        action: action.action,
-        parameters,
-        status: "success",
-      },
-    };
+    throw new Error("Google Calendar did not return a verified events result.");
   }
 
   throw new Error(`The ${action.connector} connector does not implement '${action.action}' yet.`);

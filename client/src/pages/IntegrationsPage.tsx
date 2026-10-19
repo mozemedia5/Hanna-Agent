@@ -110,9 +110,26 @@ const categoryMap: Record<string, string[]> = {
 
 type IntegrationsPageProps = {
   onBack?: () => void;
+  onTryOut?: (prompt: string) => void;
 };
 
-export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
+const connectorPrompts: Record<string, string> = {
+  shopify: "Review my Shopify store’s products, orders, and inventory. Summarize the strongest opportunities and give me three prioritized actions based on the connected store data.",
+  "google-workspace": "Review my connected Google Workspace context and summarize the most relevant recent Drive files, email threads, and upcoming Calendar events. Cite the source for each finding.",
+  "google-drive": "Search my Google Drive for the most recently updated project documents and summarize the three most relevant files with links.",
+  "google-docs": "Find the latest project brief in my connected Google Drive and summarize its goals, decisions, and open questions with a link to the document.",
+  "google-sheets": "Find the most recently updated spreadsheet related to sales or operations and summarize its key metrics and notable changes with a link.",
+  "google-slides": "Find a recent presentation in my connected Google Drive and summarize its main points and next steps with a link.",
+  gmail: "Search my Gmail for recent unread messages that need a response. Summarize the top three and draft replies without sending them.",
+  "google-calendar": "Review my upcoming Google Calendar events for the next seven days and summarize the schedule, conflicts, and preparation needed.",
+  github: "Review my connected GitHub repositories for open pull requests and issues. Summarize what needs attention and include the repository links.",
+};
+
+function getConnectorPrompt(integration: IntegrationDefinition): string {
+  return connectorPrompts[integration.id] ?? `Use my connected ${integration.name} account to show me the most useful available information, summarize what you find, and suggest the next practical action.`;
+}
+
+export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageProps) {
   const [activeTab, setActiveTab] = useState<"all" | "connected">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [connected, setConnected] = useState<string[]>([]);
@@ -217,8 +234,21 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
 
   const openModal = (integration: IntegrationDefinition) => {
     setActiveModal(integration);
-    setConnectionMode("oauth");
-    setFormInputs({});
+    const hasOAuth = ["shopify", "github", "gmail"].includes(integration.id) || integration.id.startsWith("google");
+    setConnectionMode(hasOAuth ? "oauth" : integration.credentialFields.length ? "key" : "mcp");
+    setFormInputs(integration.id === "shopify" && connectionAccounts[integration.id]
+      ? { storeDomain: connectionAccounts[integration.id] }
+      : {});
+  };
+
+  const tryConnector = (integration: IntegrationDefinition) => {
+    const prompt = getConnectorPrompt(integration);
+    if (onTryOut) {
+      setActiveModal(null);
+      onTryOut(prompt);
+      return;
+    }
+    setFormInputs(previous => ({ ...previous, samplePrompt: prompt }));
   };
 
   const handleConnect = async (integration: IntegrationDefinition) => {
@@ -245,6 +275,8 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
         const updated = connected.filter(id => id !== integrationId);
         syncConnectedStorage(updated);
         setToast(`${integrationName} disconnected`);
+      } else {
+        setToast(`Failed to disconnect ${integrationName}`);
       }
     } catch {
       setToast(`Failed to disconnect ${integrationName}`);
@@ -269,8 +301,16 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
           setTimeout(() => setToast(""), 3200);
           return;
         }
+        const shop = (formInputs.storeDomain || "").trim();
+        const normalizedShop = shop.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+        if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(normalizedShop)) {
+          setToast("Enter your store’s myshopify.com domain to continue.");
+          setTimeout(() => setToast(""), 3200);
+          return;
+        }
         const authorizeUrl = new URL("/api/oauth/shopify/authorize", window.location.origin);
         authorizeUrl.searchParams.set("id_token", token);
+        authorizeUrl.searchParams.set("shop", normalizedShop);
         window.location.href = authorizeUrl.toString();
         return;
       }
@@ -436,7 +476,7 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                     handleDisconnect(integration.id, integration.name);
                   }}
                 >
-                  <Check size={13} /> Connected
+                  Try it out
                 </button>
               </div>
             ))}
@@ -474,10 +514,11 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                     className="integration-card-action is-connected"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDisconnect(integration.id, integration.name);
+                      tryConnector(integration);
                     }}
+                    aria-label={`Try out ${integration.name}`}
                   >
-                    <Check size={13} /> Connected
+                    Try it out
                   </button>
                 ) : (
                   <button
@@ -593,9 +634,14 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               ) : (
                 <div className="connector-detail-empty-account">No account connected yet</div>
               )}
+              {connected.includes(activeModal.id) && (
+                <button type="button" className="connector-detail-add-account" onClick={() => tryConnector(activeModal)}>
+                  Try it out with a prepared prompt
+                </button>
+              )}
               {connected.includes(activeModal.id) && (activeModal.id === "shopify" || activeModal.id === "gmail" || activeModal.id.startsWith("google")) && (
                 <button type="button" className="connector-detail-add-account" onClick={handleOAuthConnect} disabled={saving}>
-                  <span aria-hidden="true">＋</span> {connected.includes(activeModal.id) ? "Connect another account" : `Connect ${activeModal.name}`}
+                  <span aria-hidden="true">＋</span> Connect another account
                 </button>
               )}
             </section>
@@ -604,8 +650,8 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
               <h4 id="connector-details-title">Details</h4>
               <div className="connector-detail-fact"><span>Connector Type</span><strong>App</strong></div>
               <div className="connector-detail-fact"><span>Author</span><strong>Hanna</strong></div>
-              <a className="connector-detail-fact" href={activeModal.id === "shopify" ? "https://www.shopify.com/" : "https://workspace.google.com/"} target="_blank" rel="noopener noreferrer"><span>Website</span><ExternalLink size={16} /></a>
-              <a className="connector-detail-fact" href={activeModal.id === "shopify" ? "https://www.shopify.com/legal/privacy" : "https://policies.google.com/privacy"} target="_blank" rel="noopener noreferrer"><span>Privacy Policy</span><ExternalLink size={16} /></a>
+              <a className="connector-detail-fact" href={activeModal.docUrl || "#"} target="_blank" rel="noopener noreferrer"><span>Website & documentation</span><ExternalLink size={16} /></a>
+              {(activeModal.id === "shopify" || activeModal.id.startsWith("google") || activeModal.id === "gmail") && <a className="connector-detail-fact" href={activeModal.id === "shopify" ? "https://www.shopify.com/legal/privacy" : "https://policies.google.com/privacy"} target="_blank" rel="noopener noreferrer"><span>Privacy Policy</span><ExternalLink size={16} /></a>}
             </section>
 
             {/* Account Info Bar if Connected */}
@@ -663,17 +709,30 @@ export default function IntegrationsPage({ onBack }: IntegrationsPageProps) {
                   {renderBrandIcon(activeModal.name, 28)}
                   <div>
                     <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600 }}>OAuth Authorization</h4>
-                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{activeModal.id === "shopify" ? "Continue to Shopify to select your store and approve access. Hanna will not ask you to type a store domain or API key." : "Continue to the provider’s official authorization page when OAuth is configured."}</span>
+                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{activeModal.id === "shopify" ? "Enter your Shopify myshopify.com domain, then review and approve the requested access on Shopify." : "Continue to the provider’s official authorization page and review the access Hanna is requesting."}</span>
                   </div>
                 </div>
+                {activeModal.id === "shopify" && (
+                  <label className="modal-field">
+                    <span className="modal-field-label">Shopify store domain</span>
+                    <input
+                      type="text"
+                      autoComplete="url"
+                      value={formInputs.storeDomain || ""}
+                      onChange={e => setFormInputs(previous => ({ ...previous, storeDomain: e.target.value }))}
+                      placeholder="your-store.myshopify.com"
+                      aria-label="Shopify store domain"
+                    />
+                  </label>
+                )}
                 {(["shopify", "github", "gmail", "google-workspace", "google-drive", "google-docs", "google-sheets", "google-slides", "google-calendar"] as string[]).includes(activeModal.id) ? (
                   <Button
-                    onClick={handleOAuthConnect}
-                    disabled={saving}
+                    onClick={() => connected.includes(activeModal.id) ? tryConnector(activeModal) : void handleOAuthConnect()}
+                    disabled={saving || (activeModal.id === "shopify" && !connected.includes(activeModal.id) && !formInputs.storeDomain?.trim())}
                     className="w-full"
                     style={{ background: "var(--gemini-accent)", color: "var(--ink-contrast)", fontWeight: 600 }}
                   >
-                    {saving ? "Redirecting to authorize..." : ["shopify", "gmail"].includes(activeModal.id) || activeModal.id.startsWith("google") ? "Try it out" : `Connect ${activeModal.name} with OAuth`}
+                    {saving ? "Redirecting to authorize..." : connected.includes(activeModal.id) ? "Reconnect account" : "Connect"}
                   </Button>
                 ) : (
                   <p role="status" style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>

@@ -7,7 +7,7 @@ import { resolveProviderAndModel } from "../server/aiConfig";
 describe("Provider Architecture & Fallback Unit Tests", () => {
   it("classifies Gemini quota and rate limit errors correctly as fallback-eligible", () => {
     const quotaErr = new GeminiProviderError({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.6-flash",
       errorCode: "GEMINI_QUOTA_EXCEEDED",
       message: "Resource quota exhausted",
       status: 429,

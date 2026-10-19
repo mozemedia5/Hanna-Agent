@@ -34,7 +34,7 @@ describe("Schedule Task Production Architecture & Security Tests", () => {
   beforeEach(async () => {
     clearInMemoryTasksForTest();
     process.env.GEMINI_API_KEY = "test_gemini_prod_key_12345";
-    process.env.GEMINI_MODEL = "gemini-3.5-flash";
+    process.env.GEMINI_MODEL = "gemini-3.6-flash";
 
     await new Promise<void>(resolve => {
       server = app.listen(0, "127.0.0.1", () => {

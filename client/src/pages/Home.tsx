@@ -1583,7 +1583,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     let content: React.ReactNode;
     switch (currentPage) {
       case "settings": content = <SettingsPage theme={theme} onThemeChange={handleThemeChange} onBack={handleBack} />; break;
-      case "integrations": content = <IntegrationsPage onBack={handleBack} />; break;
+      case "integrations": content = <IntegrationsPage onBack={handleBack} onTryOut={useSuggestion} />; break;
       case "notifications": content = <NotificationsPage onBack={handleBack} />; break;
       case "profile": content = <ProfilePage onLogout={() => setShowLogoutDialog(true)} onNavigateToSettings={() => navigate("settings")} onNavigateToUpgrade={() => navigate("upgrade")} onNavigateToUsage={() => navigate("usage")} onBack={handleBack} />; break;
       case "upgrade": content = <UpgradePage onBack={handleBack} />; break;

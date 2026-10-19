@@ -298,32 +298,56 @@ describe("authenticated Shopify and Slack connectors", () => {
         }
       )
     ).rejects.toThrow("does not implement");
+
+    await expect(executeConnectorAction(
+      { connector: "vercel", values: { accessToken: "token" } },
+      { connector: "vercel", action: "deployments_list", parameters: {} }
+    )).rejects.toThrow("does not implement");
   });
 
-  it("executes Google Workspace, Gmail, and Google Calendar MCP actions successfully", async () => {
-    const driveResult = await executeConnectorAction(
+  it("uses real authenticated GitHub API results for the prepared repository overview", async () => {
+    const fetcher = vi.fn(async (url: string) => {
+      if (url.includes("/user/repos")) {
+        return new Response(JSON.stringify([{ full_name: "moze/Hanna-Agent", html_url: "https://github.com/moze/Hanna-Agent", updated_at: "2026-10-19T00:00:00Z" }]), { status: 200 });
+      }
+      if (url.includes("/issues?")) {
+        return new Response(JSON.stringify([{ number: 4, title: "Fix OAuth", html_url: "https://github.com/moze/Hanna-Agent/issues/4", labels: [], created_at: "2026-10-18T00:00:00Z" }]), { status: 200 });
+      }
+      if (url.includes("/pulls?")) {
+        return new Response(JSON.stringify([{ number: 5, title: "Improve connector page", html_url: "https://github.com/moze/Hanna-Agent/pull/5", updated_at: "2026-10-19T00:00:00Z", draft: false }]), { status: 200 });
+      }
+      return new Response("Not found", { status: 404 });
+    });
+    const result = await executeConnectorAction(
+      { connector: "github", values: { access_token: "github-live-token" } },
+      { connector: "github", action: "github_overview", parameters: { repositoryCount: 1 } },
+      fetcher as typeof fetch
+    );
+    expect(result.verification.status).toBe("verified");
+    expect(result.summary).toContain("1 GitHub repositories");
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect((result.data as any).repositories[0].openIssues[0].title).toBe("Fix OAuth");
+    expect((result.data as any).repositories[0].openPullRequests[0].title).toBe("Improve connector page");
+  });
+
+  it("does not claim Google Workspace, Gmail, or Calendar success without an authenticated API response", async () => {
+    await expect(executeConnectorAction(
       { connector: "google-workspace", values: { connectionMode: "oauth", account: "user@workspace.com" } },
       { connector: "google-workspace", action: "drive_search", parameters: { query: "Strategy" } }
-    );
-    expect(driveResult.verification.status).toBe("verified");
-    expect(driveResult.summary).toContain("executed successfully");
+    )).rejects.toThrow("not connected");
 
-    const gmailResult = await executeConnectorAction(
+    await expect(executeConnectorAction(
       { connector: "gmail", values: { connectionMode: "oauth", account: "user@gmail.com" } },
-      { connector: "gmail", action: "mail_send", parameters: { to: "lead@client.com", subject: "Proposal", body: "Hello" } }
-    );
-    expect(gmailResult.verification.status).toBe("verified");
-    expect(gmailResult.summary).toContain("Drafted and sent email");
+      { connector: "gmail", action: "mail_search", parameters: { query: "is:unread" } }
+    )).rejects.toThrow("not connected");
 
-    const calResult = await executeConnectorAction(
+    await expect(executeConnectorAction(
       { connector: "google-calendar", values: { connectionMode: "oauth", account: "user@gmail.com" } },
       { connector: "google-calendar", action: "calendar_read", parameters: {} }
-    );
-    expect(calResult.verification.status).toBe("verified");
-    expect(calResult.summary).toContain("Checked Google Calendar");
+    )).rejects.toThrow("not connected");
   });
 
-  it("verifies Google OAuth state correctly and supports fallback credential lookup across Google family", async () => {
+  it("verifies Google OAuth state and isolates each Google service credential", async () => {
     const state = generateOAuthState("user123", "google");
     const verified = verifyOAuthState(state, "google");
     expect(verified.valid).toBe(true);
@@ -334,8 +358,9 @@ describe("authenticated Shopify and Slack connectors", () => {
       is_connected: "true",
     });
 
+    expect(await getConnectorCredential("user123", "gmail")).toBeUndefined();
+    await saveConnectorCredential("user123", "gmail", { access_token: "gmail_token_456", is_connected: "true" });
     const gmailCred = await getConnectorCredential("user123", "gmail");
-    expect(gmailCred).toBeDefined();
-    expect(gmailCred?.values.access_token).toBe("test_access_token_123");
+    expect(gmailCred?.values.access_token).toBe("gmail_token_456");
   });
 });

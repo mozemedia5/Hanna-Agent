@@ -22,7 +22,9 @@ export async function performAiHealthCheck(options?: {
 }): Promise<AiHealthReport> {
   const geminiKey = (process.env.GEMINI_API_KEY || "").trim();
   const geminiModel = (process.env.GEMINI_MODEL || "").trim();
-  const configuredModel = geminiModel || DEFAULT_AI_MODEL;
+  const configuredModel = geminiModel && geminiModel.toLowerCase() !== "gemini-3.5-flash"
+    ? geminiModel
+    : DEFAULT_AI_MODEL;
 
   const requestedInput = options?.model || options?.provider;
   const resolved = resolveProviderAndModel(requestedInput);

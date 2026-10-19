@@ -80,11 +80,12 @@ const REAL_CONNECTOR_TOOLS: AgentConnectorTool[] = [
   { connector: "shopify", action: "update_product_title", description: "Update a Shopify product title after explicit user confirmation.", parameters: { type: "object", properties: { productId: { type: "string" }, title: { type: "string" } }, required: ["productId", "title"] }, requiresApproval: true },
   { connector: "slack", action: "list_channels", description: "List channels from the connected Slack workspace.", parameters: { type: "object", properties: { limit: { type: "number" } } }, requiresApproval: false },
   { connector: "slack", action: "send_message", description: "Send a Slack message after explicit user confirmation.", parameters: { type: "object", properties: { channel: { type: "string" }, text: { type: "string" }, threadTs: { type: "string" } }, required: ["channel", "text"] }, requiresApproval: true },
-  { connector: "google-workspace", action: "workspace_search", description: "Search across Google Workspace files, documents, sheets, and calendar.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or item title" } } }, requiresApproval: false },
-  { connector: "google-drive", action: "drive_search", description: "Search, organize, and manage files in Google Drive.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or file name" } } }, requiresApproval: false },
-  { connector: "google-docs", action: "docs_read", description: "Read, edit, or summarize document content in Google Docs.", parameters: { type: "object", properties: { title: { type: "string", description: "Document title or ID" } } }, requiresApproval: false },
+  { connector: "github", action: "github_overview", description: "Review the most recently updated repositories, open issues, and pull requests available to the connected GitHub account.", parameters: { type: "object", properties: { repositoryCount: { type: "number", description: "Number of recently updated repositories to review (maximum 5)." } } }, requiresApproval: false },
+  { connector: "google-workspace", action: "workspace_search", description: "Search live Google Drive file metadata for relevant Workspace documents and spreadsheets.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or item title" } } }, requiresApproval: false },
+  { connector: "google-drive", action: "drive_search", description: "Search live Google Drive file metadata and return available file links.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or file name" } } }, requiresApproval: false },
+  { connector: "google-docs", action: "docs_read", description: "Find and read the text content of a Google Doc.", parameters: { type: "object", properties: { title: { type: "string", description: "Document title or ID" } } }, requiresApproval: false },
   { connector: "google-sheets", action: "sheets_analyze", description: "Query and analyze tabular data rows in Google Sheets.", parameters: { type: "object", properties: { query: { type: "string", description: "Spreadsheet query or tab name" } } }, requiresApproval: false },
-  { connector: "google-slides", action: "slides_read", description: "Retrieve presentation deck slides and speaker notes in Google Slides.", parameters: { type: "object", properties: { title: { type: "string", description: "Presentation title" } } }, requiresApproval: false },
+  { connector: "google-slides", action: "slides_read", description: "Find a Google Slides presentation and retrieve its visible text content.", parameters: { type: "object", properties: { title: { type: "string", description: "Presentation title" } } }, requiresApproval: false },
   { connector: "google-ads", action: "ads_campaigns", description: "Fetch campaign metrics and performance reporting from Google Ads.", parameters: { type: "object", properties: { query: { type: "string", description: "Campaign name or date range" } } }, requiresApproval: false },
   { connector: "gmail", action: "mail_search", description: "Find relevant emails and threads in Gmail.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or sender filter" } } }, requiresApproval: false },
   { connector: "gmail", action: "mail_send", description: "Draft and send an email response via Gmail.", parameters: { type: "object", properties: { to: { type: "string", description: "Recipient email address" }, subject: { type: "string", description: "Email subject line" }, body: { type: "string", description: "Email body text" } }, required: ["to", "subject", "body"] }, requiresApproval: true },
@@ -236,7 +237,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       const waitingForConfirmation = execution.status === "waiting_for_confirmation";
       if (execution.status === "failed" || !execution.response) {
         throw new GeminiProviderError({
-          model: provider.model || "gemini-3.5-flash",
+          model: provider.model || "gemini-3.6-flash",
           errorCode: "AGENT_EXECUTION_FAILED",
           message: "Hanna agentic workflow could not complete.",
         });
@@ -265,7 +266,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       }
       const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna agentic execution failed.";
       throw new GeminiProviderError({
-        model: requestedModel || "gemini-3.5-flash",
+        model: requestedModel || "gemini-3.6-flash",
         errorCode: "AI_ERROR",
         message: msg,
       });
@@ -368,7 +369,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
     }
     const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna request failed.";
     throw new GeminiProviderError({
-      model: requestedModel || "gemini-3.5-flash",
+      model: requestedModel || "gemini-3.6-flash",
       errorCode: "AI_ERROR",
       message: msg,
     });

@@ -41,7 +41,7 @@ const codeSnippets = {
 
 const hanna = new HannaClient({
   apiKey: process.env.HANNA_API_KEY,
-  model: "gemini-3.5-flash",
+  model: "gemini-3.6-flash",
 });
 
 // Stream intelligent multimodal reasoning
@@ -58,7 +58,7 @@ for await (const chunk of response) {
 
 client = HannaClient(
     api_key="hn_live_9f82d1c7a304e2",
-    model="gemini-3.5-flash"
+    model="gemini-3.6-flash"
 )
 
 # Execute structured agent workflow with native tools
@@ -73,7 +73,7 @@ print(f"Status: {response.status} | Output: {response.text}")`,
   -H "Authorization: Bearer $HANNA_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gemini-3.5-flash",
+    "model": "gemini-3.6-flash",
     "messages": [{"role": "user", "content": "Explain agentic routing"}],
     "temperature": 0.3
   }'`,
@@ -213,7 +213,7 @@ export default function LandingPage() {
             <Sparkles size={14} className="sparkle-icon" />
             <span>Next-Generation Intelligence</span>
             <span className="badge-dot" />
-            <span className="badge-text-dim">Gemini 3.5 Flash</span>
+            <span className="badge-text-dim">Gemini 3.6 Flash</span>
           </div>
         </div>
 
@@ -328,7 +328,7 @@ export default function LandingPage() {
 
                         <div className="mock-response-stream">
                           <div className="stream-badge">
-                            <Zap size={12} /> Gemini 3.5 Flash · 84ms latency
+                            <Zap size={12} /> Gemini 3.6 Flash · 84ms latency
                           </div>
                           <div className="stream-code-preview">
                             <span className="code-line">
@@ -387,7 +387,7 @@ export default function LandingPage() {
                   <div className="interactive-demo-card">
                     <div className="demo-input-header">
                       <span className="demo-label">LIVE PROMPT PLAYGROUND</span>
-                      <span className="demo-model-badge">Gemini 3.5 Flash</span>
+                      <span className="demo-model-badge">Gemini 3.6 Flash</span>
                     </div>
 
                     <div className="demo-input-box">
@@ -597,7 +597,7 @@ export default function LandingPage() {
                 onClick={() => setSelectedModel("gemini-3.5")}
               >
                 <div>
-                  <strong>Gemini 3.5 Flash</strong>
+                  <strong>Gemini 3.6 Flash</strong>
                   <span>Next-gen speed &amp; reasoning</span>
                 </div>
                 <span className="latency-tag">&lt; 90ms</span>

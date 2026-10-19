@@ -266,7 +266,8 @@ export async function listConnectorCredentials(
 
 async function ensureFreshGoogleToken(
   canonicalUserId: string,
-  credential: ConnectorCredential
+  credential: ConnectorCredential,
+  connector: ConnectorId
 ): Promise<ConnectorCredential> {
   const { access_token, refresh_token, obtained_at, expires_in } = credential.values;
   if (!access_token || !refresh_token) return credential;
@@ -314,9 +315,7 @@ async function ensureFreshGoogleToken(
         ...(tokenData.refresh_token ? { refresh_token: tokenData.refresh_token } : {}),
       };
 
-      for (const googleConn of GOOGLE_FAMILY) {
-        await saveConnectorCredentialInternal(canonicalUserId, googleConn, newValues);
-      }
+      await saveConnectorCredentialInternal(canonicalUserId, connector, newValues);
 
       return {
         connector: credential.connector,
@@ -336,9 +335,9 @@ export async function getConnectorCredential(
 ): Promise<ConnectorCredential | undefined> {
   const canonicalUserId = await resolveCanonicalUserId(userId);
   const isGoogle = GOOGLE_FAMILY.includes(connector);
-  const connectorsToTry = isGoogle
-    ? [connector, ...GOOGLE_FAMILY.filter(c => c !== connector)]
-    : [connector];
+  // Google services have separate connection records so disconnecting one service
+  // cannot silently fall back to another service's credential.
+  const connectorsToTry = [connector];
 
   const firestore = (await import("./firestore")).getAdminFirestore();
   let foundCred: ConnectorCredential | undefined;
@@ -385,8 +384,12 @@ export async function getConnectorCredential(
     }
   }
 
+  if (foundCred && !credentialIsConnected(connector, foundCred.values)) {
+    return undefined;
+  }
+
   if (foundCred && isGoogle && foundCred.values.refresh_token) {
-    foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred);
+    foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred, connector);
   }
 
   if (foundCred && foundCred.connector === "shopify" && (foundCred.values.refreshToken || foundCred.values.refresh_token)) {

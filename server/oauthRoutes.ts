@@ -131,7 +131,9 @@ export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: Expre
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/documents.readonly",
     "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/presentations.readonly",
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/calendar.events",
   ].join(" ");
 
@@ -261,8 +263,22 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
       "google-calendar",
     ] as const;
 
+    const grantedScopes = new Set(String(tokenData.scope || "").split(/\s+/).filter(Boolean));
+    const requiredScopes: Record<(typeof googleConnectors)[number], string[]> = {
+      "google-workspace": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/documents.readonly", "https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/presentations.readonly", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/calendar.events"],
+      "gmail": ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
+      "google-drive": ["https://www.googleapis.com/auth/drive.readonly"],
+      "google-docs": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/documents.readonly"],
+      "google-sheets": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/spreadsheets.readonly"],
+      "google-slides": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/presentations.readonly"],
+      "google-calendar": ["https://www.googleapis.com/auth/calendar.events"],
+    };
     const nowIso = new Date().toISOString();
     for (const connectorId of googleConnectors) {
+      const required = requiredScopes[connectorId];
+      const connected = connectorId === "google-workspace"
+        ? Object.values(requiredScopes).flat().some(scope => grantedScopes.has(scope))
+        : required.every(scope => grantedScopes.has(scope));
       await saveConnectorCredential(canonicalUserId, connectorId, {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -271,8 +287,9 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
         obtained_at: String(Date.now()),
         account: googleEmail || "authorized_google_account",
         google_user_id: googleSub,
-        is_connected: "true",
-        verified: "true",
+        granted_scopes: String(tokenData.scope || ""),
+        is_connected: String(connected),
+        verified: String(connected),
         last_verified_at: nowIso,
       });
     }
@@ -359,7 +376,7 @@ export async function handleGitHubOAuthCallback(req: ExpressRequest, res: Expres
 
   const canonicalUserId = await resolveCanonicalUserId(stateUserId);
 
-  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_SECRET;
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_OAUTH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {

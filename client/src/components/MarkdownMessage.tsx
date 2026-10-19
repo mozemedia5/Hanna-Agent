@@ -64,7 +64,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
       imagePrompt: `futuristic tech workspace workflow visual for ${slideTopic}, photorealistic 8k, blue accent lighting, professional composition`,
       bullets: [
         "Multi-channel connector integration (Shopify, Meta, Google Workspace)",
-        "Sub-100ms reasoning loop powered by Gemini 3.5 Flash",
+        "Sub-100ms reasoning loop powered by Gemini 3.6 Flash",
         "Automated campaign execution and inventory sync",
       ],
       notes: "Speaker Notes: Walk through system architecture and connector bindings.",

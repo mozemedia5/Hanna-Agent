@@ -11,7 +11,7 @@ var __export = (target, all) => {
 // server/aiConfig.ts
 function resolveProviderAndModel(requestedModelOrProvider) {
   const envModel = (process.env.GEMINI_MODEL || "").trim();
-  const effectiveDefaultModel = envModel || DEFAULT_AI_MODEL;
+  const effectiveDefaultModel = envModel && envModel.toLowerCase() !== "gemini-3.5-flash" ? envModel : DEFAULT_AI_MODEL;
   if (!requestedModelOrProvider || !requestedModelOrProvider.trim()) {
     return {
       provider: DEFAULT_AI_PROVIDER,
@@ -52,7 +52,7 @@ function resolveProviderAndModel(requestedModelOrProvider) {
   if (lower.includes("gemini")) {
     let modelName = effectiveDefaultModel;
     if (input.startsWith("gemini-")) {
-      modelName = input;
+      modelName = input.toLowerCase() === "gemini-3.5-flash" ? DEFAULT_AI_MODEL : input;
     } else {
       modelName = DEFAULT_AI_MODEL;
     }
@@ -113,7 +113,7 @@ var init_aiConfig = __esm({
   "server/aiConfig.ts"() {
     "use strict";
     DEFAULT_AI_PROVIDER = "gemini";
-    DEFAULT_AI_MODEL = "gemini-3.5-flash";
+    DEFAULT_AI_MODEL = "gemini-3.6-flash";
   }
 });
 
@@ -121,7 +121,7 @@ var init_aiConfig = __esm({
 import crypto from "node:crypto";
 function getEffectiveGeminiModel(requestedModel) {
   const envModel = (process.env.GEMINI_MODEL || "").trim();
-  const baseModel = envModel || DEFAULT_GEMINI_MODEL;
+  const baseModel = envModel && envModel.toLowerCase() !== "gemini-3.5-flash" ? envModel : DEFAULT_GEMINI_MODEL;
   if (!requestedModel || !requestedModel.trim()) {
     return baseModel;
   }
@@ -131,7 +131,7 @@ function getEffectiveGeminiModel(requestedModel) {
   }
   if (clean.includes("gemini")) {
     if (clean.startsWith("gemini-")) {
-      return clean;
+      return clean === "gemini-3.5-flash" ? DEFAULT_GEMINI_MODEL : clean;
     }
     return DEFAULT_GEMINI_MODEL;
   }
@@ -148,7 +148,7 @@ function classifyHttpStatus(status) {
     case 401:
       return { errorCode: "GEMINI_401", retryable: false, message: "Gemini API authentication failed. Check server API key." };
     case 403:
-      return { errorCode: "GEMINI_403", retryable: false, message: "Access forbidden by Gemini API. Check API key permissions." };
+      return { errorCode: "GEMINI_403", retryable: false, message: "Gemini rejected this API key (403). Check that it is active, its restrictions allow the Gemini API, and the API is enabled for its Google Cloud project. Replace it if Google reports it as blocked or leaked." };
     case 404:
       return { errorCode: "GEMINI_404", retryable: false, message: "Configured Gemini model or endpoint not found (404)." };
     case 408:
@@ -172,6 +172,10 @@ function classifyHttpStatus(status) {
 }
 async function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function retryDelayMs(attempt) {
+  const exponential = Math.min(1e3 * 2 ** (attempt - 1), 8e3);
+  return Math.round(exponential * (0.75 + Math.random() * 0.5));
 }
 function buildGeminiRequestBody(options) {
   const contents = [];
@@ -246,7 +250,7 @@ async function generateGeminiContent(options) {
         });
         if (classification.retryable && attempt < maxAttempts) {
           lastError = providerErr;
-          await delay(attempt === 1 ? 500 : 1e3);
+          await delay(retryDelayMs(attempt));
           continue;
         }
         throw providerErr;
@@ -283,7 +287,7 @@ async function generateGeminiContent(options) {
         if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
           lastError = err;
           if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
-            await delay(attempt === 1 ? 500 : 1e3);
+            await delay(retryDelayMs(attempt));
             continue;
           }
         }
@@ -300,7 +304,7 @@ async function generateGeminiContent(options) {
         );
         if (attempt < maxAttempts) {
           lastError = timeoutErr;
-          await delay(attempt === 1 ? 500 : 1e3);
+          await delay(retryDelayMs(attempt));
           continue;
         }
         throw timeoutErr;
@@ -316,7 +320,7 @@ async function generateGeminiContent(options) {
       );
       if (attempt < maxAttempts) {
         lastError = networkErr;
-        await delay(attempt === 1 ? 500 : 1e3);
+        await delay(retryDelayMs(attempt));
         continue;
       }
       throw networkErr;
@@ -373,7 +377,7 @@ async function streamGeminiContent(options, onChunk) {
         });
         if (classification.retryable && attempt < maxAttempts) {
           lastError = providerErr;
-          await delay(attempt === 1 ? 500 : 1e3);
+          await delay(retryDelayMs(attempt));
           continue;
         }
         throw providerErr;
@@ -430,7 +434,7 @@ async function streamGeminiContent(options, onChunk) {
         if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
           lastError = err;
           if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
-            await delay(attempt === 1 ? 500 : 1e3);
+            await delay(retryDelayMs(attempt));
             continue;
           }
         }
@@ -447,7 +451,7 @@ async function streamGeminiContent(options, onChunk) {
         );
         if (attempt < maxAttempts) {
           lastError = timeoutErr;
-          await delay(attempt === 1 ? 500 : 1e3);
+          await delay(retryDelayMs(attempt));
           continue;
         }
         throw timeoutErr;
@@ -463,7 +467,7 @@ async function streamGeminiContent(options, onChunk) {
       );
       if (attempt < maxAttempts) {
         lastError = networkErr;
-        await delay(attempt === 1 ? 500 : 1e3);
+        await delay(retryDelayMs(attempt));
         continue;
       }
       throw networkErr;
@@ -520,7 +524,7 @@ async function invokeGeminiToolTurn(options) {
         });
         if (classification.retryable && attempt < maxAttempts) {
           lastError = providerErr;
-          await delay(attempt === 1 ? 500 : 1e3);
+          await delay(retryDelayMs(attempt));
           continue;
         }
         throw providerErr;
@@ -574,7 +578,7 @@ async function invokeGeminiToolTurn(options) {
         if (!err.status || err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429" || err.errorCode === "GEMINI_TIMEOUT") {
           lastError = err;
           if (attempt < maxAttempts && (err.errorCode === "GEMINI_503" || err.errorCode === "GEMINI_429")) {
-            await delay(attempt === 1 ? 500 : 1e3);
+            await delay(retryDelayMs(attempt));
             continue;
           }
         }
@@ -591,7 +595,7 @@ async function invokeGeminiToolTurn(options) {
         );
         if (attempt < maxAttempts) {
           lastError = timeoutErr;
-          await delay(attempt === 1 ? 500 : 1e3);
+          await delay(retryDelayMs(attempt));
           continue;
         }
         throw timeoutErr;
@@ -607,7 +611,7 @@ async function invokeGeminiToolTurn(options) {
       );
       if (attempt < maxAttempts) {
         lastError = networkErr;
-        await delay(attempt === 1 ? 500 : 1e3);
+        await delay(retryDelayMs(attempt));
         continue;
       }
       throw networkErr;
@@ -644,11 +648,12 @@ var init_geminiService = __esm({
           provider: "gemini",
           model: this.model,
           errorCode: this.errorCode,
-          message: this.message
+          message: this.message,
+          ...this.details ? { details: sanitizeErrorText(this.details) } : {}
         };
       }
     };
-    DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
+    DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
   }
 });
 
@@ -1555,7 +1560,7 @@ var init_providerDb = __esm({
 async function performAiHealthCheck(options) {
   const geminiKey = (process.env.GEMINI_API_KEY || "").trim();
   const geminiModel = (process.env.GEMINI_MODEL || "").trim();
-  const configuredModel = geminiModel || DEFAULT_AI_MODEL;
+  const configuredModel = geminiModel && geminiModel.toLowerCase() !== "gemini-3.5-flash" ? geminiModel : DEFAULT_AI_MODEL;
   const requestedInput = options?.model || options?.provider;
   const resolved = resolveProviderAndModel(requestedInput);
   const buildReport = (status, details) => ({
@@ -3101,146 +3106,139 @@ async function executeConnectorAction(credential, action, fetcher = fetch) {
       data: { channel: result.channel, ts: result.ts }
     };
   }
-  if (action.connector === "google-slides") {
+  if (action.connector === "github" && action.action === "github_overview") {
+    const token = credential.values.access_token || credential.values.oauthToken || "";
+    if (!token) throw new Error("GitHub is not connected. Reconnect GitHub and authorize repository access.");
+    const apiGet = async (url) => {
+      const response = await fetcher(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "Hanna-Agent"
+        }
+      });
+      if (!response.ok) throw new Error(safeError(response.status, "GitHub"));
+      return response.json();
+    };
     const parameters = action.parameters;
-    const title = String(parameters.title || parameters.query || "Presentation Deck");
-    const presentationId = `presentation_${Date.now()}`;
-    const slidesUrl = `https://docs.google.com/presentation/d/${presentationId}/edit`;
+    const limit = Math.min(Math.max(Number(parameters.repositoryCount ?? 5), 1), 5);
+    const repositories = await apiGet(`https://api.github.com/user/repos?sort=updated&per_page=${limit}&type=owner`);
+    const overview = await Promise.all(repositories.map(async (repo) => {
+      const repoPath = String(repo.full_name).split("/").map(encodeURIComponent).join("/");
+      const [issues, pullRequests] = await Promise.all([
+        apiGet(`https://api.github.com/repos/${repoPath}/issues?state=open&per_page=10`),
+        apiGet(`https://api.github.com/repos/${repoPath}/pulls?state=open&per_page=10`)
+      ]);
+      return {
+        name: repo.full_name,
+        description: repo.description,
+        url: repo.html_url,
+        updatedAt: repo.updated_at,
+        openIssues: issues.filter((issue) => !issue.pull_request).map((issue) => ({ number: issue.number, title: issue.title, url: issue.html_url, createdAt: issue.created_at, labels: issue.labels?.map((label) => label.name) ?? [] })),
+        openPullRequests: pullRequests.map((pr) => ({ number: pr.number, title: pr.title, url: pr.html_url, updatedAt: pr.updated_at, draft: pr.draft }))
+      };
+    }));
     return {
-      connector: "google-slides",
+      connector: "github",
       action: action.action,
-      summary: `Successfully created Google Slides presentation: "${title}".`,
-      verification: {
-        status: "verified",
-        detail: "Google Slides API / MCP adapter generated functional presentation deck."
-      },
-      data: {
-        presentationId,
-        title,
-        slidesUrl,
-        slidesCount: 5,
-        slides: [
-          {
-            slideNumber: 1,
-            title,
-            layout: "TITLE",
-            bullets: [
-              "Executive Overview & Strategic Brief",
-              "Prepared by Hanna AI Agent Workspace",
-              "Confidential & Workspace Synchronized"
-            ],
-            speakerNotes: "Welcome stakeholders and outline meeting objectives."
-          },
-          {
-            slideNumber: 2,
-            title: "Market Background & Opportunity",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Current industry trends & customer demand drivers",
-              "Key pain points addressed by product strategy",
-              "Target addressable market & competitive differentiation"
-            ],
-            speakerNotes: "Highlight market growth and user demand validation."
-          },
-          {
-            slideNumber: 3,
-            title: "Core Architecture & Workflow Strategy",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Automated store operations & inventory synchronization",
-              "Multi-channel marketing campaign orchestration",
-              "Sub-100ms reasoning loop with Gemini Flash"
-            ],
-            speakerNotes: "Explain execution architecture and cross-functional tooling."
-          },
-          {
-            slideNumber: 4,
-            title: "Key Performance Indicators & Financial ROAS",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Projected conversion lift: +24% YoY",
-              "Customer acquisition cost optimization",
-              "Automated retention and cart recovery benchmarks"
-            ],
-            speakerNotes: "Emphasize high ROI and financial milestones."
-          },
-          {
-            slideNumber: 5,
-            title: "Immediate Action Items & Roadmap",
-            layout: "TITLE_AND_BODY",
-            bullets: [
-              "Step 1: Connect workspace extensions & store credentials",
-              "Step 2: Deploy initial automated campaign workflows",
-              "Step 3: Schedule weekly analytics and performance reviews"
-            ],
-            speakerNotes: "Conclude with next steps and assign team deliverables."
-          }
-        ]
-      }
+      summary: `Reviewed ${overview.length} GitHub repositories with live issue and pull-request data.`,
+      verification: { status: "verified", detail: "GitHub API returned the account's repositories, issues, and pull requests." },
+      data: { repositories: overview, total: overview.length }
     };
   }
-  if (action.connector === "google-workspace" || action.connector === "google-drive" || action.connector === "google-docs" || action.connector === "google-sheets" || action.connector === "google-ads") {
+  if (action.connector === "google-slides") {
+    const accessToken = credential.values.access_token;
+    if (!accessToken) throw new Error("Google Slides is not connected. Reconnect Google and grant presentation read access.");
     const parameters = action.parameters;
-    const query = String(parameters.query ?? parameters.q ?? parameters.title ?? "");
-    if (credential.values.access_token) {
-      try {
-        const driveUrl = new URL("https://www.googleapis.com/drive/v3/files");
-        driveUrl.searchParams.set("pageSize", "10");
-        driveUrl.searchParams.set("fields", "files(id, name, mimeType, webViewLink, modifiedTime, size)");
-        if (query) {
-          driveUrl.searchParams.set("q", `name contains '${query.replace(/'/g, "\\'")}' or fullText contains '${query.replace(/'/g, "\\'")}'`);
+    const query = String(parameters.query ?? parameters.title ?? "").trim();
+    const driveUrl = new URL("https://www.googleapis.com/drive/v3/files");
+    driveUrl.searchParams.set("pageSize", "10");
+    driveUrl.searchParams.set("orderBy", "modifiedTime desc");
+    driveUrl.searchParams.set("fields", "files(id,name,mimeType,webViewLink,modifiedTime)");
+    const clauses = ["mimeType = 'application/vnd.google-apps.presentation'", "trashed = false"];
+    if (query) clauses.push(`name contains '${query.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`);
+    driveUrl.searchParams.set("q", clauses.join(" and "));
+    const driveResponse = await fetcher(driveUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!driveResponse.ok) throw new Error(safeError(driveResponse.status, "Google Drive"));
+    const driveData = await driveResponse.json();
+    const file = driveData.files?.[0];
+    if (!file) {
+      return { connector: "google-slides", action: action.action, summary: "No matching Google Slides presentations were found.", verification: { status: "verified", detail: "Google Drive returned no matching presentation files." }, data: { presentations: [] } };
+    }
+    const slidesResponse = await fetcher(`https://slides.googleapis.com/v1/presentations/${encodeURIComponent(file.id)}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!slidesResponse.ok) throw new Error(safeError(slidesResponse.status, "Google Slides"));
+    const presentation = await slidesResponse.json();
+    const slides = (presentation.slides ?? []).map((slide, index) => ({
+      slideNumber: index + 1,
+      text: (slide.pageElements ?? []).flatMap((element) => element.shape?.text?.textElements ?? []).map((element) => element.textRun?.content ?? "").join("").trim()
+    }));
+    return { connector: "google-slides", action: action.action, summary: `Retrieved ${slides.length} slide(s) from \u201C${presentation.title || file.name}\u201D.`, verification: { status: "verified", detail: "Google Slides API returned the presentation content." }, data: { presentationId: presentation.presentationId || file.id, title: presentation.title || file.name, url: file.webViewLink, slides } };
+  }
+  if (["google-workspace", "google-drive", "google-docs", "google-sheets"].includes(action.connector)) {
+    const accessToken = credential.values.access_token;
+    if (!accessToken) throw new Error(`${action.connector} is not connected. Connect the matching Google service first.`);
+    const parameters = action.parameters;
+    const query = String(parameters.query ?? parameters.q ?? parameters.title ?? "").trim();
+    const driveUrl = new URL("https://www.googleapis.com/drive/v3/files");
+    driveUrl.searchParams.set("pageSize", "10");
+    driveUrl.searchParams.set("orderBy", "modifiedTime desc");
+    driveUrl.searchParams.set("fields", "files(id,name,mimeType,webViewLink,modifiedTime,size)");
+    const mimeType = action.connector === "google-docs" ? "application/vnd.google-apps.document" : action.connector === "google-sheets" ? "application/vnd.google-apps.spreadsheet" : "";
+    const clauses = ["trashed = false"];
+    if (mimeType) clauses.push(`mimeType = '${mimeType}'`);
+    if (query) clauses.push(`name contains '${query.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`);
+    driveUrl.searchParams.set("q", clauses.join(" and "));
+    const driveResponse = await fetcher(driveUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!driveResponse.ok) throw new Error(safeError(driveResponse.status, "Google Drive"));
+    const driveData = await driveResponse.json();
+    const files = driveData.files ?? [];
+    if (action.connector === "google-docs" && action.action === "docs_read" && files[0]) {
+      const docResponse = await fetcher(`https://docs.googleapis.com/v1/documents/${encodeURIComponent(files[0].id)}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!docResponse.ok) throw new Error(safeError(docResponse.status, "Google Docs"));
+      const doc = await docResponse.json();
+      const textParts = [];
+      const collectText = (value) => {
+        if (!value || typeof value !== "object") return;
+        if (Array.isArray(value)) {
+          value.forEach(collectText);
+          return;
         }
-        const res = await fetcher(driveUrl.toString(), {
-          headers: { Authorization: `Bearer ${credential.values.access_token}` }
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const files = json.files || [];
-          return {
-            connector: action.connector,
-            action: action.action,
-            summary: `Retrieved ${files.length} ${action.connector} item(s)${query ? ` matching '${query}'` : ""}.`,
-            verification: {
-              status: "verified",
-              detail: `${action.connector} REST API returned ${files.length} verified item(s).`
-            },
-            data: { files, total: files.length }
-          };
-        }
-        if (res.status === 401 || res.status === 403) {
-          throw new Error(safeError(res.status, "Google Workspace"));
-        }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("rejected")) throw err;
-      }
+        const item = value;
+        const textRun = item.textRun;
+        if (typeof textRun?.content === "string") textParts.push(textRun.content);
+        Object.entries(item).filter(([key]) => key !== "textRun").forEach(([, child]) => collectText(child));
+      };
+      collectText(doc.body?.content ?? []);
+      return { connector: action.connector, action: action.action, summary: `Read Google Doc \u201C${doc.title || files[0].name}\u201D.`, verification: { status: "verified", detail: "Google Docs API returned the document body." }, data: { id: files[0].id, title: doc.title || files[0].name, url: files[0].webViewLink, text: textParts.join("") } };
+    }
+    if (action.connector === "google-sheets" && action.action === "sheets_analyze" && files[0]) {
+      const sheetResponse = await fetcher(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(files[0].id)}?fields=properties(title),sheets(properties(title))`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!sheetResponse.ok) throw new Error(safeError(sheetResponse.status, "Google Sheets"));
+      const sheet = await sheetResponse.json();
+      const tab = sheet.sheets?.[0]?.properties?.title || "Sheet1";
+      const range = encodeURIComponent(`${tab}!A1:Z50`);
+      const valuesResponse = await fetcher(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(files[0].id)}/values/${range}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!valuesResponse.ok) throw new Error(safeError(valuesResponse.status, "Google Sheets"));
+      const values = await valuesResponse.json();
+      return { connector: action.connector, action: action.action, summary: `Retrieved ${values.values?.length ?? 0} row(s) from \u201C${sheet.properties?.title || files[0].name}\u201D.`, verification: { status: "verified", detail: "Google Sheets API returned the spreadsheet values." }, data: { id: files[0].id, title: sheet.properties?.title || files[0].name, url: files[0].webViewLink, range: values.range, values: values.values ?? [] } };
     }
     return {
       connector: action.connector,
       action: action.action,
-      summary: `${action.connector} action '${action.action}' executed successfully.`,
-      verification: {
-        status: "verified",
-        detail: `${action.connector} API returned active workspace context.`
-      },
-      data: {
-        items: [
-          {
-            id: `${action.connector}_101`,
-            name: `${query ? query.charAt(0).toUpperCase() + query.slice(1) : "Workspace"} - Active Item`,
-            type: action.connector,
-            content: `Real-time context retrieved for ${action.connector}${query ? ` matching '${query}'` : ""}.`,
-            modifiedTime: (/* @__PURE__ */ new Date()).toISOString()
-          }
-        ]
-      }
+      summary: `Retrieved ${files.length} ${action.connector} item(s)${query ? ` matching \u201C${query}\u201D` : ""}.`,
+      verification: { status: "verified", detail: "Google Drive API returned live file metadata." },
+      data: { files, total: files.length }
     };
   }
   if (action.connector === "gmail") {
     const parameters = action.parameters;
+    if (!credential.values.access_token) throw new Error("Gmail is not connected. Connect Gmail with the required access first.");
     if (action.action === "mail_send" || action.action === "mail:send") {
-      const recipient = String(parameters.to ?? parameters.recipient ?? "team@company.com");
-      const subject = String(parameters.subject ?? "Update from Hanna Agent");
-      const bodyText = String(parameters.body ?? parameters.text ?? "Hanna notification message");
+      const recipient = String(parameters.to ?? parameters.recipient ?? "").trim();
+      const subject = String(parameters.subject ?? "").trim();
+      const bodyText = String(parameters.body ?? parameters.text ?? "").trim();
+      if (!recipient || !subject || !bodyText) throw new Error("Gmail send requires a recipient, subject, and message body.");
       if (credential.values.access_token) {
         try {
           const rawMessage = Buffer.from(
@@ -3271,23 +3269,12 @@ ${bodyText}`
               data: { messageId: json.id, recipient, subject, status: "sent" }
             };
           }
-          if (sendRes.status === 401 || sendRes.status === 403) {
-            throw new Error(safeError(sendRes.status, "Gmail"));
-          }
+          throw new Error(safeError(sendRes.status, "Gmail"));
         } catch (err) {
-          if (err instanceof Error && err.message.includes("rejected")) throw err;
+          throw err;
         }
       }
-      return {
-        connector: "gmail",
-        action: action.action,
-        summary: `Drafted and sent email to ${recipient} with subject '${subject}'.`,
-        verification: {
-          status: "verified",
-          detail: "Gmail API endpoint confirmed message delivery."
-        },
-        data: { messageId: `msg_${Date.now()}`, recipient, subject, status: "sent" }
-      };
+      throw new Error("Gmail did not return a verified send result.");
     }
     const query = String(parameters.query ?? parameters.q ?? "all");
     if (credential.values.access_token) {
@@ -3300,7 +3287,34 @@ ${bodyText}`
         });
         if (listRes.ok) {
           const json = await listRes.json();
-          const messages = json.messages || [];
+          const messageIds = (json.messages || []).slice(0, 10);
+          const messages = await Promise.all(messageIds.map(async (message) => {
+            const detailRes = await fetcher(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(message.id)}?format=full`, {
+              headers: { Authorization: `Bearer ${credential.values.access_token}` }
+            });
+            if (!detailRes.ok) throw new Error(safeError(detailRes.status, "Gmail"));
+            const detail = await detailRes.json();
+            const headers = detail.payload?.headers ?? [];
+            const header = (name) => headers.find((item) => item.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
+            const textParts = [];
+            const collectPlainText = (part) => {
+              if (part?.mimeType === "text/plain" && part.body?.data) {
+                textParts.push(Buffer.from(String(part.body.data).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+              }
+              (part?.parts ?? []).forEach(collectPlainText);
+            };
+            collectPlainText(detail.payload);
+            return {
+              id: detail.id ?? message.id,
+              threadId: detail.threadId ?? message.threadId,
+              from: header("From"),
+              to: header("To"),
+              subject: header("Subject"),
+              date: header("Date"),
+              snippet: detail.snippet ?? "",
+              body: textParts.join("\n").slice(0, 12e3)
+            };
+          }));
           return {
             connector: "gmail",
             action: action.action,
@@ -3312,49 +3326,23 @@ ${bodyText}`
             data: { messages, total: messages.length }
           };
         }
-        if (listRes.status === 401 || listRes.status === 403) {
-          throw new Error(safeError(listRes.status, "Gmail"));
-        }
+        throw new Error(safeError(listRes.status, "Gmail"));
       } catch (err) {
-        if (err instanceof Error && err.message.includes("rejected")) throw err;
+        throw err;
       }
     }
-    return {
-      connector: "gmail",
-      action: action.action,
-      summary: `Searched and retrieved Gmail messages matching '${query}'.`,
-      verification: {
-        status: "verified",
-        detail: "Gmail API endpoint returned active email threads."
-      },
-      data: {
-        messages: [
-          {
-            id: `msg_101`,
-            threadId: `thread_101`,
-            from: "sarah@company.com",
-            subject: "Weekly Operations Review",
-            snippet: "Here is the summary of project milestones and pending deliverables.",
-            date: (/* @__PURE__ */ new Date()).toISOString()
-          },
-          {
-            id: `msg_102`,
-            threadId: `thread_102`,
-            from: "support@shopify.com",
-            subject: "Store Analytics Report",
-            snippet: "Your store sales increased by 18% over the past 7 days.",
-            date: (/* @__PURE__ */ new Date()).toISOString()
-          }
-        ]
-      }
-    };
+    throw new Error("Gmail did not return a verified search result.");
   }
   if (action.connector === "google-calendar") {
     const parameters = action.parameters;
+    if (!credential.values.access_token) throw new Error("Google Calendar is not connected. Connect Calendar with the required access first.");
     if (action.action === "calendar_write" || action.action === "events_manage" || action.action === "calendar:write") {
-      const summary = String(parameters.summary ?? parameters.title ?? "Team Sync");
-      const startTime = String(parameters.startTime ?? (/* @__PURE__ */ new Date()).toISOString());
-      const endTime = String(parameters.endTime ?? new Date(Date.now() + 36e5).toISOString());
+      const summary = String(parameters.summary ?? parameters.title ?? "").trim();
+      const startTime = String(parameters.startTime ?? "").trim();
+      const endTime = String(parameters.endTime ?? "").trim();
+      if (!summary || !startTime || !endTime || !Number.isFinite(Date.parse(startTime)) || !Number.isFinite(Date.parse(endTime)) || Date.parse(endTime) <= Date.parse(startTime)) {
+        throw new Error("Calendar event creation requires a title, valid start time, and end time after the start.");
+      }
       if (credential.values.access_token) {
         try {
           const createRes = await fetcher("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
@@ -3382,23 +3370,12 @@ ${bodyText}`
               data: { eventId: json.id, summary, startTime, status: "confirmed", htmlLink: json.htmlLink }
             };
           }
-          if (createRes.status === 401 || createRes.status === 403) {
-            throw new Error(safeError(createRes.status, "Google Calendar"));
-          }
+          throw new Error(safeError(createRes.status, "Google Calendar"));
         } catch (err) {
-          if (err instanceof Error && err.message.includes("rejected")) throw err;
+          throw err;
         }
       }
-      return {
-        connector: "google-calendar",
-        action: action.action,
-        summary: `Scheduled Google Calendar event '${summary}' for ${startTime}.`,
-        verification: {
-          status: "verified",
-          detail: "Google Calendar API endpoint created calendar event."
-        },
-        data: { eventId: `evt_${Date.now()}`, summary, startTime, status: "confirmed" }
-      };
+      throw new Error("Google Calendar did not return a verified event-creation result.");
     }
     if (credential.values.access_token) {
       try {
@@ -3424,75 +3401,12 @@ ${bodyText}`
             data: { events, total: events.length }
           };
         }
-        if (calRes.status === 401 || calRes.status === 403) {
-          throw new Error(safeError(calRes.status, "Google Calendar"));
-        }
+        throw new Error(safeError(calRes.status, "Google Calendar"));
       } catch (err) {
-        if (err instanceof Error && err.message.includes("rejected")) throw err;
+        throw err;
       }
     }
-    return {
-      connector: "google-calendar",
-      action: action.action,
-      summary: "Checked Google Calendar schedule and availability.",
-      verification: {
-        status: "verified",
-        detail: "Google Calendar API endpoint returned upcoming events."
-      },
-      data: {
-        events: [
-          {
-            id: "evt_301",
-            summary: "Product Demo & Sync",
-            start: new Date(Date.now() + 36e5).toISOString(),
-            end: new Date(Date.now() + 72e5).toISOString(),
-            status: "confirmed"
-          },
-          {
-            id: "evt_302",
-            summary: "E-Commerce Strategy Call",
-            start: new Date(Date.now() + 864e5).toISOString(),
-            end: new Date(Date.now() + 9e7).toISOString(),
-            status: "confirmed"
-          }
-        ]
-      }
-    };
-  }
-  if ([
-    "vercel",
-    "github",
-    "heygen",
-    "synthesia",
-    "creatify",
-    "tiktok",
-    "instagram",
-    "meta-ads",
-    "facebook",
-    "outlook",
-    "telegram",
-    "autods",
-    "takeapp"
-  ].includes(action.connector)) {
-    const token = credential.values.accessToken || credential.values.apiKey || credential.values.botToken || credential.values.oauthToken || "oauth_authenticated";
-    const parameters = action.parameters;
-    const summaryMsg = `${action.connector} connector executed action '${action.action}' with token dynamic injection.`;
-    return {
-      connector: action.connector,
-      action: action.action,
-      summary: summaryMsg,
-      verification: {
-        status: "verified",
-        detail: `${action.connector} API executed successfully using user OAuth credential token [${token.slice(0, 4)}...].`
-      },
-      data: {
-        executedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        connector: action.connector,
-        action: action.action,
-        parameters,
-        status: "success"
-      }
-    };
+    throw new Error("Google Calendar did not return a verified events result.");
   }
   throw new Error(`The ${action.connector} connector does not implement '${action.action}' yet.`);
 }
@@ -3829,6 +3743,7 @@ __export(shopifyOAuth_exports, {
   exchangeShopifyCode: () => exchangeShopifyCode,
   generateShopifyOAuthState: () => generateShopifyOAuthState,
   getCanonicalShopifyRedirectUri: () => getCanonicalShopifyRedirectUri,
+  getShopifyAppInstallUrl: () => getShopifyAppInstallUrl,
   getShopifyCredentials: () => getShopifyCredentials,
   normalizeShopifyDomain: () => normalizeShopifyDomain,
   parseShopifyScopes: () => parseShopifyScopes,
@@ -3859,6 +3774,19 @@ function getShopifyCredentials() {
   const clientId = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_OAUTH_CLIENT_ID || "";
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_OAUTH_CLIENT_SECRET || "";
   return { clientId, clientSecret };
+}
+function getShopifyAppInstallUrl() {
+  const rawUrl = process.env.SHOPIFY_APP_INSTALL_URL?.trim();
+  if (!rawUrl) return null;
+  try {
+    const url = new URL(rawUrl);
+    const host = url.hostname.toLowerCase();
+    const trustedHost = host === "admin.shopify.com" || host === "apps.shopify.com" || host.endsWith(".myshopify.com");
+    if (url.protocol !== "https:" || !trustedHost || url.username || url.password) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 function normalizeShopifyDomain(rawShop) {
   if (!rawShop || typeof rawShop !== "string") return null;
@@ -3901,10 +3829,12 @@ async function consumeNonceDurable(canonicalUserId, nonce) {
   return true;
 }
 function generateShopifyOAuthState(canonicalUserId, shop) {
+  const stateShop = shop == null ? "*" : normalizeShopifyDomain(shop);
+  if (!stateShop) throw new Error("Invalid Shopify shop domain for OAuth state.");
   const nonce = crypto3.randomBytes(16).toString("hex");
   const timestamp2 = Date.now();
   const provider = "shopify";
-  const payload = `${canonicalUserId}:${provider}:${shop}:${timestamp2}:${nonce}`;
+  const payload = `${canonicalUserId}:${provider}:${stateShop}:${timestamp2}:${nonce}`;
   const signature = crypto3.createHmac("sha256", stateSecret()).update(payload).digest("hex");
   return Buffer.from(`${payload}:${signature}`).toString("base64url");
 }
@@ -3935,8 +3865,8 @@ async function verifyShopifyOAuthState(state, expectedShop) {
     }
     if (expectedShop) {
       const normExpected = normalizeShopifyDomain(expectedShop);
-      const normStateShop = normalizeShopifyDomain(shop);
-      if (!normExpected || !normStateShop || normExpected !== normStateShop) {
+      const normStateShop = shop === "*" ? "*" : normalizeShopifyDomain(shop);
+      if (!normExpected || !normStateShop || normStateShop !== "*" && normExpected !== normStateShop) {
         return { uid: "", shop: "", valid: false, reason: "shop_mismatch" };
       }
     }
@@ -4182,6 +4112,7 @@ async function listConnectorCredentials(userId) {
           );
           return {
             connector,
+            accountDisplay: connector === "shopify" ? values.storeDomain || void 0 : connector.startsWith("google") || connector === "gmail" ? values.account || void 0 : void 0,
             fields: Object.fromEntries(
               Object.keys(values).map((field) => [
                 field,
@@ -4206,6 +4137,7 @@ async function listConnectorCredentials(userId) {
     );
     return {
       connector,
+      accountDisplay: connector === "shopify" ? values.storeDomain || void 0 : connector.startsWith("google") || connector === "gmail" ? values.account || void 0 : void 0,
       fields: Object.fromEntries(
         Object.keys(values).map((field) => [
           field,
@@ -4217,7 +4149,7 @@ async function listConnectorCredentials(userId) {
     };
   });
 }
-async function ensureFreshGoogleToken(canonicalUserId, credential) {
+async function ensureFreshGoogleToken(canonicalUserId, credential, connector) {
   const { access_token, refresh_token, obtained_at, expires_in } = credential.values;
   if (!access_token || !refresh_token) return credential;
   const obtainedMs = Number.parseInt(obtained_at || "0", 10);
@@ -4255,9 +4187,7 @@ async function ensureFreshGoogleToken(canonicalUserId, credential) {
         obtained_at: String(Date.now()),
         ...tokenData.refresh_token ? { refresh_token: tokenData.refresh_token } : {}
       };
-      for (const googleConn of GOOGLE_FAMILY) {
-        await saveConnectorCredentialInternal(canonicalUserId, googleConn, newValues);
-      }
+      await saveConnectorCredentialInternal(canonicalUserId, connector, newValues);
       return {
         connector: credential.connector,
         values: newValues
@@ -4271,7 +4201,7 @@ async function ensureFreshGoogleToken(canonicalUserId, credential) {
 async function getConnectorCredential(userId, connector) {
   const canonicalUserId = await resolveCanonicalUserId(userId);
   const isGoogle = GOOGLE_FAMILY.includes(connector);
-  const connectorsToTry = isGoogle ? [connector, ...GOOGLE_FAMILY.filter((c) => c !== connector)] : [connector];
+  const connectorsToTry = [connector];
   const firestore = (await Promise.resolve().then(() => (init_firestore(), firestore_exports))).getAdminFirestore();
   let foundCred;
   if (firestore) {
@@ -4308,8 +4238,11 @@ async function getConnectorCredential(userId, connector) {
       }
     }
   }
+  if (foundCred && !credentialIsConnected(connector, foundCred.values)) {
+    return void 0;
+  }
   if (foundCred && isGoogle && foundCred.values.refresh_token) {
-    foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred);
+    foundCred = await ensureFreshGoogleToken(canonicalUserId, foundCred, connector);
   }
   if (foundCred && foundCred.connector === "shopify" && (foundCred.values.refreshToken || foundCred.values.refresh_token)) {
     const { ensureFreshShopifyToken: ensureFreshShopifyToken2 } = await Promise.resolve().then(() => (init_shopifyOAuth(), shopifyOAuth_exports));
@@ -4590,7 +4523,7 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Multimodal & Document Reasoning",
-      reason: "Gemini 3.5 Flash provides high-throughput multimodal context analysis."
+      reason: "Gemini 3.6 Flash provides high-throughput multimodal context analysis."
     };
   }
   if (/(shopify|store|product|inventory|order|customer|ecommerce|catalog)/.test(value)) {
@@ -4598,7 +4531,7 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Shopify & Store Management",
-      reason: "Gemini 3.5 Flash orchestrates connected Shopify and commerce workflows."
+      reason: "Gemini 3.6 Flash orchestrates connected Shopify and commerce workflows."
     };
   }
   if (/(market|campaign|ad|social|copy|seo|marketing|content|research|strategy|analy[sz]e)/.test(value)) {
@@ -4606,7 +4539,7 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Marketing & Research Strategy",
-      reason: "Gemini 3.5 Flash generates high-converting marketing campaigns, research briefs, and creative content."
+      reason: "Gemini 3.6 Flash generates high-converting marketing campaigns, research briefs, and creative content."
     };
   }
   if (/(code|github|debug|deploy|repository|typescript|react|python)/.test(value)) {
@@ -4614,14 +4547,14 @@ function routeHannaRequest(prompt) {
       provider: DEFAULT_AI_PROVIDER,
       model: DEFAULT_AI_MODEL,
       capability: "Coding & Software Orchestration",
-      reason: "Gemini 3.5 Flash handles code comprehension, debugging, and deployment planning."
+      reason: "Gemini 3.6 Flash handles code comprehension, debugging, and deployment planning."
     };
   }
   return {
     provider: DEFAULT_AI_PROVIDER,
     model: DEFAULT_AI_MODEL,
     capability: "General Assistance",
-    reason: "Gemini 3.5 Flash is Hanna's primary general-purpose intelligence engine."
+    reason: "Gemini 3.6 Flash is Hanna's primary general-purpose intelligence engine."
   };
 }
 var init_hannaRouting = __esm({
@@ -5656,7 +5589,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE, stud
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured."
       });
@@ -5668,7 +5601,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE, stud
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "RATE_LIMIT_EXCEEDED",
         message: `Daily token limit reached. Allowance refreshes at ${quota.resetAt}.`
       });
@@ -5748,7 +5681,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE, stud
         sendSSE("error", {
           success: false,
           provider: provider.provider || "gemini",
-          model: provider.model || "gemini-3.5-flash",
+          model: provider.model || "gemini-3.6-flash",
           errorCode: "AI_ERROR",
           message
         });
@@ -5759,7 +5692,7 @@ async function executeRouteAStream(prompt, context, userId, model, sendSSE, stud
     sendSSE("error", {
       success: false,
       provider: "gemini",
-      model: "gemini-3.5-flash",
+      model: "gemini-3.6-flash",
       errorCode: "AI_ERROR",
       message
     });
@@ -5776,7 +5709,7 @@ async function executeRouteBLoop(prompt, context, userId, model, sendSSE, studyM
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "MISSING_API_KEY",
         message: "Gemini API key is missing or process.env.GEMINI_API_KEY is not configured."
       });
@@ -5936,7 +5869,7 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
       sendSSE("error", {
         success: false,
         provider: provider.provider || "gemini",
-        model: provider.model || "gemini-3.5-flash",
+        model: provider.model || "gemini-3.6-flash",
         errorCode: "AGENT_EXECUTION_FAILED",
         message: "Agentic execution loop could not complete."
       });
@@ -6017,7 +5950,7 @@ ${JSON.stringify(state.toolResults, null, 2)}` : "";
       sendSSE("error", {
         success: false,
         provider: "gemini",
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         errorCode: "AI_ERROR",
         message
       });
@@ -6376,7 +6309,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       const waitingForConfirmation = execution.status === "waiting_for_confirmation";
       if (execution.status === "failed" || !execution.response) {
         throw new GeminiProviderError({
-          model: provider.model || "gemini-3.5-flash",
+          model: provider.model || "gemini-3.6-flash",
           errorCode: "AGENT_EXECUTION_FAILED",
           message: "Hanna agentic workflow could not complete."
         });
@@ -6402,7 +6335,7 @@ Agent step ${state.step + 1}. Choose one available tool only when it is required
       }
       const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna agentic execution failed.";
       throw new GeminiProviderError({
-        model: requestedModel || "gemini-3.5-flash",
+        model: requestedModel || "gemini-3.6-flash",
         errorCode: "AI_ERROR",
         message: msg
       });
@@ -6490,7 +6423,7 @@ ${extraSummary}` : extraSummary;
     }
     const msg = error instanceof Error ? sanitizeErrorText(error.message) : "Hanna request failed.";
     throw new GeminiProviderError({
-      model: requestedModel || "gemini-3.5-flash",
+      model: requestedModel || "gemini-3.6-flash",
       errorCode: "AI_ERROR",
       message: msg
     });
@@ -6524,11 +6457,12 @@ var init_routers = __esm({
       { connector: "shopify", action: "update_product_title", description: "Update a Shopify product title after explicit user confirmation.", parameters: { type: "object", properties: { productId: { type: "string" }, title: { type: "string" } }, required: ["productId", "title"] }, requiresApproval: true },
       { connector: "slack", action: "list_channels", description: "List channels from the connected Slack workspace.", parameters: { type: "object", properties: { limit: { type: "number" } } }, requiresApproval: false },
       { connector: "slack", action: "send_message", description: "Send a Slack message after explicit user confirmation.", parameters: { type: "object", properties: { channel: { type: "string" }, text: { type: "string" }, threadTs: { type: "string" } }, required: ["channel", "text"] }, requiresApproval: true },
-      { connector: "google-workspace", action: "workspace_search", description: "Search across Google Workspace files, documents, sheets, and calendar.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or item title" } } }, requiresApproval: false },
-      { connector: "google-drive", action: "drive_search", description: "Search, organize, and manage files in Google Drive.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or file name" } } }, requiresApproval: false },
-      { connector: "google-docs", action: "docs_read", description: "Read, edit, or summarize document content in Google Docs.", parameters: { type: "object", properties: { title: { type: "string", description: "Document title or ID" } } }, requiresApproval: false },
+      { connector: "github", action: "github_overview", description: "Review the most recently updated repositories, open issues, and pull requests available to the connected GitHub account.", parameters: { type: "object", properties: { repositoryCount: { type: "number", description: "Number of recently updated repositories to review (maximum 5)." } } }, requiresApproval: false },
+      { connector: "google-workspace", action: "workspace_search", description: "Search live Google Drive file metadata for relevant Workspace documents and spreadsheets.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or item title" } } }, requiresApproval: false },
+      { connector: "google-drive", action: "drive_search", description: "Search live Google Drive file metadata and return available file links.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or file name" } } }, requiresApproval: false },
+      { connector: "google-docs", action: "docs_read", description: "Find and read the text content of a Google Doc.", parameters: { type: "object", properties: { title: { type: "string", description: "Document title or ID" } } }, requiresApproval: false },
       { connector: "google-sheets", action: "sheets_analyze", description: "Query and analyze tabular data rows in Google Sheets.", parameters: { type: "object", properties: { query: { type: "string", description: "Spreadsheet query or tab name" } } }, requiresApproval: false },
-      { connector: "google-slides", action: "slides_read", description: "Retrieve presentation deck slides and speaker notes in Google Slides.", parameters: { type: "object", properties: { title: { type: "string", description: "Presentation title" } } }, requiresApproval: false },
+      { connector: "google-slides", action: "slides_read", description: "Find a Google Slides presentation and retrieve its visible text content.", parameters: { type: "object", properties: { title: { type: "string", description: "Presentation title" } } }, requiresApproval: false },
       { connector: "google-ads", action: "ads_campaigns", description: "Fetch campaign metrics and performance reporting from Google Ads.", parameters: { type: "object", properties: { query: { type: "string", description: "Campaign name or date range" } } }, requiresApproval: false },
       { connector: "gmail", action: "mail_search", description: "Find relevant emails and threads in Gmail.", parameters: { type: "object", properties: { query: { type: "string", description: "Search query or sender filter" } } }, requiresApproval: false },
       { connector: "gmail", action: "mail_send", description: "Draft and send an email response via Gmail.", parameters: { type: "object", properties: { to: { type: "string", description: "Recipient email address" }, subject: { type: "string", description: "Email subject line" }, body: { type: "string", description: "Email body text" } }, required: ["to", "subject", "body"] }, requiresApproval: true },
@@ -7115,7 +7049,7 @@ async function handleShopifyOAuthAuthorize(req, res) {
   }
   const rawShop = req.query.shop || req.query.store || req.query.storeDomain;
   const normShop = normalizeShopifyDomain(rawShop);
-  if (!normShop) {
+  if (rawShop && !normShop) {
     res.status(400).json({ error: "Invalid or missing Shopify store domain. Must be a valid '*.myshopify.com' hostname." });
     return;
   }
@@ -7124,18 +7058,33 @@ async function handleShopifyOAuthAuthorize(req, res) {
     res.status(500).json({ error: "Shopify Client ID is not configured on server (SHOPIFY_CLIENT_ID)." });
     return;
   }
+  const appInstallUrl = normShop ? null : getShopifyAppInstallUrl();
+  if (!normShop && !appInstallUrl) {
+    const message = "Shopify's install link is not configured. Set SHOPIFY_APP_INSTALL_URL to the link generated for this app in Shopify's Dev Dashboard.";
+    res.redirect(`${appBaseUrl2()}/integrations?connector_error=${encodeURIComponent(message)}`);
+    return;
+  }
   const canonicalUserId = await resolveCanonicalUserId(rawUid);
   const redirectUri = getCanonicalShopifyRedirectUri();
   const state = generateShopifyOAuthState(canonicalUserId, normShop);
+  const secureCookie = appBaseUrl2().startsWith("https://") ? "; Secure" : "";
+  res.setHeader(
+    "Set-Cookie",
+    `hanna_shopify_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900${secureCookie}`
+  );
+  if (appInstallUrl) {
+    res.redirect(appInstallUrl);
+    return;
+  }
+  if (!normShop) {
+    res.status(500).json({ error: "Shopify store context is missing." });
+    return;
+  }
   const authUrl = new URL(`https://${normShop}/admin/oauth/authorize`);
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("scope", SHOPIFY_OAUTH_SCOPES_STRING);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("state", state);
-  res.setHeader(
-    "Set-Cookie",
-    `hanna_shopify_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900`
-  );
   res.redirect(authUrl.toString());
 }
 async function handleShopifyOAuthCallback(req, res) {
@@ -7324,7 +7273,9 @@ async function handleGoogleOAuthAuthorize(req, res) {
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/documents.readonly",
     "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/presentations.readonly",
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/calendar.events"
   ].join(" ");
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -7426,8 +7377,20 @@ async function handleGoogleOAuthCallback(req, res) {
       "google-slides",
       "google-calendar"
     ];
+    const grantedScopes = new Set(String(tokenData.scope || "").split(/\s+/).filter(Boolean));
+    const requiredScopes = {
+      "google-workspace": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/documents.readonly", "https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/presentations.readonly", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/calendar.events"],
+      "gmail": ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
+      "google-drive": ["https://www.googleapis.com/auth/drive.readonly"],
+      "google-docs": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/documents.readonly"],
+      "google-sheets": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/spreadsheets.readonly"],
+      "google-slides": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/presentations.readonly"],
+      "google-calendar": ["https://www.googleapis.com/auth/calendar.events"]
+    };
     const nowIso = (/* @__PURE__ */ new Date()).toISOString();
     for (const connectorId of googleConnectors) {
+      const required = requiredScopes[connectorId];
+      const connected = connectorId === "google-workspace" ? Object.values(requiredScopes).flat().some((scope) => grantedScopes.has(scope)) : required.every((scope) => grantedScopes.has(scope));
       await saveConnectorCredential(canonicalUserId, connectorId, {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -7436,8 +7399,9 @@ async function handleGoogleOAuthCallback(req, res) {
         obtained_at: String(Date.now()),
         account: googleEmail || "authorized_google_account",
         google_user_id: googleSub,
-        is_connected: "true",
-        verified: "true",
+        granted_scopes: String(tokenData.scope || ""),
+        is_connected: String(connected),
+        verified: String(connected),
         last_verified_at: nowIso
       });
     }
@@ -7500,7 +7464,7 @@ async function handleGitHubOAuthCallback(req, res) {
     return;
   }
   const canonicalUserId = await resolveCanonicalUserId(stateUserId);
-  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_SECRET;
+  const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_OAUTH_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     res.redirect(`${appBaseUrl3()}/?connector_error=${encodeURIComponent("invalid_client_config")}`);

@@ -27,7 +27,9 @@ export async function handleProductionHealthDiagnostics(req: ExpressRequest, res
     services: {
       gemini: {
         configured: geminiConfigured,
-        model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+        model: process.env.GEMINI_MODEL && process.env.GEMINI_MODEL.toLowerCase() !== "gemini-3.5-flash"
+          ? process.env.GEMINI_MODEL
+          : "gemini-3.6-flash",
       },
       groq: {
         configured: groqConfigured,

@@ -57,8 +57,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -102,8 +102,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -139,8 +139,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -164,8 +164,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -236,8 +236,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -278,8 +278,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
       },
     ],
@@ -332,8 +332,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
       },
     ],
   },
@@ -364,8 +364,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -382,8 +382,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
       },
     ],
@@ -399,8 +399,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
       },
     ],
   },
@@ -415,8 +415,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -433,8 +433,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsTools: true,
       },
       {
@@ -456,8 +456,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
         supportsTools: true,
       },
@@ -494,8 +494,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
       },
     ],
   },
@@ -531,8 +531,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
       },
       {
         providerId: "llama",
@@ -552,8 +552,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
       },
       {
@@ -575,8 +575,8 @@ export const AI_CAPABILITY_REGISTRY: Record<AICapabilityId, AICapabilityDefiniti
     providers: [
       {
         providerId: "gemini",
-        defaultModel: "gemini-3.5-flash",
-        models: ["gemini-3.5-flash"],
+        defaultModel: "gemini-3.6-flash",
+        models: ["gemini-3.6-flash"],
         supportsStreaming: true,
       },
     ],

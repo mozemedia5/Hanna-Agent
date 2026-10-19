@@ -94,14 +94,20 @@ describe("Google Workspace Connector E2E & Identity Resolution Tests", () => {
     expect(googleConn).toBeDefined();
     expect(googleConn?.is_connected).toBe(true);
 
-    // 3. Get credential using numeric user ID for cross-family connector (gmail)
+    // 3. Each Google connector has its own stored service credential.
+    expect(await getConnectorCredential(freshDbId, "gmail")).toBeUndefined();
+    await saveConnectorCredential(freshUid, "gmail", {
+      access_token: "mock_google_gmail_access_token_def",
+      account: "fresh@workspace.com",
+      is_connected: "true",
+    });
     const gmailCred = await getConnectorCredential(freshDbId, "gmail");
-    expect(gmailCred).toBeDefined();
-    expect(gmailCred?.values.access_token).toBe("mock_google_access_token_abc");
+    expect(gmailCred?.values.access_token).toBe("mock_google_gmail_access_token_def");
     expect(gmailCred?.values.account).toBe("fresh@workspace.com");
 
     // Cleanup
     await deleteConnectorCredential(freshUid, "google-workspace");
+    await deleteConnectorCredential(freshUid, "gmail");
   });
 
   it("handles automatic Google token refresh when access token is near expiration", async () => {
@@ -246,7 +252,7 @@ describe("Google Workspace Connector E2E & Identity Resolution Tests", () => {
       "Find my latest Google Drive files",
       undefined,
       agentUser,
-      "gemini-3.5-flash"
+      "gemini-3.6-flash"
     );
 
     expect(response.text).toBeDefined();
