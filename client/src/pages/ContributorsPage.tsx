@@ -166,7 +166,7 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
             <Crown size={14} /> Head of Contributors Control Panel
           </span>
         </div>
-        <h1 className="page-title" style={{ fontSize: "28px" }}>Contributor Seats &amp; Collaboration</h1>
+        <h1 className="page-title" style={{ fontSize: "28px", color: "var(--text-primary)" }}>Contributor Seats &amp; Collaboration</h1>
         <p className="page-description" style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
           Invite team contributors, assign roles, set individual monthly credit caps, and manage shared chat access.
         </p>
@@ -227,7 +227,7 @@ export default function ContributorsPage({ onBack }: ContributorsPageProps) {
       {/* Contributor List */}
       <div className="settings-card" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px" }}>
         <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: "700" }}>
-          Active &amp; Pending Contributors ({contributors.length})
+          <span style={{ color: "var(--text-primary)" }}>Active &amp; Pending Contributors ({contributors.length})</span>
         </h3>
         <div style={{ display: "grid", gap: "12px" }}>
           {contributors.map(c => (

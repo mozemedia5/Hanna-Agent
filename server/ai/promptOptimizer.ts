@@ -10,7 +10,7 @@ export interface OptimizedImagePromptResult {
   seed: number;
   aspectRatio: string;
   styleTags: string[];
-  imageUrl: string;
+  imageUrl?: string;
 }
 
 export interface PromptOptimizationOptions {
@@ -91,8 +91,9 @@ export function optimizeImagePrompt(
   ].filter(Boolean);
 
   const expandedPrompt = enrichedParts.join(", ");
-  const encodedPrompt = encodeURIComponent(`${coreSubject}, ${HIGH_FIDELITY_DEFAULT_TAGS.join(", ")}`);
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
+  // The configured Google Imagen adapter generates image bytes at execution time.
+  // Prompt optimization must not emit an external image URL.
+  const imageUrl = undefined;
 
   return {
     rawPrompt,

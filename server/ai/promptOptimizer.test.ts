@@ -12,15 +12,14 @@ describe("Upstream Image Prompt Optimizer Module", () => {
     expect(result.expandedPrompt).toContain("Constraints & Quality:");
     expect(result.expandedPrompt).toContain("Aspect Ratio: 1:1");
     expect(result.seed).toBeGreaterThanOrEqual(0);
-    expect(result.imageUrl).toContain("https://image.pollinations.ai/prompt/");
-    expect(result.imageUrl).toContain("width=1024&height=1024");
+    expect(result.imageUrl).toBeUndefined();
   });
 
   it("detects landscape / 16:9 aspect ratio from raw input", () => {
     const result = optimizeImagePrompt("a futuristic cityscape widescreen 16:9");
 
     expect(result.aspectRatio).toBe("16:9");
-    expect(result.imageUrl).toContain("width=1280&height=720");
+    expect(result.imageUrl).toBeUndefined();
   });
 
   it("enforces default high-fidelity quality tags when omitted", () => {

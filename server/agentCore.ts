@@ -761,17 +761,17 @@ I have analyzed the provided image/document content and extracted key details:
 
     responseBody = `### Hanna Image Generation
 
-Here is the high-quality visual synthesized directly from your prompt:
-
-![${optimized.rawPrompt}](${optimized.imageUrl}#expandedPrompt=${encodeURIComponent(optimized.expandedPrompt)}&seed=${optimized.seed})
+Your prompt has been prepared for the configured Google Imagen image-generation provider.
 
 **Generation Metadata:**
 - **Raw Prompt:** ${optimized.rawPrompt}
 - **Expanded Prompt:** ${optimized.expandedPrompt}
 - **Aspect Ratio:** ${optimized.aspectRatio}
 - **Seed:** ${optimized.seed}
-- **Engine:** Hanna Image Synthesis Pipeline (ChatGPT-Style)
-- **Status:** Rendered successfully`;
+- **Engine:** Google Imagen 3 with Gemini 3.6 Flash / Gemini 2.5 Flash prompt understanding
+- **Status:** Ready for the configured Google image provider
+
+Add a Google AI API key in Settings to render image bytes securely; Hanna will not use an external image URL service.`;
   } else if (/(slide|presentation|deck|google slides|powerpoint|create slides|build a deck|generate slides)/.test(lower)) {
     const topic = prompt
       .replace(/(create slides for|generate a presentation on|build a deck about|create a slide deck for|google slides on|presentation deck for)/gi, "")
@@ -853,12 +853,7 @@ Here is the technical review for **"${cleanedPrompt}"**:
       .replace(/(web search|google search|search for|find info on|research on|search the web for)/gi, "")
       .trim() || cleanedPrompt;
 
-    const baseSeed = Math.floor(Math.random() * 10000);
-    const conceptImages = [1, 2, 3, 4, 5].map((idx) => {
-      const prompt = `${searchTopic} concept visual aspect ${idx}, high quality, crisp details, highly relevant visual representation`;
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true&seed=${baseSeed + idx * 17}`;
-      return `![${searchTopic} - Visual Concept ${idx}](${url})`;
-    }).join("\n\n");
+    const conceptImages = "Visual concept images are available when a Google image provider is configured in Settings.";
 
     responseBody = `### Web Search & Visual Concept Breakdown
 

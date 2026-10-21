@@ -96,7 +96,7 @@ function GoogleSlidesDeckCard({ title, topic }: { title: string; topic?: string 
   ];
 
   const current = slides[activeSlide];
-  const slideImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(current.imagePrompt)}?width=800&height=400&nologo=true&seed=${current.num * 42}`;
+  const slideImageUrl = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#1a73e8"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><rect width="800" height="400" fill="url(#g)"/><text x="40" y="210" fill="white" font-family="Arial" font-size="30" font-weight="700">${current.title}</text></svg>`)}`;
 
   return (
     <div
@@ -338,7 +338,7 @@ export function cleanResponseSymbols(text: string): string {
     .replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, "");
 
   // Convert raw standalone image URLs (not already formatted as markdown image ![...](...)) into markdown image syntax
-  const rawUrlRegex = /(?<!\!\[[^\]]*\]\()(https?:\/\/[^\s<>)]+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?[^\s<>)]*)?|https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>)]+)/gi;
+  const rawUrlRegex = /(?<!\!\[[^\]]*\]\()(https?:\/\/[^\s<>)]+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?[^\s<>)]*)?)/gi;
   cleaned = cleaned.replace(rawUrlRegex, (url) => `\n\n![Web Image](${url})\n\n`);
 
   return cleaned;

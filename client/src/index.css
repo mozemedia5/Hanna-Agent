@@ -4025,6 +4025,28 @@ kbd {
   line-height: 1.65;
   color: var(--text-primary);
 }
+.code-preview-shell {
+  background: var(--surface);
+  padding: 12px;
+}
+.code-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 4px 10px;
+  color: var(--text-secondary);
+  font: 11px "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.code-preview-frame {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #131314;
+}
 
 /* Principles Grid V2 */
 .principles-grid-v2 {
@@ -4621,7 +4643,7 @@ body:has(.auth-loading) {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--text-primary);
   margin-bottom: 12px;
   font-weight: 600;
 }

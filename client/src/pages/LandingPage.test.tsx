@@ -40,6 +40,8 @@ describe("LandingPage Component", () => {
   it("switches code playground snippets between TypeScript, Python, and cURL", () => {
     render(<LandingPage />);
 
+    screen.getAllByRole("button", { name: "Code view" }).forEach(button => fireEvent.click(button));
+
     const pythonTab = screen.getAllByRole("button", { name: "Python" })[0];
     fireEvent.click(pythonTab);
 

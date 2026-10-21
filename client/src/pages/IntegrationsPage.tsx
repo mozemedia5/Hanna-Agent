@@ -473,10 +473,11 @@ export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageP
                   className="integration-card-action is-connected"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDisconnect(integration.id, integration.name);
+                    tryConnector(integration);
                   }}
+                  aria-label={`Try out ${integration.name}`}
                 >
-                  Try it out
+                  <Zap size={13} /> Try it out
                 </button>
               </div>
             ))}

@@ -73,6 +73,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
   const [executingTaskId, setExecutingTaskId] = useState<string | null>(null);
   const [executionModalResult, setExecutionModalResult] = useState<{ title: string; result: string } | null>(null);
   const [toast, setToast] = useState("");
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
 
   const showToast = (m: string) => {
     setToast(m);
@@ -240,6 +241,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
       setTaskPrompt("");
       setTaskDate("");
       setTaskImageUrl(null);
+      setShowScheduleForm(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error scheduling task";
       showToast(`Error: ${msg}`);
@@ -304,19 +306,27 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={onNavigateToIntegrations}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px", borderRadius: "10px", fontSize: "13px", fontWeight: "600" }}
-          >
-            <PlugZap size={15} /> Manage Connectors
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <Button
+              onClick={() => setShowScheduleForm(true)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", background: "var(--gemini-accent)", color: "var(--ink-contrast)" }}
+            >
+              <Plus size={15} /> Add
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onNavigateToIntegrations}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", borderRadius: "10px", fontSize: "13px", fontWeight: "600" }}
+            >
+              <PlugZap size={15} /> Manage Connectors
+            </Button>
+          </div>
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px" }}>
         {/* Left Column: Schedule Task Form */}
-        <div
+        {showScheduleForm && <div
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
@@ -639,7 +649,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
               {submitting ? "Scheduling..." : "Schedule Workflow Task"}
             </Button>
           </form>
-        </div>
+        </div>}
 
         {/* Right Column: Scheduled Tasks History & Status */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -664,7 +674,7 @@ export default function ScheduleTaskPage({ onBack, onNavigateToIntegrations }: S
               <Calendar size={32} style={{ color: "var(--text-tertiary)", marginBottom: "10px" }} />
               <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)" }}>No Scheduled Tasks Yet</strong>
               <p style={{ margin: "4px 0 0", fontSize: "12px" }}>
-                Use the form on the left to schedule your first automated task.
+                Click <strong style={{ color: "var(--text-primary)" }}>Add</strong> to create your first automated task.
               </p>
             </div>
           ) : (

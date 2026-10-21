@@ -7,6 +7,7 @@ export const HANNA_DEFAULT_MODEL = HANNA_LITE_MODEL;
 
 export const GEMINI_FALLBACK_MODELS = [
   "gemini-3.6-flash",
+  "gemini-2.5-flash",
 ] as const;
 
 export type AiHealthStatus =

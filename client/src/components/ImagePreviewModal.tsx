@@ -68,12 +68,6 @@ export function ImagePreviewModal({
     const nextSeed = Math.floor(Math.random() * 100000);
     setCurrentSeed(nextSeed);
 
-    // Update URL seed query parameter if present
-    const updatedUrl = currentSrc.includes("seed=")
-      ? currentSrc.replace(/seed=\d+/, `seed=${nextSeed}`)
-      : `${currentSrc}&seed=${nextSeed}`;
-
-    setCurrentSrc(updatedUrl);
     if (onRegenerate) {
       onRegenerate(nextSeed);
     }
@@ -87,11 +81,10 @@ export function ImagePreviewModal({
     const nextSeed = Math.floor(Math.random() * 100000);
     setCurrentSeed(nextSeed);
 
-    const newUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(modifiedPrompt)}?width=1024&height=1024&nologo=true&seed=${nextSeed}`;
-    setCurrentSrc(newUrl);
-
     if (onEditImage) {
       onEditImage(editPrompt);
+    } else {
+      setIsEditing(false);
     }
     setEditPrompt("");
     setIsEditing(false);

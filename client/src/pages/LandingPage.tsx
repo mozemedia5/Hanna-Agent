@@ -100,6 +100,7 @@ export default function LandingPage() {
     "typescript" | "python" | "curl"
   >("typescript");
   const [copiedCode, setCopiedCode] = useState(false);
+  const [showCodePreview, setShowCodePreview] = useState(true);
   const [selectedModel, setSelectedModel] = useState<
     "gemini-3.5" | "gemini-2.0"
   >("gemini-3.5");
@@ -107,6 +108,7 @@ export default function LandingPage() {
     "code"
   );
   const [simulatedTerminalStep, setSimulatedTerminalStep] = useState(0);
+  const previewHtml = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#131314;color:#e3e3e3;font:14px system-ui;padding:24px}main{max-width:360px;margin:auto}h1{font-size:24px;margin:0 0 8px}p{color:#c4c7c5;line-height:1.5}.button{display:inline-block;background:#8ab4f8;color:#131314;padding:10px 14px;border-radius:8px;font-weight:700}</style></head><body><main><div style="color:#8ab4f8;font-weight:700;letter-spacing:.08em">HANNA PREVIEW</div><h1>Rendered from code</h1><p>This live panel runs the HTML/CSS output in an isolated frame, like a website builder preview.</p><span class="button">Preview is live</span></main></body></html>`;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -652,6 +654,21 @@ export default function LandingPage() {
                 </button>
 
                 <button
+                  className={`pg-tab ${showCodePreview ? "is-active" : ""}`}
+                  onClick={() => setShowCodePreview(true)}
+                  aria-label="Website preview"
+                >
+                  <Eye size={13} /> Preview
+                </button>
+                <button
+                  className={`pg-tab ${!showCodePreview ? "is-active" : ""}`}
+                  onClick={() => setShowCodePreview(false)}
+                  aria-label="Code view"
+                >
+                  <Code2 size={13} /> Code
+                </button>
+
+                <button
                   className="copy-code-btn"
                   onClick={handleCopyCode}
                   title="Copy snippet"
@@ -661,9 +678,16 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <pre className="playground-code">
-                <code>{codeSnippets[activeCodeLang]}</code>
-              </pre>
+              {showCodePreview ? (
+                <div className="code-preview-shell">
+                  <div className="code-preview-toolbar"><span className="live-status-dot" /> Live rendered website</div>
+                  <iframe title="Rendered website preview" className="code-preview-frame" srcDoc={previewHtml} sandbox="allow-scripts" />
+                </div>
+              ) : (
+                <pre className="playground-code">
+                  <code>{codeSnippets[activeCodeLang]}</code>
+                </pre>
+              )}
             </div>
           </article>
         </div>
