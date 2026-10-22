@@ -618,8 +618,11 @@ const BRANDFETCH_DOMAINS: Record<string, string> = {
 };
 
 function brandfetchDomain(name: string) {
-  const lower = name.toLowerCase().replaceAll(" ", "-");
-  return Object.entries(BRANDFETCH_DOMAINS).find(([key]) => lower === key || lower.includes(key))?.[1];
+  const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return Object.entries(BRANDFETCH_DOMAINS).find(([key]) => {
+    const normalizedKey = key.replace(/[^a-z0-9]/g, "");
+    return normalizedName === normalizedKey || normalizedName.includes(normalizedKey);
+  })?.[1];
 }
 
 function BrandfetchIcon({ name, size, className }: { name: string; size: number; className: string }) {
