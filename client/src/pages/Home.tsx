@@ -22,6 +22,7 @@ import {
   FolderKanban,
   FolderPlus,
   FolderUp,
+  GitBranch,
   Globe2,
   GraduationCap,
   ImageIcon,
@@ -93,6 +94,7 @@ import {
 import { Users, Share2 } from "lucide-react";
 import { renderBrandIcon } from "@/components/ProviderIcons";
 import InstallAppBanner from "@/components/InstallAppBanner";
+import { createConversationBranch, formatConversationHistory } from "@/lib/chatBranches";
 
 type Page =
   | "chat"
@@ -131,7 +133,7 @@ type Message = {
 
 const estimateTokens = (c: string) => Math.max(1, Math.ceil(c.length / 4));
 
-type Chat = { id: number; title: string; period: string; messages: Message[] };
+type Chat = { id: number; title: string; period: string; messages: Message[]; parentConversationId?: string; branchedFromMessageId?: string };
 
 const toolConfigs: Array<{ label: ToolKey; icon: typeof Globe2; hint: string }> = [
   { label: "Web Search", icon: Globe2, hint: "Search the web" },
@@ -312,6 +314,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   // Confirmatory Delete Chat Modal
   const [deleteChatId, setDeleteChatId] = useState<number | null>(null);
+  const [branchTarget, setBranchTarget] = useState<{ chatId: number; messageId: string } | null>(null);
 
   // SpeechSynthesis active message & audio player state
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
@@ -522,6 +525,37 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     if (window.innerWidth < 860) setSidebarOpen(false);
   };
 
+  const createBranchFromMessage = () => {
+    if (!branchTarget) return;
+    const sourceChat = chats.find(chat => chat.id === branchTarget.chatId);
+    if (!sourceChat) {
+      setBranchTarget(null);
+      showToast("This conversation is no longer available.");
+      return;
+    }
+    const branchId = Math.max(Date.now(), ...chats.map(chat => chat.id + 1));
+    const branch = createConversationBranch(sourceChat, branchTarget.messageId, branchId);
+    if (!branch) {
+      setBranchTarget(null);
+      showToast("That reply is no longer available to branch from.");
+      return;
+    }
+    setChats(current => [branch, ...current]);
+    setActiveChatId(branch.id);
+    setCurrentPage("chat");
+    setComposer("");
+    setShowSuggestedPrompts(false);
+    setBranchTarget(null);
+    if (window.innerWidth < 860) setSidebarOpen(false);
+    if (user?.uid) {
+      void saveUserConversation({ ...branch, id: String(branch.id) }).catch(error => {
+        console.error("Could not sync branched conversation:", error);
+        showToast("Branch created here, but cloud sync failed. Check your connection.");
+      });
+    }
+    showToast("New branch created with the conversation history. The original is unchanged.");
+  };
+
   const toggleTool = (tool: ToolKey) => {
     setSelectedTools(current => current.includes(tool) ? current.filter(t => t !== tool) : [...current, tool]);
   };
@@ -536,10 +570,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
     const chat = chats.find(item => item.id === chatId);
     if (!chat) return;
-    const history = chat.messages
-      .slice(-10)
-      .map(message => `${message.role === "user" ? "User" : "Hanna"}: ${message.content}`)
-      .join("\n\n");
+    const history = formatConversationHistory(chat.messages) ?? "No earlier messages.";
     const verifiedData = resolution.data === undefined ? "" : `\nReturned data:\n${JSON.stringify(resolution.data).slice(0, 12000)}`;
     const verifiedResult = `${resolution.summary || `Verified ${resolution.connector} result for ${resolution.action}.`}${verifiedData}`;
     setIsThinking(true);
@@ -778,13 +809,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
         : "";
       const fullPrompt = `${projectCtx}${toolsCtx}${attachmentContext}\n\n${contentWithAttachments}`;
 
-      const historyContext = currentChat.messages
-        .slice(-10)
-        .map(m => `${m.role === "user" ? "User" : "Hanna"}: ${m.content}`)
-        .join("\n\n");
-      const combinedContext = historyContext
-        ? `[Conversation History from Beginning]\n${historyContext}`
-        : undefined;
+      const combinedContext = formatConversationHistory(currentChat.messages);
 
       // Placeholder assistant message for streaming response
       const assistantMessageId = `${chatId}-assistant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -872,6 +897,7 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
     taskStartTimeRef.current = Date.now();
     try {
       const reply = await chatWorkflow.submitPrompt(userMessage.content, {
+        context: formatConversationHistory(messages.slice(0, assistantIndex)),
         model: model === "Custom" ? "custom" : model,
         agenticMode,
         studyMode: selectedTools.includes("Study") || studyMode,
@@ -1279,6 +1305,15 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                             aria-label="Copy response"
                           >
                             <Copy size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBranchTarget({ chatId: activeChat.id, messageId: message.id })}
+                            style={{ display: "inline-flex", alignItems: "center", background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "2px 4px" }}
+                            title="Branch from this reply"
+                            aria-label="Branch from this reply"
+                          >
+                            <GitBranch size={15} />
                           </button>
                           <button
                             type="button"
@@ -1775,6 +1810,32 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
               <Button variant="outline" onClick={() => setDeleteChatId(null)}>Cancel</Button>
               <Button onClick={() => executeDeleteChat(deleteChatId)} style={{ background: "#ea4335", color: "#ffffff", fontWeight: "600" }}>Delete Chat</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {branchTarget && (
+        <div className="modal-overlay" onClick={() => setBranchTarget(null)}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="branch-dialog-title" style={{ maxWidth: "440px", textAlign: "center", padding: "28px 24px" }} onClick={event => event.stopPropagation()}>
+            <button type="button" onClick={() => setBranchTarget(null)} aria-label="Close branch dialog" style={{ display: "flex", margin: "-12px 0 18px auto", background: "transparent", border: "none", color: "var(--text-tertiary)", cursor: "pointer", padding: "4px" }}>
+              <X size={18} />
+            </button>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "56px", height: "56px", borderRadius: "16px", background: "var(--surface-raised)", color: "var(--gemini-accent)", marginBottom: "14px" }}>
+              <GitBranch size={30} />
+            </div>
+            <h3 id="branch-dialog-title" style={{ margin: "0 0 8px", fontSize: "20px", fontWeight: "700", color: "var(--text-primary)" }}>
+              Want a different direction?
+            </h3>
+            <p style={{ margin: "0 0 22px", fontSize: "13px", lineHeight: "1.55", color: "var(--text-secondary)" }}>
+              Branch from here to explore an alternative. Hanna will get the full chat history up to this reply, and your original conversation stays untouched.
+            </p>
+            <div style={{ display: "grid", gap: "8px" }}>
+              <Button onClick={createBranchFromMessage} style={{ background: "var(--gemini-accent)", color: "#ffffff", width: "100%" }}>
+                Try branch now
+              </Button>
+              <Button variant="outline" onClick={() => setBranchTarget(null)} style={{ width: "100%" }}>
+                Got it
+              </Button>
             </div>
           </div>
         </div>

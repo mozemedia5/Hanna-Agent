@@ -23,6 +23,8 @@ export type ClientConversation = {
   messages: ClientMessage[];
   createdAt?: string;
   updatedAt?: string;
+  parentConversationId?: string;
+  branchedFromMessageId?: string;
 };
 export type ClientProfile = {
   displayName: string;
