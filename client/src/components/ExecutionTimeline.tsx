@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Check,
   CheckCircle2,
-  ChevronDown,
-  Circle,
   Code2,
   FileSearch,
   Globe,
@@ -69,7 +67,6 @@ export function ExecutionTimeline({
   toolLogs = [],
   durationSeconds,
 }: Props) {
-  const [open, setOpen] = useState(true);
   const events = [
     ...steps.map((label, index) => ({
       id: `plan-${index}`,
@@ -99,91 +96,26 @@ export function ExecutionTimeline({
           : "",
     })),
   ];
-  const currentLabel =
-    [...events].reverse().find(event => event.status === "running")?.label ||
-    (isWorking ? statusText : "Task complete");
+  const currentEvent = [...events].reverse().find(event => event.status === "running") || [...events].reverse()[0];
+  const currentLabel = isWorking
+    ? currentEvent?.label || statusText
+    : currentEvent?.status === "completed"
+      ? `${currentEvent.label} completed`
+      : statusText;
 
   return (
-    <section
-      className="execution-timeline"
-      aria-label="Agent execution activity"
-    >
-      <button
-        className="execution-timeline-toggle"
-        type="button"
-        onClick={() => setOpen(value => !value)}
-        aria-expanded={open}
-      >
-        <span
-          className={`execution-live-mark ${isWorking ? "is-working" : "is-done"}`}
-        >
-          {isWorking ? (
-            eventIcon(currentLabel, "running")
-          ) : (
-            <CheckCircle2 size={16} />
-          )}
+    <section className="execution-timeline" aria-label="Agent execution activity">
+      <div className="execution-timeline-toggle" role="status">
+        <span className={`execution-live-mark ${isWorking ? "is-working" : "is-done"}`}>
+          {eventIcon(currentLabel, isWorking ? "running" : "completed")}
         </span>
-        <span
-          className={`execution-current-label ${isWorking ? "is-shimmering" : ""}`}
-        >
-          {isWorking ? statusText : "Work completed"}
+        <span className={`execution-current-label ${isWorking ? "is-shimmering" : ""}`}>
+          {currentLabel}
         </span>
         {!isWorking && durationSeconds !== undefined && (
-          <span className="execution-duration">
-            {durationSeconds.toFixed(1)}s
-          </span>
+          <span className="execution-duration">{durationSeconds.toFixed(1)}s</span>
         )}
-        <ChevronDown
-          size={16}
-          className={`execution-chevron ${open ? "is-open" : ""}`}
-        />
-      </button>
-      {open && (
-        <div className="execution-event-list">
-          {events.length === 0 ? (
-            <div className="execution-event is-active">
-              <span className="execution-event-icon">
-                {eventIcon(statusText, "running")}
-              </span>
-              <span className={isWorking ? "is-shimmering" : ""}>
-                {statusText}
-              </span>
-            </div>
-          ) : (
-            events.map(event => (
-              <div
-                className={`execution-event ${event.status === "running" ? "is-active" : ""}`}
-                key={event.id}
-              >
-                <span
-                  className={`execution-event-icon ${event.status === "completed" ? "is-complete" : ""}`}
-                >
-                  {eventIcon(event.label, event.status)}
-                </span>
-                <span
-                  className={`execution-event-label ${event.status === "running" ? "is-shimmering" : ""}`}
-                >
-                  {event.label}
-                </span>
-                {event.detail && (
-                  <span className="execution-event-detail">{event.detail}</span>
-                )}
-              </div>
-            ))
-          )}
-          {steps.length === 0 &&
-            trace.length === 0 &&
-            toolLogs.length === 0 &&
-            !isWorking && (
-              <div className="execution-event">
-                <span className="execution-event-icon">
-                  <Circle size={14} />
-                </span>
-                <span>Response ready</span>
-              </div>
-            )}
-        </div>
-      )}
+      </div>
     </section>
   );
 }

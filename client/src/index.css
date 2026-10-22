@@ -4721,6 +4721,19 @@ body:has(.auth-loading) {
   color: var(--ink);
   border-color: var(--border-strong);
 }
+.integration-card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.integration-card-status.is-connected { color: #67c587; }
+html.dark .integration-card-status { color: var(--text-secondary); }
+html.dark .integration-card-status.is-connected { color: #8fdaa4; }
 
 /* Collections Page */
 .collections-stats {

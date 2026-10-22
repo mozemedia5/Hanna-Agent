@@ -352,18 +352,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const thinkingAction = useMemo(() => {
     if (chatWorkflow.toolLogs.length > 0) {
       const last = chatWorkflow.toolLogs[chatWorkflow.toolLogs.length - 1];
-      const conn = last.connector.toLowerCase();
-      if (conn.includes("gmail")) return "Visiting Gmail and available tools...";
-      if (conn.includes("heygen")) return "Connecting to HeyGen and tools...";
-      if (conn.includes("shopify")) return "Analyzing Shopify store data now...";
-      return `Executing ${last.connector} ${last.action}...`;
+      const action = last.action.replaceAll("_", " ");
+      return `Using ${last.connector} · ${action}`;
     }
-    if (chatWorkflow.status === "executing_route_b") return "Searching web and workspace tools...";
-    if (chatWorkflow.status === "pivoted_to_route_b") return "Searching web and workspace tools...";
-    if (chatWorkflow.status === "streaming_route_a") return "Synthesizing response from tools...";
-    if (selectedTools.includes("Web Search") || webSearchMode) return "Searching web for available context...";
-    if (selectedTools.includes("Deep Research") || deepThinkMode) return "Performing deep research and analysis...";
-    return "Analyzing query & workspace context...";
+    if (chatWorkflow.status === "executing_route_b" || chatWorkflow.status === "pivoted_to_route_b") return "Using Web Search";
+    if (chatWorkflow.status === "streaming_route_a") return "Using connected tools";
+    if (selectedTools.includes("Web Search") || webSearchMode) return "Using Web Search";
+    if (selectedTools.includes("Deep Research") || deepThinkMode) return "Using Deep Research";
+    return "Preparing response";
   }, [chatWorkflow.status, chatWorkflow.toolLogs, selectedTools, webSearchMode, deepThinkMode]);
 
   useEffect(() => {
@@ -864,7 +860,6 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const sidebarNav = [
     { icon: Plus, label: "New task", action: createChat, page: "chat" as Page },
-    { icon: Bot, label: "Manus AI Mode", page: "manus" as Page },
     { icon: FolderUp, label: "Files", page: "files" as Page },
     { icon: Calendar, label: "Schedule Task", page: "schedule" as Page },
     { icon: FolderKanban, label: "Projects", page: "projects" as Page },
@@ -1140,9 +1135,14 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                         </div>
                       )}
 
-                      {message.role === "assistant" && (isStreamingThisMsg || message.workedForSeconds !== undefined) && (
+                      {message.role === "assistant" && (
+                        isStreamingThisMsg ||
+                        (message.toolLogs?.length ?? 0) > 0 ||
+                        (message.planSteps?.length ?? 0) > 0 ||
+                        (message.executionTrace?.length ?? 0) > 0
+                      ) && (
                         <ExecutionTimeline
-                          statusText={isStreamingThisMsg ? thinkingAction : "Work completed"}
+                          statusText={isStreamingThisMsg ? thinkingAction : "Response ready"}
                           isWorking={Boolean(isStreamingThisMsg)}
                           steps={isStreamingThisMsg ? chatWorkflow.plan?.steps : message.planSteps}
                           trace={isStreamingThisMsg ? chatWorkflow.trace : message.executionTrace}

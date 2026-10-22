@@ -413,7 +413,7 @@ export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageP
             transition: "all 0.15s ease",
           }}
         >
-          All Plugins ({integrations.length})
+          All Plugins
         </button>
         <button
           type="button"
@@ -433,7 +433,7 @@ export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageP
             transition: "all 0.15s ease",
           }}
         >
-          <Check size={14} /> Connected Plugins ({connected.length})
+          <Check size={14} /> Connected Plugins
         </button>
       </div>
 
@@ -469,16 +469,7 @@ export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageP
                   <strong>{integration.name}</strong>
                   <span>{integration.description}</span>
                 </div>
-                <button
-                  className="integration-card-action is-connected"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    tryConnector(integration);
-                  }}
-                  aria-label={`Try out ${integration.name}`}
-                >
-                  <Zap size={13} /> Try it out
-                </button>
+                <span className="integration-card-status is-connected"><Check size={13} /> Connected</span>
               </div>
             ))}
           {connected.length === 0 && (
@@ -510,28 +501,9 @@ export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageP
                   <strong>{integration.name}</strong>
                   <span>{integration.description}</span>
                 </div>
-                {isConnected ? (
-                  <button
-                    className="integration-card-action is-connected"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      tryConnector(integration);
-                    }}
-                    aria-label={`Try out ${integration.name}`}
-                  >
-                    Try it out
-                  </button>
-                ) : (
-                  <button
-                    className="integration-card-action"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleConnect(integration);
-                    }}
-                  >
-                    Connect
-                  </button>
-                )}
+                <span className={`integration-card-status ${isConnected ? "is-connected" : ""}`}>
+                  {isConnected ? <><Check size={13} /> Connected</> : "Not connected"}
+                </span>
               </div>
             );
           })}
@@ -562,27 +534,9 @@ export default function IntegrationsPage({ onBack, onTryOut }: IntegrationsPageP
                         <strong>{integration.name}</strong>
                         <span>{integration.description}</span>
                       </div>
-                      {isConnected ? (
-                        <button
-                          className="integration-card-action is-connected"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDisconnect(integration.id, integration.name);
-                          }}
-                        >
-                          <Check size={13} /> Connected
-                        </button>
-                      ) : (
-                        <button
-                          className="integration-card-action"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleConnect(integration);
-                          }}
-                        >
-                          Connect
-                        </button>
-                      )}
+                      <span className={`integration-card-status ${isConnected ? "is-connected" : ""}`}>
+                        {isConnected ? <><Check size={13} /> Connected</> : "Not connected"}
+                      </span>
                     </div>
                   );
                 })}

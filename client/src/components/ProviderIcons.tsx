@@ -602,7 +602,59 @@ export function BeaconsIcon({ size = 20, className = "" }: IconProps) {
 // renderBrandIcon — lookup for all connectors
 // ──────────────────────────────────────────
 
-export function renderBrandIcon(
+const BRANDFETCH_DOMAINS: Record<string, string> = {
+  shopify: "shopify.com", woocommerce: "woocommerce.com", beacons: "beacons.ai", creatify: "creatify.ai", invideo: "invideo.io",
+  cjdropshipping: "cjdropshipping.com", autods: "autods.com", zendrop: "zendrop.com", takeapp: "take.app", heygen: "heygen.com",
+  synthesia: "synthesia.io", elevenlabs: "elevenlabs.io", jules: "jules.google", stitch: "stitch.withgoogle.com", v0: "v0.dev", lovable: "lovable.dev",
+  tiktok: "tiktok.com", instagram: "instagram.com", youtube: "youtube.com", pinterest: "pinterest.com", linktree: "linktr.ee", whatsapp: "whatsapp.com",
+  slack: "slack.com", github: "github.com", vercel: "vercel.com", "google-workspace": "google.com", "google-drive": "drive.google.com", "google-docs": "docs.google.com",
+  "google-sheets": "sheets.google.com", "google-slides": "slides.google.com", gmail: "gmail.com", "google-calendar": "calendar.google.com", "google-maps": "maps.google.com",
+  openai: "openai.com", anthropic: "anthropic.com", gemini: "gemini.google.com", "meta-ads": "facebook.com", "google-ads": "ads.google.com",
+  hubspot: "hubspot.com", mailchimp: "mailchimp.com", stripe: "stripe.com", notion: "notion.so", airtable: "airtable.com", intercom: "intercom.com", jira: "atlassian.com",
+  zendesk: "zendesk.com", salesforce: "salesforce.com", quickbooks: "quickbooks.intuit.com", twilio: "twilio.com", zapier: "zapier.com", asana: "asana.com", canva: "canva.com",
+  clickup: "clickup.com", cloudflare: "cloudflare.com", dropbox: "dropbox.com", firecrawl: "firecrawl.dev", huggingface: "huggingface.co", linear: "linear.app", make: "make.com",
+  metabase: "metabase.com", openrouter: "openrouter.ai", paypal: "paypal.com", perplexity: "perplexity.ai", posthog: "posthog.com", supabase: "supabase.com", todoist: "todoist.com",
+  trello: "trello.com", webflow: "webflow.com", wordpress: "wordpress.org", xero: "xero.com", zoom: "zoom.us", monday: "monday.com", n8n: "n8n.io", apify: "apify.com", klaviyo: "klaviyo.com", typeform: "typeform.com",
+};
+
+function brandfetchDomain(name: string) {
+  const lower = name.toLowerCase().replaceAll(" ", "-");
+  return Object.entries(BRANDFETCH_DOMAINS).find(([key]) => lower === key || lower.includes(key))?.[1];
+}
+
+function BrandfetchIcon({ name, size, className }: { name: string; size: number; className: string }) {
+  const domain = brandfetchDomain(name);
+  if (!domain) return renderLocalBrandIcon(name, size, className);
+  return (
+    <img
+      src={`https://cdn.brandfetch.io/domain/${domain}/fallback/lettermark/theme/light/h/64/w/64/icon`}
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      className={`connector-asset-icon brandfetch-icon ${className}`}
+      onError={event => {
+        event.currentTarget.style.display = "none";
+        const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+        if (fallback) fallback.style.display = "inline-flex";
+      }}
+    />
+  );
+}
+
+export function renderBrandIcon(name: string, size = 18, className = ""): React.ReactElement {
+  const domain = brandfetchDomain(name);
+  if (!domain) return renderLocalBrandIcon(name, size, className);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      <BrandfetchIcon name={name} size={size} className={className} />
+      <span style={{ display: "none" }}>{renderLocalBrandIcon(name, size, className)}</span>
+    </span>
+  );
+}
+function renderLocalBrandIcon(
   name: string,
   size = 18,
   className = ""

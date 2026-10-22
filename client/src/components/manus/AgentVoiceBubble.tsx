@@ -65,7 +65,7 @@ export function AgentVoiceBubble({
                 marginBottom: "2px",
               }}
             >
-              {isComplete ? "Task Complete" : stepProgressText}
+              {isComplete ? "Response ready" : stepProgressText}
             </span>
           )}
           <p

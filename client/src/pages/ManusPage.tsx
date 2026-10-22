@@ -144,8 +144,8 @@ export default function ManusPage({ onBack }: { onBack?: () => void }) {
         );
         setIsExecuting(false);
         setIsCompleted(true);
-        setVoiceStatus("Task Complete. I have compiled the final spreadsheet and executive analysis below.");
-        setStepProgress("Complete");
+        setVoiceStatus("Response ready");
+        setStepProgress("Ready");
 
         setFinalMarkdownResult(`### Autonomous Agent Execution Summary
 
@@ -273,7 +273,7 @@ export default function ManusPage({ onBack }: { onBack?: () => void }) {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", color: "#34A853" }}>
               <CheckCircle2 size={20} />
-              <strong style={{ fontSize: "16px" }}>Final Result Delivered</strong>
+              <strong style={{ fontSize: "16px" }}>Response ready</strong>
             </div>
             <MarkdownMessage content={finalMarkdownResult} />
           </div>
