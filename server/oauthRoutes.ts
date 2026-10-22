@@ -1,8 +1,21 @@
 import crypto from "node:crypto";
 import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { parseAndVerifyFirebaseToken } from "./_core/context";
-import { saveConnectorCredential } from "./connectorDb";
+import { getConnectorCredential, saveConnectorCredential } from "./connectorDb";
 import { resolveCanonicalUserId } from "./userResolver";
+
+const GOOGLE_OAUTH_SCOPES = [
+  "openid",
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/drive.readonly",
+  "https://www.googleapis.com/auth/documents.readonly",
+  "https://www.googleapis.com/auth/spreadsheets.readonly",
+  "https://www.googleapis.com/auth/presentations.readonly",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/calendar.events",
+];
 
 function stateSecret() {
   const secret = process.env.OAUTH_STATE_SECRET || process.env.CREDENTIAL_ENCRYPTION_KEY;
@@ -124,18 +137,7 @@ export async function handleGoogleOAuthAuthorize(req: ExpressRequest, res: Expre
   const redirectUri = getCanonicalGoogleRedirectUri();
   const state = generateOAuthState(canonicalUserId, "google");
 
-  const scope = [
-    "openid",
-    "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/drive.readonly",
-    "https://www.googleapis.com/auth/documents.readonly",
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/presentations.readonly",
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/calendar.events",
-  ].join(" ");
+  const scope = GOOGLE_OAUTH_SCOPES.join(" ");
 
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authUrl.searchParams.set("client_id", clientId);
@@ -262,11 +264,26 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
       "google-slides",
       "google-calendar",
     ] as const;
+    // Google commonly omits refresh_token on subsequent consents. Keep the existing
+    // server-side refresh token only when the verified Google account is unchanged.
+    const existingWorkspaceCredential = await getConnectorCredential(canonicalUserId, "google-workspace");
+    const previousAccountMatches = Boolean(existingWorkspaceCredential && (
+      (googleSub && existingWorkspaceCredential.values.google_user_id === googleSub) ||
+      (googleEmail && existingWorkspaceCredential.values.account?.toLowerCase() === googleEmail.toLowerCase())
+    ));
+    const effectiveRefreshToken = refreshToken || (previousAccountMatches ? existingWorkspaceCredential?.values.refresh_token : "") || "";
 
-    const grantedScopes = new Set(String(tokenData.scope || "").split(/\s+/).filter(Boolean));
+    // OAuth 2.0 permits the token response to omit `scope` when it matches the
+    // requested set. Treat omission as the requested set, not as zero grants.
+    const grantedScopeValue = typeof tokenData.scope === "string" && tokenData.scope.trim()
+      ? tokenData.scope
+      : GOOGLE_OAUTH_SCOPES.join(" ");
+    const grantedScopes = new Set(grantedScopeValue.split(/\s+/).filter(Boolean));
     const requiredScopes: Record<(typeof googleConnectors)[number], string[]> = {
       "google-workspace": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/documents.readonly", "https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/presentations.readonly", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/calendar.events"],
-      "gmail": ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
+      // Gmail search/read should be enabled with the least-privilege readonly scope.
+      // Sending remains a separate, explicitly approved action and may require gmail.send.
+      "gmail": ["https://www.googleapis.com/auth/gmail.readonly"],
       "google-drive": ["https://www.googleapis.com/auth/drive.readonly"],
       "google-docs": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/documents.readonly"],
       "google-sheets": ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/spreadsheets.readonly"],
@@ -281,13 +298,13 @@ export async function handleGoogleOAuthCallback(req: ExpressRequest, res: Expres
         : required.every(scope => grantedScopes.has(scope));
       await saveConnectorCredential(canonicalUserId, connectorId, {
         access_token: accessToken,
-        refresh_token: refreshToken,
+        refresh_token: effectiveRefreshToken,
         token_type: tokenData.token_type || "Bearer",
         expires_in: String(tokenData.expires_in || 3600),
         obtained_at: String(Date.now()),
         account: googleEmail || "authorized_google_account",
         google_user_id: googleSub,
-        granted_scopes: String(tokenData.scope || ""),
+        granted_scopes: grantedScopeValue,
         is_connected: String(connected),
         verified: String(connected),
         last_verified_at: nowIso,

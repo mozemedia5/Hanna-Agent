@@ -264,16 +264,16 @@ export function useChatWorkflow() {
                 setState(prev => ({
                   ...prev,
                   toolLogs: prev.toolLogs.map(log => {
-                    if (log.connector === data.connector && log.action === data.action && log.status !== "completed") {
+                    if (log.connector === data.connector && log.action === data.action && log.status === "running") {
                       const endTime = data.endTime || Date.now();
                       const start = log.startTime || endTime - 800;
                       const duration = Math.max(0.1, Number(((endTime - start) / 1000).toFixed(1)));
                       return {
                         ...log,
-                        result: data.result,
+                        result: data.status === "error" ? { error: data.error || "Tool execution failed." } : data.result,
                         endTime,
                         durationSeconds: duration,
-                        status: "completed",
+                        status: data.status === "error" ? "error" : "completed",
                       };
                     }
                     return log;

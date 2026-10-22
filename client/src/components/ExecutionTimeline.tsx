@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { AgentTraceItem, ToolLogItem } from "@/hooks/useChatWorkflow";
+import { renderBrandIcon } from "@/components/ProviderIcons";
 
 type Props = {
   statusText: string;
@@ -102,12 +103,15 @@ export function ExecutionTimeline({
     : currentEvent?.status === "completed"
       ? `${currentEvent.label} completed`
       : statusText;
+  const latestTool = [...toolLogs].reverse()[0];
 
   return (
     <section className="execution-timeline" aria-label="Agent execution activity">
       <div className="execution-timeline-toggle" role="status">
         <span className={`execution-live-mark ${isWorking ? "is-working" : "is-done"}`}>
-          {eventIcon(currentLabel, isWorking ? "running" : "completed")}
+          {latestTool
+            ? renderBrandIcon(latestTool.connector, 16)
+            : eventIcon(currentLabel, isWorking ? "running" : "completed")}
         </span>
         <span className={`execution-current-label ${isWorking ? "is-shimmering" : ""}`}>
           {currentLabel}
