@@ -25,6 +25,8 @@ export type StoredFileItem = {
   id: string;
   type: "image" | "video" | "audio" | "pdf" | "doc" | "other";
   url: string;
+  publicId?: string;
+  resourceType?: "image" | "video" | "raw";
   dataUrl?: string;
   size: string;
   uploadedAt: string;
@@ -146,6 +148,8 @@ export default function FilesPage({ onBack }: FilesPageProps) {
 
           // Upload server side to Cloudinary if available
           let finalUrl = dataUrl;
+          let publicId: string | undefined;
+          let resourceType: StoredFileItem["resourceType"];
           try {
             const res = await fetch("/api/upload", {
               method: "POST",
@@ -155,6 +159,8 @@ export default function FilesPage({ onBack }: FilesPageProps) {
             if (res.ok) {
               const data = await res.json();
               if (data.url) finalUrl = data.url;
+              publicId = data.public_id;
+              resourceType = data.resource_type;
             }
           } catch {
             // Fallback to dataUrl
@@ -167,6 +173,8 @@ export default function FilesPage({ onBack }: FilesPageProps) {
             id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
             type: kind,
             url: finalUrl,
+            publicId,
+            resourceType,
             dataUrl,
             size: sizeStr,
             uploadedAt: formattedTime,
@@ -187,7 +195,21 @@ export default function FilesPage({ onBack }: FilesPageProps) {
     }
   };
 
-  const handleDeleteFile = (id: string) => {
+  const handleDeleteFile = async (id: string) => {
+    const target = files.find(file => file.id === id);
+    if (target?.publicId) {
+      try {
+        const response = await fetch("/api/upload", {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ public_id: target.publicId, resource_type: target.resourceType || "image" }),
+        });
+        if (!response.ok) throw new Error("Cloudinary deletion failed");
+      } catch {
+        showToast("The cloud copy could not be deleted. The local file was kept.");
+        return;
+      }
+    }
     const updated = files.filter((f) => f.id !== id);
     setFiles(updated);
     saveStoredFiles(updated);

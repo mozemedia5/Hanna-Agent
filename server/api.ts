@@ -188,12 +188,35 @@ app.post(["/api/upload", "/upload"], async (req, res) => {
     return res.json({
       url: resultData.secure_url || resultData.url,
       public_id: resultData.public_id,
+      resource_type: resultData.resource_type,
       format: resultData.format,
       bytes: resultData.bytes,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Cloudinary upload failed";
     return res.status(500).json({ error: msg });
+  }
+});
+
+app.delete(["/api/upload", "/upload"], async (req, res) => {
+  try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const { public_id: publicId, resource_type: resourceType = "image" } = req.body || {};
+    if (!cloudName || !apiKey || !apiSecret) return res.status(500).json({ error: "Cloudinary credentials are not configured." });
+    if (typeof publicId !== "string" || !publicId.trim()) return res.status(400).json({ error: "A Cloudinary public_id is required." });
+    if (!["image", "video", "raw"].includes(resourceType)) return res.status(400).json({ error: "Unsupported Cloudinary resource type." });
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const signature = crypto.createHash("sha1").update(`invalidate=true&public_id=${publicId.trim()}&timestamp=${timestamp}${apiSecret}`).digest("hex");
+    const formData = new URLSearchParams({ public_id: publicId.trim(), api_key: apiKey, timestamp: String(timestamp), invalidate: "true", signature });
+    const cloudinaryRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, { method: "POST", body: formData });
+    const result = await cloudinaryRes.json().catch(() => ({}));
+    if (!cloudinaryRes.ok || (result.result !== "ok" && result.result !== "not found")) return res.status(cloudinaryRes.ok ? 502 : cloudinaryRes.status).json({ error: "Cloudinary could not remove the asset." });
+    return res.json({ deleted: true, result: result.result });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : "Cloudinary deletion failed" });
   }
 });
 

@@ -5,13 +5,16 @@ import { trpc } from "@/lib/trpc";
 import type { ApprovalRequest } from "@/hooks/useChatWorkflow";
 
 type ApprovalDecision = "once" | "always" | "deny";
-type Props = { request: ApprovalRequest };
+type Props = {
+  request: ApprovalRequest;
+  onResolved?: (resolution: any) => void;
+};
 
 function readableAction(action: string) {
   return action.replaceAll("_", " ").replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
-export default function PermissionApprovalCard({ request }: Props) {
+export default function PermissionApprovalCard({ request, onResolved }: Props) {
   const [showDetails, setShowDetails] = useState(false);
   const [resolution, setResolution] = useState<any>(null);
   const [failure, setFailure] = useState("");
@@ -26,6 +29,7 @@ export default function PermissionApprovalCard({ request }: Props) {
         decision,
       });
       setResolution(result);
+      onResolved?.(result);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "The approval request could not be completed.");
       setResolution({ status: "uncertain" });

@@ -5506,9 +5506,20 @@ html.dark .integration-card-status.is-connected { color: #8fdaa4; }
 }
 
 /* Actionable permission approval sheet (backed by a real connector request). */
+.permission-request-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, #000 42%, transparent);
+  backdrop-filter: blur(5px);
+}
 .permission-approval-card {
   width: min(100%, 560px);
-  margin: 18px 0 24px 42px;
+  margin: 0;
   padding: 24px 20px 18px;
   border: 1px solid var(--border);
   border-radius: 24px;
@@ -5619,7 +5630,8 @@ html.dark .integration-card-status.is-connected { color: #8fdaa4; }
 .permission-approval-live-data summary { cursor: pointer; font-weight: 600; }
 .permission-approval-live-data pre { margin: 10px 0 0; }
 @media (max-width: 600px) {
-  .permission-approval-card { width: 100%; margin: 14px 0 20px; padding: 22px 16px 16px; border-radius: 22px; }
+  .permission-request-overlay { align-items: flex-end; padding: 12px; }
+  .permission-approval-card { width: 100%; padding: 22px 16px 16px; border-radius: 22px; }
   .permission-approval-button { min-height: 50px; font-size: 15px; }
 }
 

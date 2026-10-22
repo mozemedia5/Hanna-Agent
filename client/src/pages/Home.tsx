@@ -144,7 +144,7 @@ const toolConfigs: Array<{ label: ToolKey; icon: typeof Globe2; hint: string }> 
 
 export type UploadedFile = {
   id: string; name: string; type: "image" | "pdf" | "video" | "other";
-  url: string; dataUrl?: string; size: number;
+  url: string; dataUrl?: string; size: number; publicId?: string; resourceType?: "image" | "video" | "raw";
 };
 
 const seedChats: Chat[] = [
@@ -347,6 +347,16 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
   const chatWorkflowRef = useRef(chatWorkflow);
   chatWorkflowRef.current = chatWorkflow;
   const taskStartTimeRef = useRef<number>(Date.now());
+  const approvalChatIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (chatWorkflow.approvalRequest) approvalChatIdRef.current = activeChatId;
+  }, [activeChatId, chatWorkflow.approvalRequest]);
+
+  useEffect(() => {
+    chatWorkflow.resetWorkflow();
+    approvalChatIdRef.current = null;
+  }, [activeChatId, chatWorkflow.resetWorkflow]);
 
   // Dynamic ~5-word status messages when AI is working
   const thinkingAction = useMemo(() => {
@@ -518,6 +528,61 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
 
   const removeAttachment = (id: string) => setAttachments(prev => prev.filter(f => f.id !== id));
 
+  const handleApprovalResolved = async (resolution: any) => {
+    const chatId = approvalChatIdRef.current ?? activeChatIdRef.current;
+    chatWorkflow.clearApprovalRequest();
+    approvalChatIdRef.current = null;
+    if (resolution?.status !== "completed") return;
+
+    const chat = chats.find(item => item.id === chatId);
+    if (!chat) return;
+    const history = chat.messages
+      .slice(-10)
+      .map(message => `${message.role === "user" ? "User" : "Hanna"}: ${message.content}`)
+      .join("\n\n");
+    const verifiedData = resolution.data === undefined ? "" : `\nReturned data:\n${JSON.stringify(resolution.data).slice(0, 12000)}`;
+    const verifiedResult = `${resolution.summary || `Verified ${resolution.connector} result for ${resolution.action}.`}${verifiedData}`;
+    setIsThinking(true);
+    taskStartTimeRef.current = Date.now();
+    try {
+      const reply = await chatWorkflow.submitPrompt(
+        `Continue the user's original request using this verified connector result. Stay strictly on the original question, do not discuss permissions, and do not invent data.\n\nVerified connector result:\n${verifiedResult}`,
+        {
+          context: `[Conversation memory for chat ${chatId}]\n${history}`,
+          model: model === "Custom" ? "custom" : model,
+          agenticMode: true,
+          studyMode: selectedTools.includes("Study") || studyMode,
+        }
+      );
+      if (!reply.trim()) throw new Error(chatWorkflow.error || "Hanna returned an empty response.");
+      if (activeChatIdRef.current !== chatId) return;
+      const elapsed = Math.max(0.2, Number(((Date.now() - taskStartTimeRef.current) / 1000).toFixed(1)));
+      setChats(current => current.map(item => {
+        if (item.id !== chatId) return item;
+        const updated = {
+          ...item,
+          messages: [...item.messages, {
+            id: `${chatId}-approval-followup-${Date.now()}`,
+            role: "assistant" as const,
+            content: reply,
+            tokenCount: estimateTokens(reply),
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            workedForSeconds: elapsed,
+            toolLogs: chatWorkflowRef.current.toolLogs,
+            planSteps: chatWorkflowRef.current.plan?.steps,
+            executionTrace: chatWorkflowRef.current.trace,
+          }],
+        };
+        void saveUserConversation({ ...updated, id: String(updated.id) }).catch(() => undefined);
+        return updated;
+      }));
+    } catch (error) {
+      showToast(`Hanna could not continue: ${error instanceof Error ? error.message : "Please try again."}`);
+    } finally {
+      if (activeChatIdRef.current === chatId) setIsThinking(false);
+    }
+  };
+
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const processFileList = (filesList: FileList | File[]) => {
@@ -566,6 +631,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
             if (data.url) {
               finalUrl = data.url;
               item.url = data.url;
+              item.publicId = data.public_id;
+              item.resourceType = data.resource_type;
               setAttachments(prev => prev.map(f => f.id === fileId ? { ...f, url: data.url } : f));
             }
           }
@@ -584,6 +651,8 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
           id: fileId,
           type: storeKind,
           url: finalUrl,
+          publicId: item.publicId,
+          resourceType: item.resourceType,
           dataUrl: base64Data,
           size: sizeStr,
           uploadedAt: uploadTimestamp,
@@ -1228,11 +1297,12 @@ export default function Home({ user, onLogout }: { user?: User | null; onLogout?
                 );
               })}
               {chatWorkflow.approvalRequest && (
-                <article className="message-row assistant permission-request-row">
-                  <div className="message-body">
-                    <PermissionApprovalCard request={chatWorkflow.approvalRequest} />
-                  </div>
-                </article>
+                <div className="permission-request-overlay" role="dialog" aria-modal="true" aria-label="Connector permission request">
+                  <PermissionApprovalCard
+                    request={chatWorkflow.approvalRequest}
+                    onResolved={handleApprovalResolved}
+                  />
+                </div>
               )}
               {isThinking && !chatWorkflow.streamingText && (
                 <article className="message-row assistant thinking-row">
