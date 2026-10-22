@@ -84,6 +84,23 @@ export function addStoredFiles(newFiles: StoredFileItem[]): void {
   saveStoredFiles(merged);
 }
 
+function cloudinaryAssetFromUrl(url: string): { publicId: string; resourceType: "image" | "video" | "raw" } | null {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.endsWith("cloudinary.com")) return null;
+    const marker = "/upload/";
+    const uploadIndex = parsed.pathname.indexOf(marker);
+    if (uploadIndex < 0) return null;
+    const prefix = parsed.pathname.slice(0, uploadIndex);
+    const resourceType = prefix.includes("/video/") ? "video" : prefix.includes("/raw/") ? "raw" : "image";
+    const path = parsed.pathname.slice(uploadIndex + marker.length).replace(/^v\d+\//, "");
+    const publicId = path.replace(/\.[^/.]+$/, "");
+    return publicId ? { publicId, resourceType } : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function FilesPage({ onBack }: FilesPageProps) {
   const [files, setFiles] = useState<StoredFileItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -197,12 +214,15 @@ export default function FilesPage({ onBack }: FilesPageProps) {
 
   const handleDeleteFile = async (id: string) => {
     const target = files.find(file => file.id === id);
-    if (target?.publicId) {
+    const legacyAsset = target && !target.publicId ? cloudinaryAssetFromUrl(target.url) : null;
+    const publicId = target?.publicId || legacyAsset?.publicId;
+    const resourceType = target?.resourceType || legacyAsset?.resourceType || "image";
+    if (publicId) {
       try {
         const response = await fetch("/api/upload", {
           method: "DELETE",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ public_id: target.publicId, resource_type: target.resourceType || "image" }),
+          body: JSON.stringify({ public_id: publicId, resource_type: resourceType }),
         });
         if (!response.ok) throw new Error("Cloudinary deletion failed");
       } catch {
